@@ -522,6 +522,11 @@ function capPx(value, max) { return value.replace(/(\d+(?:\.\d+)?)px/g, (m, n) =
   };
   syncMotion();
   matchMedia("(prefers-reduced-motion: reduce)").addEventListener?.("change", syncMotion);
+  // the sample tiles are 560px wide and scaled down; scale to the real tile width (phones are narrower)
+  const fitFrames = () => wrap.querySelectorAll(".theme-frame").forEach((f) => {
+    if (f.clientWidth) f.style.setProperty("--s", (f.clientWidth / 560).toFixed(4));
+  });
+  window.addEventListener("resize", () => { if (wrap.classList.contains("open")) fitFrames(); });
   const close = () => { wrap.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); };
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -530,6 +535,7 @@ function capPx(value, max) { return value.replace(/(\d+(?:\.\d+)?)px/g, (m, n) =
     btn.setAttribute("aria-expanded", String(open));
     if (open) {
       syncMotion();
+      fitFrames();
       wrap.querySelectorAll("iframe[data-src]").forEach((f) => { f.src = f.dataset.src; f.removeAttribute("data-src"); });
     }
   });

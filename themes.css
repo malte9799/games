@@ -739,15 +739,15 @@ html.design-pending body { visibility: hidden; }
 }
 .theme-opt:hover, .theme-opt:focus-visible { background: var(--panel-2); }
 .theme-opt[aria-checked="true"] { outline: 2px solid var(--accent); outline-offset: -2px; }
-/* sample tile: theme-sample.html rendered at 560x170 and scaled down */
+/* sample tile: theme-sample.html rendered at 560x213 and scaled to the tile width (--s, set in themes.js) */
 .theme-frame {
-  position: relative; display: block; width: 100%; height: 100px; overflow: hidden;
+  position: relative; display: block; width: 100%; height: calc(213px * var(--s, 0.47)); overflow: hidden;
   border-radius: calc(var(--r-sm) * 0.5); pointer-events: none;
   transition: transform 0.25s var(--ease);
 }
 .theme-frame iframe {
   position: absolute; left: 0; top: 0; width: 560px; height: 213px; border: 0;
-  transform: scale(0.47); transform-origin: 0 0; pointer-events: none; background: transparent;
+  transform: scale(var(--s, 0.47)); transform-origin: 0 0; pointer-events: none; background: transparent;
 }
 .theme-opt:hover .theme-frame, .theme-opt:focus-visible .theme-frame { transform: scale(1.03) rotate(-0.6deg); }
 /* reduce motion: heavy designs are greyed out (the click still asks first) */
