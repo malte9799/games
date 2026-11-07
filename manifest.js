@@ -21,6 +21,7 @@ const GAMES = [
   { id: "blackjack",   title: "Blackjack",     desc: "hit · stand · beat the dealer", preview: drawBlackjack },
   { id: "kniffel",     title: "Kniffel · Yahtzee", desc: "roll · hold · write it down", preview: drawKniffel },
   { id: "kritzel",     title: "Kritzel-Revier",    desc: "kritzle das größte Revier",   preview: drawKritzel },
+  { id: "moerser",     title: "Mörser",           desc: "Wind · Winkel · Weite",        preview: drawMoerser },
 ];
 
 // ---- preview renderers ----
@@ -883,4 +884,94 @@ function drawMaumau(p, w, h) {
   p.push(); p.translate(452, 240); p.rotate(-0.1);
   p.fill(53, 182, 176); p.rect(-42, -14, 84, 28, 14); p.stroke(255); p.strokeWeight(2.5); p.noFill(); p.rect(-42, -14, 84, 28, 14); p.noStroke();
   p.fill(255); p.textStyle(p.BOLD); p.textSize(13); p.text("MAU!", 0, 0.5); p.pop();
+}
+
+// Mörser: a twilight artillery duel — silhouetted hills, a shell mid-arc, a crater blooming
+function drawMoerser(p, w, h) {
+  const SKY = [[10,9,26],[41,26,62],[188,92,82],[58,28,52]];
+  const ROT = [255,92,84], TUR = [86,214,196], GOLD = [255,198,74];
+  const horizon = h * 0.52;
+  // sky gradient
+  for (let i = 0; i < h; i += 2) {
+    const f = i / h;
+    let a = SKY[0], b = SKY[1], t;
+    if (f < 0.45) { a = SKY[0]; b = SKY[1]; t = f / 0.45; }
+    else if (f < 0.72) { a = SKY[1]; b = SKY[2]; t = (f - 0.45) / 0.27; }
+    else { a = SKY[2]; b = SKY[3]; t = (f - 0.72) / 0.28; }
+    p.stroke(a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t);
+    p.line(0, i, w, i + 2);
+  }
+  p.noStroke();
+  // sun + glow
+  for (let k = 9; k >= 1; k--) { p.fill(255,186,120, 4); p.circle(w*0.66, horizon*0.82, 60 + k*26); }
+  p.fill(255,236,205); p.circle(w*0.66, horizon*0.82, 46);
+  p.fill(255,186,120,140); p.circle(w*0.66, horizon*0.82, 62);
+  // stars
+  const rs = (n) => { const x = Math.sin(n*12.9898)*43758.5453; return x - Math.floor(x); };
+  for (let i = 0; i < 40; i++) { p.fill(255,240,220,80); p.circle(rs(i+1)*w, rs(i+51)*h*0.4, 1.6); }
+  // ridge lines
+  const ridge = (base, amp, col, seedn) => {
+    p.fill(...col);
+    p.beginShape(); p.vertex(0, h);
+    for (let x = 0; x <= w; x += 10) p.vertex(x, base - (0.5+0.5*Math.sin(x*0.012 + seedn)) * amp - 0.5*0.5*Math.sin(x*0.03+seedn*2)*amp);
+    p.vertex(w, h); p.endShape(p.CLOSE);
+  };
+  ridge(horizon + 6, 46, [46,36,70], 1.4);
+  ridge(horizon + 26, 36, [32,25,52], 3.1);
+  ridge(horizon + 48, 26, [21,16,37], 5.2);
+  // foreground hill (hand-shaped)
+  const surf = (x) => h - 74 + Math.sin(x * 0.014 + 0.6) * 30 + Math.sin(x * 0.05) * 8;
+  p.fill(15,12,27);
+  p.beginShape(); p.vertex(0, h); p.vertex(0, surf(0));
+  for (let x = 0; x <= w; x += 8) p.vertex(x, surf(x));
+  p.vertex(w, h); p.endShape(p.CLOSE);
+  // rim light
+  p.noFill(); p.stroke(150,150,200,90); p.strokeWeight(2);
+  p.beginShape(); for (let x = 0; x <= w; x += 8) p.vertex(x, surf(x)); p.endShape();
+  p.noStroke();
+  // crater
+  const cx = w * 0.6, cy = surf(cx) + 22;
+  p.fill(8,7,15); p.beginShape();
+  for (let d = -40; d <= 40; d += 4) p.vertex(cx + d, cy - Math.sqrt(Math.max(0, 1600 - d*d)));
+  p.vertex(cx + 40, cy + 70); p.vertex(cx - 40, cy + 70); p.endShape(p.CLOSE);
+  // tanks
+  const tank = (x, rot, col) => {
+    const y = surf(x);
+    p.noStroke(); p.fill(18,15,28); p.rect(x-20, y-24, 40, 24, 8,8,3,3);
+    p.fill(...col); p.rect(x-20, y-22, 40, 5, 4,4,0,0);
+    p.fill(12,10,20); p.rect(x-22, y-8, 44, 8, 4);
+    p.fill(...col); for (let i=-18;i<=18;i+=6) p.circle(x+i, y-4, 3);
+    p.fill(24,20,36); p.ellipse(x, y-24, 22, 12);
+    p.push(); p.translate(x, y-24); p.rotate(rot);
+    p.fill(24,20,36); p.rect(0,-4,32,8,4); p.fill(...col); p.rect(0,-2,30,3,2); p.pop();
+    p.fill(...col); p.circle(x, y-24, 7);
+    p.fill(0,0,0,150); p.rect(x-23, y-40, 46, 7, 3); p.fill(...col); p.rect(x-23, y-40, 46*0.6, 5, 3);
+  };
+  tank(w*0.2, -0.7, ROT);
+  tank(w*0.84, -2.5, TUR);
+  // shell trail arcing toward the crater
+  const sx0 = w*0.2 + 24, sy0 = surf(w*0.2) - 24;
+  p.strokeWeight(2);
+  for (let i = 0; i < 30; i++) {
+    const s = i/30;
+    const x = sx0 + s * (cx - 40 - sx0);
+    const y = sy0 - Math.sin(s * Math.PI) * 110 + s * 30;
+    p.stroke(255,214,168, 200*(1-0.6*s));
+    p.circle(x, y, 3.4);
+  }
+  // explosion at the crater
+  for (let k = 4; k >= 1; k--) { p.fill(255,150,64, 30); p.circle(cx, cy - 26, k*28); }
+  p.fill(255,240,190); p.circle(cx, cy - 26, 22);
+  p.fill(255,255,255,200); p.circle(cx, cy - 26, 9);
+  for (let i = 0; i < 14; i++) { p.fill(255,180,90, 160); p.circle(cx + (rs(i+3)-0.5)*90, cy - 26 + (rs(i+9)-0.5)*70, 3 + rs(i+5)*4); }
+  // wind chip
+  p.fill(8,7,16,190); p.rect(w-104, 14, 90, 30, 8);
+  p.fill(150,200,255); p.stroke(150,200,255); p.strokeWeight(4); p.strokeCap(p.ROUND);
+  p.line(w-92, 29, w-34, 29);
+  p.noStroke(); p.fill(180,220,255); p.triangle(w-34, 29, w-43, 23, w-43, 35);
+  p.fill(255,236,214); p.textStyle(p.BOLD); p.textSize(11); p.textAlign(p.LEFT, p.TOP);
+  p.text("WIND +41", w-100, 48);
+  // title chip
+  p.fill(8,7,16,190); p.rect(14, 14, 116, 30, 8);
+  p.fill(255,186,120); p.textSize(16); p.text("MÖRSER", 24, 20);
 }
