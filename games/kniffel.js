@@ -27,7 +27,7 @@ const setStatus = () => {};
 const setButtonActive = () => {};
 function celebrate(tier) {
   const fire = () => window.confetti && window.confetti({ particleCount: 30 + (tier || 1) * 45, spread: 75, startVelocity: 42, origin: { y: 0.62 }, zIndex: 200, disableForReducedMotion: true, colors: ["#ffd66e", "#74e2b2", "#ff6e8c", "#6cb6ff", "#b098ff"] });
-  if (window.confetti) fire(); else loadScript("https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js").then(fire).catch(() => {});
+  if (window.confetti) fire(); else loadScript("vendor/confetti.browser.min.js").then(fire).catch(() => {});
 }
 
 // ============================================================ data & rules
@@ -2123,12 +2123,9 @@ function loadScript(src) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function fontsReady() {
-  const l = document.createElement("link");
-  l.rel = "stylesheet";
-  l.href = "https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Caveat+Brush&family=Patrick+Hand&family=Permanent+Marker&family=Yellowtail&family=Kalam:wght@300;400&family=Space+Mono:wght@700&display=swap";
-  document.head.appendChild(l);
-  const want = ['500 20px "Caveat"', '20px "Caveat Brush"', '20px "Patrick Hand"', '20px "Permanent Marker"', '20px "Yellowtail"', '300 20px "Kalam"'];
-  return new Promise((res) => { l.onload = () => Promise.all(want.map((f) => document.fonts.load(f))).then(res, res); l.onerror = res; });
+  // External Google Fonts are no longer loaded; resolve immediately and let
+  // the CSS font stacks fall back to the bundled system fonts.
+  return Promise.resolve();
 }
 
 function buildDOM() {
@@ -2227,8 +2224,8 @@ layout();
 
 (async () => {
   const libs = Promise.all([
-    loadScript("https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"),
-    loadScript("https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"),
+    loadScript("vendor/three.min.js"),
+    loadScript("vendor/cannon.min.js"),
   ]).then(() => {
     if (destroyed) return;
     init3D(); layout(); if (menuIsOpen()) menuRender();

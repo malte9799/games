@@ -17,8 +17,8 @@
 (function () {
   "use strict";
 
-  const TRYSTERO = "https://cdn.jsdelivr.net/npm/trystero@0.26.0/nostr/+esm";
-  const QR_LIB = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";
+  const TRYSTERO = "./vendor/trystero-nostr.bundle.mjs";
+  const QR_LIB = "vendor/qrcode.min.js";
   const APP_ID = "malte9799-games";
   const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const CODE_LEN = 5;
