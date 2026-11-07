@@ -21,6 +21,7 @@ const GAMES = [
   { id: "blackjack",   title: "Blackjack",     desc: "hit · stand · beat the dealer", preview: drawBlackjack },
   { id: "kniffel",     title: "Kniffel · Yahtzee", desc: "roll · hold · write it down", preview: drawKniffel },
   { id: "kritzel",     title: "Kritzel-Revier",    desc: "kritzle das größte Revier",   preview: drawKritzel },
+  { id: "battleship", title: "Battleship", desc: "2-player naval combat with 3D scene", preview: drawBattleship },
 ];
 
 // ---- preview renderers ----
@@ -883,4 +884,38 @@ function drawMaumau(p, w, h) {
   p.push(); p.translate(452, 240); p.rotate(-0.1);
   p.fill(53, 182, 176); p.rect(-42, -14, 84, 28, 14); p.stroke(255); p.strokeWeight(2.5); p.noFill(); p.rect(-42, -14, 84, 28, 14); p.noStroke();
   p.fill(255); p.textStyle(p.BOLD); p.textSize(13); p.text("MAU!", 0, 0.5); p.pop();
+}
+
+// Battleship (Schiffe versenden): two 10×10 boards on a wooden table, ships and splashes
+function drawBattleship(p, w, h) {
+  p.background(58, 36, 20);
+  p.noStroke();
+  // table planks
+  for (let i = 0; i < 14; i++) { p.fill(i % 2 ? 80 : 46, i % 2 ? 50 : 28, i % 2 ? 28 : 15, 150); p.rect(0, i * 31 - 4, w, 15 + (i * 7) % 9); }
+  // two boards side by side
+  const bw = 180, bh = 180, gap = 40, ox = (w - (bw * 2 + gap)) / 2, oy = (h - bh) / 2 - 10;
+  const drawBoard = (bx, by, label, ships, hits) => {
+    p.fill(0, 0, 0, 60); p.rect(bx - 6, by - 6, bw + 12, bh + 12, 8);
+    p.fill(20, 40, 55); p.rect(bx, by, bw, bh, 6);
+    p.fill(255, 255, 255, 12);
+    for (let i = 1; i < 10; i++) { p.rect(bx + i * 18, by, 1, bh); p.rect(bx, by + i * 18, bw, 1); }
+    p.fill(200, 210, 220); p.textStyle(p.BOLD); p.textSize(12); p.textAlign(p.CENTER, p.CENTER);
+    p.text(label, bx + bw / 2, by - 14);
+    for (let i = 0; i < 10; i++) { p.text(String.fromCharCode(65 + i), bx + i * 18 + 9, by - 2); p.text(i + 1, bx - 10, by + i * 18 + 9); }
+    // ships
+    for (const [x, y, len, horiz] of ships) {
+      p.fill(horiz ? [60, 100, 140] : [50, 90, 120]);
+      p.rect(bx + x * 18 + 2, by + y * 18 + 2, horiz ? len * 18 - 4 : 14, horiz ? 14 : len * 18 - 4, 3);
+    }
+    // hits
+    for (const [x, y, hit] of hits) {
+      if (hit) { p.fill(220, 40, 40); p.circle(bx + x * 18 + 9, by + y * 18 + 9, 6); }
+      else { p.fill(255, 220, 60); p.circle(bx + x * 18 + 9, by + y * 18 + 9, 4); }
+    }
+  };
+  drawBoard(ox, oy, "DEIN", [[1, 2, 5, true], [4, 5, 4, false], [7, 1, 3, true], [0, 8, 2, true]], [[3, 3, true], [5, 5, false], [8, 2, true]]);
+  drawBoard(ox + bw + gap, oy, "GEGNER", [[2, 0, 4, true], [5, 3, 3, false], [0, 7, 2, true]], [[1, 1, false], [4, 4, true], [6, 6, false]]);
+  // turn indicator
+  p.fill(244, 200, 92); p.rect(w / 2 - 60, h - 40, 120, 28, 14);
+  p.fill(40, 30, 10); p.textStyle(p.BOLD); p.textSize(13); p.text("DEIN ZUG", w / 2, h - 26);
 }
