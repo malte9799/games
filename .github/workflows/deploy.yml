@@ -76,7 +76,7 @@ jobs:
         run: |
           pr=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number -q '.[0].number' 2>/dev/null || true)
           [[ "$pr" =~ ^[0-9]+$ ]] || exit 0
-          body="<!-- preview --> [$URL]($URL)"
+          body="[$URL]($URL) <!-- preview -->"
           id=$(gh api "repos/$REPO/issues/$pr/comments" --paginate -q '[.[] | select(.body | contains("<!-- preview -->"))][0].id' 2>/dev/null || true)
           if [ -n "$id" ]; then
             gh api -X PATCH "repos/$REPO/issues/comments/$id" -f body="$body" >/dev/null

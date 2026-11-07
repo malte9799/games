@@ -24,7 +24,7 @@ jobs:
           slug=$(printf '%s' "$BRANCH" | sed 's#[^A-Za-z0-9._-]#-#g')
           URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/previews/$slug/"
           pr="$PR"
-          body="<!-- preview --> [$URL]($URL)"
+          body="[$URL]($URL) <!-- preview -->"
           id=$(gh api "repos/$REPO/issues/$pr/comments" --paginate -q '[.[] | select(.body | contains("<!-- preview -->"))][0].id' 2>/dev/null || true)
           if [ -n "$id" ]; then
             gh api -X PATCH "repos/$REPO/issues/comments/$id" -f body="$body" >/dev/null
