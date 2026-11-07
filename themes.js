@@ -290,13 +290,9 @@ function _deepAssign(target, src) {
 }
 
 function _loadFonts(t) {
-  const id = "theme-font-" + t.id;
-  if (document.getElementById(id)) return;
-  const link = document.createElement("link");
-  link.id = id;
-  link.rel = "stylesheet";
-  link.href = "https://fonts.googleapis.com/css2?" + t.fonts.map(f => "family=" + f).join("&") + "&display=swap";
-  document.head.appendChild(link);
+  // External Google Fonts are no longer loaded; the CSS font stacks fall back
+  // to the bundled system fonts, so this is intentionally a no-op.
+  return;
 }
 
 // ---- design assets ----

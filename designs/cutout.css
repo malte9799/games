@@ -129,7 +129,8 @@ html[data-theme="cutout"] #home .card::before {
 html[data-theme="cutout"] #home .card:nth-child(3n+2)::before { background: rgba(244, 184, 48, 0.7); }
 html[data-theme="cutout"] #home .card:nth-child(3n)::before { background: rgba(226, 87, 76, 0.55); }
 html[data-theme="cutout"] #home .card .preview { margin: 14px 14px 0; background: var(--board); border-radius: 4px 6px 4px 7px; box-shadow: 0 0 0 5px #fff, 0 3px 0 5px rgba(43, 45, 66, 0.14); }
-html[data-theme="cutout"] #home .card-text { position: relative; border: 0; margin-top: 20px; padding: 16px 18px 18px; background: var(--lab); border-radius: 0 0 8px 12px; }
+html[data-theme="cutout"] #home .card { background: var(--lab); }
+html[data-theme="cutout"] #home .card-text { position: relative; border: 0; margin-top: 20px; padding: 16px 18px 18px; background: var(--lab); border-radius: 0 0 8px 12px; flex: 1; }
 html[data-theme="cutout"] #home .card-text::before {
   /* torn zig-zag top edge */
   content: ""; position: absolute; left: 0; right: 0; top: -9px; height: 10px;
