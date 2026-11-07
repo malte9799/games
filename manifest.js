@@ -884,3 +884,19 @@ function drawMaumau(p, w, h) {
   p.fill(53, 182, 176); p.rect(-42, -14, 84, 28, 14); p.stroke(255); p.strokeWeight(2.5); p.noFill(); p.rect(-42, -14, 84, 28, 14); p.noStroke();
   p.fill(255); p.textStyle(p.BOLD); p.textSize(13); p.text("MAU!", 0, 0.5); p.pop();
 }
+
+// Vorschau der Karte: Straße mit Kurve, Autoinnenraum unten (statisch, nur einmal gezeichnet)
+function drawLeftLeftLeft(p, w, h) {
+  p.background(159, 216, 240);
+  p.noStroke();
+  p.fill(79, 154, 58); p.rect(0, h * 0.5, w, h * 0.5);
+  p.stroke(74, 74, 80); p.strokeWeight(54); p.noFill();
+  p.bezier(w * 0.15, h * 1.0, w * 0.2, h * 0.55, w * 0.7, h * 0.7, w * 0.85, h * 0.45);
+  p.stroke(242, 239, 224); p.strokeWeight(4);
+  p.drawingContext.setLineDash([14, 22]);
+  p.bezier(w * 0.15, h * 1.0, w * 0.2, h * 0.55, w * 0.7, h * 0.7, w * 0.85, h * 0.45);
+  p.drawingContext.setLineDash([]);
+  p.noStroke(); p.fill(194, 58, 58); p.rect(0, h * 0.82, w, h * 0.18);
+  p.fill(154, 154, 154); p.rect(w * 0.2, h * 0.7, w * 0.6, h * 0.12);
+  p.fill(21, 21, 21); p.circle(w * 0.42, h * 0.84, h * 0.2);
+}
