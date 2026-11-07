@@ -2101,7 +2101,7 @@ function onMenuClick(e) {
   switch (b.dataset.act) {
     case "resume": menuClose(); break;
     case "solo": menuSolo(); break;
-    case "multi": location.href = "index.html?mode=multi"; break;                 // rooms and game switching live in the multiplayer hub
+    case "multi": location.href = "index.html"; break;                 // rooms and game switching live in the multiplayer hub
     case "rules": { if (!MP && b.dataset.id !== S.rules && (!HUB || NET.isHost)) setRules(b.dataset.id); menuRender(); break; }
     case "begin": if (HUB && NET.isHost && hubReady && !MP) mpBegin(hubPlayers(), S.rules); break;
     case "lobby": if (HUB && NET.isHost) NET.end(); break;
