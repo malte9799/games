@@ -942,3 +942,4 @@ function drawCircleCapture(p, w, h) {
   p.textSize(12);
   p.textStyle(p.NORMAL);
   p.text("Real-time 2-6 players", w / 2, h / 2 + 60);
+}
