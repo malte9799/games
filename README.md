@@ -1,18 +1,34 @@
-# GitHub-Pages-Preview-Template
+# games
 
-Template für Projekte mit GitHub Pages + automatischen Previews:
+Kleine Browser-Spiele (Single- und Multiplayer), statisch, ohne Backend.
 
-- **`main`** → `https://<owner>.github.io/<repo>/`
-- **jeder andere Branch** → `https://<owner>.github.io/<repo>/previews/<branch>/`
-- **PR-Kommentar** mit Live-Status (Installieren → Build → Veröffentlichen → Online prüfen), ein Sticky-Comment pro PR
-- **`previews/index.html`** – automatisch generierte Übersicht aller Live-Previews mit Links zu den Ordnern, Branch, PR, Commit und Build-Zeit
-- **Aufräumen**: Preview wird beim PR-Close entfernt (auch wenn der Branch bleibt); verwaiste Previews wöchentlich und bei Branch-Delete
+- **Hub**: `/` (Mehrspieler-Lobby und Einzelspiel-Karten)
+- **Spiel**: `/<id>/`, z. B. `/kniffel/`, `/2048/`. Jede Spiel-Seite wird beim Build erzeugt.
+- **Spiele entwickeln / Doku**: [`docs/games.md`](docs/games.md)
 
-## Verwendung
+## Entwicklung
 
-1. **Use this template** → *Create a new repository*
-2. Erster Deploy: Push auf `main` (oder „Run workflow" auf `deploy.yml`). Der Workflow richtet Pages automatisch ein — falls der erste Lauf die Einrichtung verpasst (frisches Repo): *Settings → Pages → Build and deployment → Source: Deploy from a branch → `gh-pages` / `(root)`*.
-3. Das war's. Branch pushen / PR erstellen → es baut eine Preview und kommentiert.
+```
+pnpm install
+pnpm dev        # http://localhost:5173 – Hub und /<id>/ direkt
+pnpm build      # statische Seite in dist/ (scripts/build.mjs)
+pnpm preview    # dist/ lokal anschauen
+```
+
+Die Seite ist reines HTML/JS ohne Bundler. `vite` ist nur für Dev-Server und Preview da.
+Relative Pfade sind Absicht: Die Seite läuft unter `/games/` (GitHub Pages) und in Previews
+(`/previews/<branch>/`), später auch auf einer eigenen Domain.
+
+## Deploy
+
+`main` → GitHub Pages (`gh-pages`), jeder andere Branch → Vorschau unter `previews/<branch>/`.
+Ablauf und Aufräumen sind in `.github/workflows/` und `scripts/gh-pages.sh` beschrieben.
+Vorher: Settings → Pages → Source „Deploy from a branch“ → `gh-pages` / `(root)`.
+
+---
+
+<details>
+<summary>Vorlage: Ablage auf gh-pages (Template-Doku)</summary>
 
 Ablage auf `gh-pages` (ein einzelner, immer wieder geamendeter Commit, `--force-with-lease` + Retry, damit parallele Runs sich nicht überbügeln):
 
@@ -40,3 +56,5 @@ gh-pages/
 | `.github/workflows/preview-cleanup.yml` | Aufräumen bei PR-Close, Branch-Delete, wöchentlich, manuell |
 | `scripts/gh-pages.sh` | Schreibt `gh-pages` (publish/cleanup) und generiert `previews/index.html` |
 | `scripts/pr-status.sh` | Sticky-Statuskommentar pro PR |
+
+</details>
