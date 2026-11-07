@@ -1,0 +1,118 @@
+name: Deploy (main + branch previews)
+
+# main → https://<owner>.github.io/<repo>/
+# every other branch → https://<owner>.github.io/<repo>/previews/<branch>/
+# Published on the `gh-pages` branch (Settings → Pages → Source: Deploy from a branch → gh-pages / root).
+# Related: pr-preview.yml (status comment on new PRs), preview-cleanup.yml (removes old previews).
+
+on:
+  push:
+    branches-ignore: [gh-pages]  # gh-pages is the output, don't build infinite loops
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# a newer push to the same branch supersedes a running preview build; main deploys always finish
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      BRANCH: ${{ github.ref_name }}
+      SHA: ${{ github.sha }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Names
+        id: n
+        run: |
+          slug=$(bash scripts/gh-pages.sh slug "$BRANCH")
+          if [ "$BRANCH" = "main" ]; then echo "dir=." >> "$GITHUB_OUTPUT"; else echo "dir=previews/$slug" >> "$GITHUB_OUTPUT"; fi
+          if [ "$BRANCH" != "main" ]; then
+            echo "URL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/previews/$slug/" >> "$GITHUB_ENV"
+          fi
+      - name: 'Status: Abhängigkeiten installieren'
+        if: steps.n.outputs.dir != '.'
+        run: bash scripts/pr-status.sh "Abhängigkeiten installieren"
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # App-specific env vars go here, e.g. via Settings → Secrets and variables → Actions → Variables:
+      # - run: pnpm build
+      #   env:
+      #     VITE_API_URL: ${{ vars.API_URL }}
+      - name: 'Status: Build'
+        if: steps.n.outputs.dir != '.'
+        run: bash scripts/pr-status.sh "Build"
+      - run: pnpm build
+      # Preview tab title "Preview · #prN <PR title>" (root preview keeps the default title)
+      # and meta.json for previews/index.html (branch, PR, commit, build time).
+      - name: 'Preview-Titel + Metadaten'
+        if: steps.n.outputs.dir != '.'
+        run: |
+          pr=""; title=""
+          if meta=$(gh pr view "$BRANCH" --repo "$REPO" --json number,title 2>/dev/null); then
+            pr=$(jq -r .number <<<"$meta"); title=$(jq -r .title <<<"$meta")
+            label="Preview - #$pr $title"
+          else
+            label="Preview - $BRANCH"
+          fi
+          PREVIEW_TITLE="$label" node -e '
+            const { readFileSync, writeFileSync } = require("fs");
+            const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const f = "dist/index.html";
+            writeFileSync(f, readFileSync(f, "utf8").replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(process.env.PREVIEW_TITLE)}</title>`));
+          '
+          jq -n --arg branch "$BRANCH" --arg commit "$SHA" --arg published "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                --arg pr "${pr:-null}" --arg title "$title" \
+                '{branch: $branch, commit: $commit, published: $published, pr: ($pr | if . != "null" then tonumber else null end), title: $title}' > dist/meta.json
+          echo "preview: $label"
+      - name: 'Status: Veröffentlichen'
+        if: steps.n.outputs.dir != '.'
+        run: bash scripts/pr-status.sh "Veröffentlichen"
+      - name: Publish to gh-pages
+        run: bash scripts/gh-pages.sh publish "${{ steps.n.outputs.dir }}" dist
+      # First main deploy on a fresh repo: gh-pages now exists, make sure Pages uses it.
+      - name: 'Pages einrichten (einmalig, nur main)'
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        run: |
+          if gh api "repos/$REPO/pages" >/dev/null 2>&1; then echo "Pages bereits eingerichtet"; exit 0; fi
+          if ! gh api -X POST "repos/$REPO/pages" -f "source=gh-pages|/" 2>&1; then
+            gh api -X POST "repos/$REPO/pages" --input - <<< '{"source":{"branch":"gh-pages","path":"/"}}'
+          fi
+      - name: 'Status: Online prüfen'
+        if: steps.n.outputs.dir != '.'
+        run: bash scripts/pr-status.sh "Online prüfen"
+      - name: Wait until the page is live
+        if: steps.n.outputs.dir != '.'
+        run: |
+          # GitHub Pages serves 404 (or the previous deploy) until its build finishes
+          for i in $(seq 1 40); do
+            got=$(curl -fsS --max-time 10 "${URL}deploy.txt?t=$(date +%s)" 2>/dev/null | tr -d '[:space:]' || true)
+            if [ "$got" = "$GITHUB_SHA" ]; then echo "live after attempt $i"; exit 0; fi
+            echo "attempt $i: not live yet (${got:-404/unreachable})"
+            sleep 10
+          done
+          echo "::error::$URL did not serve this commit within ~7 min (main deployiert? Pages auf gh-pages/(root) eingerichtet?)"
+          exit 1
+      - name: 'Status: fertig'
+        if: success() && steps.n.outputs.dir != '.'
+        run: bash scripts/pr-status.sh "" done
+      - name: 'Status: fehlgeschlagen'
+        if: failure() && steps.n.outputs.dir != '.'
+        run: bash scripts/pr-status.sh "" failed
+      - name: 'Status: abgebrochen'
+        if: cancelled() && steps.n.outputs.dir != '.'
+        run: bash scripts/pr-status.sh "" cancelled

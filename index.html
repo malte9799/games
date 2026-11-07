@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>Pages-Preview-Starter</title>
+  </head>
+  <body>
+    <main>
+      <h1>✅ GitHub-Pages-Preview-Starter</h1>
+      <p>
+        Minimale Vite-Site mit automatischem Deploy: <code>main</code> baut ins Wurzelverzeichnis,
+        jeder andere Branch nach <code>previews/&lt;branch&gt;/</code> – inklusive PR-Statuskommentar
+        und automatisch generierter Übersicht.
+      </p>
+      <p>
+        Link-Übersicht aller Live-Previews:
+        <a href="./previews/" id="previews-link">previews/</a>
+        (der Index wird von jedem Deploy/cleanup neu erzeugt).
+      </p>
+      <p id="msg">​</p>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
