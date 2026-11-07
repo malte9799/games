@@ -386,7 +386,7 @@ if (!window.THEME_SAMPLE) (function () {   // theme-sample.html loads this file 
   try { saved = new URLSearchParams(location.search).get("design"); } catch {}
   if (saved && !THEMES.some((t) => t.id === saved)) saved = null;
   if (!saved) { try { saved = localStorage.getItem(THEME_KEY); } catch {} }
-  applyTheme(saved || "midnight", { save: !!(saved && new URLSearchParams(location.search).get("design")) });
+  applyTheme(saved || "cutout", { save: !!(saved && new URLSearchParams(location.search).get("design")) });
 })();
 
 // game pages: re-decorate after a design switch (the home page rebuilds its own cards first)
