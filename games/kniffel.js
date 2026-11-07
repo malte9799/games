@@ -2123,9 +2123,13 @@ function loadScript(src) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function fontsReady() {
-  // External Google Fonts are no longer loaded; resolve immediately and let
-  // the CSS font stacks fall back to the bundled system fonts.
-  return Promise.resolve();
+  // Fonts are now vendored via vendor/fonts.css; wait for them to be usable.
+  if (!document.fonts) return Promise.resolve();
+  const want = ['500 20px "Caveat"', '20px "Caveat Brush"', '20px "Patrick Hand"', '20px "Permanent Marker"', '20px "Yellowtail"', '300 20px "Kalam"', '700 20px "Space Mono"'];
+  return Promise.race([
+    Promise.all(want.map((f) => document.fonts.load(f))).then(() => {}),
+    new Promise((r) => setTimeout(r, 3000)),
+  ]).catch(() => {});
 }
 
 function buildDOM() {
