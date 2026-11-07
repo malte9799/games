@@ -633,7 +633,11 @@ html[data-theme="pop"] {
 }
 html[data-theme="pop"] button.active,
 html[data-theme="pop"] button.hint-confirm { background: var(--rose); color: #000; border-color: #000; }
-html[data-theme="pop"] #home .card .card-text { border-top: 3px solid #000; }
+html[data-theme="pop"] #home .card { background: #ffc800; }
+html[data-theme="pop"] #home .card:nth-child(4n+2) { background: #ff9ecf; }
+html[data-theme="pop"] #home .card:nth-child(4n+3) { background: #8fd3ff; }
+html[data-theme="pop"] #home .card:nth-child(4n+4) { background: #a6f0c6; }
+html[data-theme="pop"] #home .card .card-text { border-top: 3px solid #000; flex: 1; }
 html[data-theme="pop"] #home .card:nth-child(4n+1) .card-text { background: #ffc800; }
 html[data-theme="pop"] #home .card:nth-child(4n+2) .card-text { background: #ff9ecf; }
 html[data-theme="pop"] #home .card:nth-child(4n+3) .card-text { background: #8fd3ff; }
