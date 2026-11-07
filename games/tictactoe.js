@@ -14,7 +14,7 @@ initGame({
   buttons: [
     { id: "btn-new",  label: "New game", primary: true, onClick: () => newGame() },
     { id: "btn-undo", label: "Undo",     onClick: () => undo() },
-    { id: "btn-mp",  label: "Mehrspieler", onClick: () => { location.href = "index.html"; } },
+    { id: "btn-mp",  label: "Mehrspieler", onClick: () => { if (window.Multiplayer) Multiplayer.openUI(); else location.href = "index.html"; } },
     { id: "btn-cpu",  label: "vs Computer", onClick: () => { vsCpu = !vsCpu; setButtonActive("btn-cpu", vsCpu); saveState(); newGame(); } },
   ],
   sliders: [],
