@@ -60,21 +60,73 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const cleanName = (n) => String(n || "").trim().slice(0, 12) || t("player");
   const makeCode = () => { let c = ""; for (let i = 0; i < CODE_LEN; i++) c += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]; return c; };
-  // avatars: a small set of examples for now (emoji); later more can be added here
-  const AVATARS = ["🦊", "🐸", "🐙", "🦄", "🐼", "🚀", "🌵", "🍄", "🐧", "🤖"];
+  // avatars: PNG files in /avatar/ (replaces emoji)
+  const AVATAR_FILES = ["animal_mascot_1.png", "animal_mascot_2.png", "animal_mascot_4.png", "animal_sticker_1.png", "animal_sticker_2.png", "animal_sticker_3.png", "animal_sticker_4.png"];
   const AVATAR_KEY = "mp_avatar";
-  const cleanAvatar = (a) => (AVATARS.includes(a) ? a : "");
+  const cleanAvatar = (a) => (AVATAR_FILES.includes(a) ? a : "");
+  // accessories: PNG files in /avatar/accessoires/
+  const ACCESSORY_FILES = ["accessoire_2_muetzen_3.png", "accessoire_2_muetzen_4.png", "accessoire_3_brillen_1.png", "accessoire_3_brillen_2.png", "accessoire_3_brillen_3.png", "accessoire_3_brillen_4.png", "accessoire_4_frisuren_1.png", "accessoire_6_masken_1.png", "accessoire_6_masken_2.png", "accessoire_6_masken_3.png", "accessoire_6_masken_4.png", "accessoire_7_abenteuer_1.png", "accessoire_7_abenteuer_3.png", "accessoire_7_abenteuer_4.png", "accessoire_8_extra_1.png", "accessoire_8_extra_2.png", "accessoire_8_extra_3.png", "accessoire_8_extra_4.png", "accessory_02_krone.png", "accessory_03_partyhut.png", "accessory_06_cap.png", "accessory_07_zauberhut.png", "accessory_08_piratenhut.png", "accessory_09_weihnachtsmuetze.png", "accessory_13_zylinder.png", "accessory_16_cowboyhut.png"];
+  const ACCESSORY_KEY = "mp_accessory";
+  const cleanAccessory = (a) => (a === "" || ACCESSORY_FILES.includes(a) ? (a || "") : "");
   // background colours for the avatar circle
   const COLORS = ["#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#a78bfa", "#f472b6", "#94a3b8"];
   const COLOR_KEY = "mp_color";
   const cleanColor = (c) => (COLORS.includes(c) ? c : "");
-  const cleanPlayers = (a) => (Array.isArray(a) ? a.slice(0, 12).map((p) => ({ id: String(p.id), name: cleanName(p.name), avatar: cleanAvatar(p.avatar), color: cleanColor(p.color) })) : []);
+  const cleanPlayers = (a) => (Array.isArray(a) ? a.slice(0, 12).map((p) => ({ id: String(p.id), name: cleanName(p.name), avatar: cleanAvatar(p.avatar), accessory: cleanAccessory(p.accessory), color: cleanColor(p.color) })) : []);
 
   const myColor = () => (COLORS.includes(store.get("mp_color")) ? store.get("mp_color") : "");
-  const myAvatar = () => AVATARS.includes(store.get(AVATAR_KEY)) ? store.get(AVATAR_KEY) : "";
+  const myAvatar = () => {
+    const s = store.get(AVATAR_KEY);
+    if (AVATAR_FILES.includes(s)) return s;
+    const r = AVATAR_FILES[Math.floor(Math.random() * AVATAR_FILES.length)];
+    store.set(AVATAR_KEY, r);
+    return r;
+  };
+  const myAccessory = () => {
+    const s = store.get(ACCESSORY_KEY);
+    if (s === "") return "";                 // explizit "Keines" gewählt
+    if (ACCESSORY_FILES.includes(s)) return s;
+    const r = ACCESSORY_FILES[Math.floor(Math.random() * ACCESSORY_FILES.length)];
+    store.set(ACCESSORY_KEY, r);
+    return r;
+  };
   const store = {
     get: (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
     set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+  };
+
+  // ---- meta.json (offsets/scale/rotation for avatars+accessories) ----
+  let META = null;
+  const loadMeta = () => fetch("avatar/meta.json")
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => { META = d; ui.render(); })
+    .catch(() => {});
+  const avatarAdj = (f) => (META && META.avatarAdjustments && META.avatarAdjustments[f]) || { y: 0 };
+  const accAdj = (f) => (META && META.adjustments && META.adjustments[f]) || { x: 0, y: 0, scale: 100, rotation: 0 };
+
+  // ---- composite rendering (avatar + accessory) ----
+  const COMP_CACHE = new Map();
+  const compHtml = (av, acc, size) => {
+    const key = (av || "") + "|" + (acc || "") + "|" + size;
+    if (COMP_CACHE.has(key)) return COMP_CACHE.get(key);
+    const f = size / 1024;
+    const aa = avatarAdj(av);
+    const aay = (aa.y || 0) * f;
+    let accImg = "";
+    if (acc) {
+      const ad = accAdj(acc);
+      const ax = (ad.x || 0) * f;
+      const ay = (ad.y || 0) * f;
+      const sc = (ad.scale || 100) / 100;
+      const rot = ad.rotation || 0;
+      accImg = `<span style="position:absolute;top:0;left:0;width:${size}px;height:${size}px;background-image:url('/avatar/accessoires/${esc(acc)}');background-size:contain;background-repeat:no-repeat;background-position:center;transform:translate(${ax}px,${ay}px) scale(${sc}) rotate(${rot}deg);transform-origin:center center;"></span>`;
+    }
+    const html = `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;">
+      <span style="position:absolute;top:0;left:0;width:${size}px;height:${size}px;background-image:url('/avatar/${esc(av)}');background-size:contain;background-repeat:no-repeat;background-position:center;transform:translate(0px,${aay}px);transform-origin:center center;"></span>
+      ${accImg}
+    </span>`;
+    COMP_CACHE.set(key, html);
+    return html;
   };
 
   // Room session cache: the room survives a page reload in the same tab (sessionStorage, so it ends with the tab
@@ -120,7 +172,7 @@
   const snapshot = () => R && {
     code: R.code, selfId: R.selfId, hostId: R.hostId, isHost: R.hostId === R.selfId, status: R.status,
     game: R.game, options: R.options, max: R.max, min: cfg.min,
-    players: R.players.map((p) => ({ id: p.id, name: p.name, avatar: p.avatar || "", color: p.color || "", host: p.id === R.hostId, you: p.id === R.selfId })),
+    players: R.players.map((p) => ({ id: p.id, name: p.name, avatar: p.avatar || "", accessory: p.accessory || "", color: p.color || "", host: p.id === R.hostId, you: p.id === R.selfId })),
   };
 
   // ---- connection ----
@@ -141,7 +193,7 @@
       send({ t: "hi" }, peer);                                   // introduce ourselves, so both sides know each other's token
       if (R.hostId === R.selfId) { if (R.status !== "connecting") send(wireLobby(), peer); }
       // a guest introduces itself to everybody it meets; the host answers by sending the player list
-      else if (R.status === "connecting") send({ t: "hello", name: R.name, avatar: R.avatar, color: R.color }, peer);
+      else if (R.status === "connecting") send({ t: "hello", name: R.name, avatar: R.avatar, accessory: R.accessory, color: R.color }, peer);
     };
     room.onPeerLeave = (peer) => { if (net === mine) onPeerLeave(peer); };
     mine = { send, selfId: mod.selfId, leave: () => { try { room.leave(); } catch {} } };
@@ -175,12 +227,12 @@
     if (opts.name) store.set(cfg.nameKey, name);
     lastError = "";
     const token = makeToken();
-    R = { code: makeCode(), selfId: token, token, name, hostId: null, status: "connecting", game: cfg.game, options: null, players: [], max: cfg.max, avatar: myAvatar(), color: myColor() };
+    R = { code: makeCode(), selfId: token, token, name, hostId: null, status: "connecting", game: cfg.game, options: null, players: [], max: cfg.max, avatar: myAvatar(), accessory: myAccessory(), color: myColor() };
     ui.render();
     try { await netOpen(R.code, token); } catch (e) { console.error(e); if (my === session) fail(t("netFail")); throw e; }
     if (my !== session) return;
     R.hostId = R.selfId;
-    R.players = [{ id: R.selfId, name, avatar: R.avatar, color: R.color }];
+    R.players = [{ id: R.selfId, name, avatar: R.avatar, accessory: R.accessory, color: R.color }];
     R.status = "lobby";
     emit("status", "lobby"); emit("join", playerOf(R.selfId)); emit("players", snapshot().players);
     ui.render();
@@ -230,8 +282,8 @@
   // { t: "start", game, options, players }   host -> everybody
   // { t: "end" }                      host -> everybody  game over, back to lobby
   // { t: "g", k: type, d: data }      anybody -> anybody  game message
-  const playerOf = (id) => { const p = R && R.players.find((x) => x.id === id); return p ? { id: p.id, name: p.name, avatar: p.avatar || "", color: p.color || "", host: p.id === R.hostId, you: p.id === R.selfId } : null; };
-  const wireLobby = () => ({ t: "lobby", players: R.players.map((p) => ({ id: p.id, name: p.name, avatar: p.avatar || "", color: p.color || "" })), hostId: R.hostId, status: R.status, game: R.game, options: R.options, max: R.max });
+  const playerOf = (id) => { const p = R && R.players.find((x) => x.id === id); return p ? { id: p.id, name: p.name, avatar: p.avatar || "", accessory: p.accessory || "", color: p.color || "", host: p.id === R.hostId, you: p.id === R.selfId } : null; };
+  const wireLobby = () => ({ t: "lobby", players: R.players.map((p) => ({ id: p.id, name: p.name, avatar: p.avatar || "", accessory: p.accessory || "", color: p.color || "" })), hostId: R.hostId, status: R.status, game: R.game, options: R.options, max: R.max });
   const broadcastLobby = () => { if (net && R && R.hostId === R.selfId) net.send(wireLobby()); };
 
   // peer id (or undefined = everybody) for a seat token; unknown token → null (never fall back to a broadcast)
@@ -259,7 +311,7 @@
           if (!back && (R.status === "playing" || R.players.length >= R.max)) return net.send({ t: "full" }, peer);
           let name = cleanName(m.name), n = 1;
           while (R.players.some((p) => p.name === name)) name = cleanName(m.name).slice(0, 10) + ++n;
-          R.players.push({ id: from, name, avatar: cleanAvatar(m.avatar), color: cleanColor(m.color) });
+          R.players.push({ id: from, name, avatar: cleanAvatar(m.avatar), accessory: cleanAccessory(m.accessory), color: cleanColor(m.color) });
           emit("join", playerOf(from)); emit("players", snapshot().players);
         }
         broadcastLobby(); ui.render();
@@ -291,7 +343,7 @@
       case "profile": {                                       // someone changed name or avatar
         const p = R.players.find((x) => x.id === from);
         if (!p) break;
-        p.name = cleanName(m.name); p.avatar = cleanAvatar(m.avatar); p.color = cleanColor(m.color);
+        p.name = cleanName(m.name); p.avatar = cleanAvatar(m.avatar); p.accessory = cleanAccessory(m.accessory); p.color = cleanColor(m.color);
         if (isHost) broadcastLobby();
         emit("players", snapshot().players); ui.render();
         break;
@@ -325,7 +377,7 @@
     if (prevGame !== R.game) emit("game", R.game);
     emit("players", snapshot().players);
     // not in the list yet (joining, or back after a reload): ask the host to seat us
-    if (!listed && R.hostId !== R.selfId) net.send({ t: "hello", name: R.name, avatar: R.avatar, color: R.color }, peer);
+    if (!listed && R.hostId !== R.selfId) net.send({ t: "hello", name: R.name, avatar: R.avatar, accessory: R.accessory, color: R.color }, peer);
     ui.render();
   }
 
@@ -372,6 +424,12 @@
 
   function onStart({ game, options, players, resumed }) {
     R.status = "playing"; R.game = game; R.options = options;
+    // merge avatar/accessory/color from the start payload into our player list
+    const incoming = new Map((players || []).map((p) => [p.id, p]));
+    for (const p of R.players) {
+      const q = incoming.get(p.id);
+      if (q) { p.avatar = cleanAvatar(q.avatar); p.accessory = cleanAccessory(q.accessory); p.color = cleanColor(q.color); }
+    }
     R.players = R.players.filter((p) => players.some((x) => x.id === p.id));
     R.seated = new Set(players.map((p) => p.id));           // who may come back to this game after a reload
     emit("status", "playing");
@@ -405,7 +463,7 @@
   /** host: start the game for everybody in the room right now. options is any JSON the game wants everybody to get. */
   function start(options = null) {
     if (!needHost("start") || R.status !== "lobby" || !canStart()) return false;
-    const players = R.players.map((p) => ({ id: p.id, name: p.name }));
+    const players = R.players.map((p) => ({ id: p.id, name: p.name, avatar: p.avatar, accessory: p.accessory, color: p.color }));
     net.send({ t: "start", game: R.game, options, players });
     onStart({ game: R.game, options, players });
     return true;
@@ -440,7 +498,7 @@
     if (R) return;
     const my = ++session;
     lastError = "";
-    R = { code: saved.code, selfId: saved.token, token: saved.token, name: saved.name, hostId: null, status: "connecting", game: cfg.game, options: null, players: [], max: cfg.max, avatar: myAvatar(), color: myColor() };
+    R = { code: saved.code, selfId: saved.token, token: saved.token, name: saved.name, hostId: null, status: "connecting", game: cfg.game, options: null, players: [], max: cfg.max, avatar: myAvatar(), accessory: myAccessory(), color: myColor() };
     ui.render();
     netOpen(saved.code, saved.token).then(() => {
       if (my !== session || !R) return;
@@ -451,7 +509,7 @@
   function becomeHost() {
     clearTimeout(connectTimer);
     R.hostId = R.selfId;
-    R.players = [{ id: R.selfId, name: R.name, avatar: R.avatar, color: R.color }];
+    R.players = [{ id: R.selfId, name: R.name, avatar: R.avatar, accessory: R.accessory, color: R.color }];
     R.status = "lobby";
     emit("status", "lobby"); emit("join", playerOf(R.selfId)); emit("players", snapshot().players);
     ui.render();
@@ -466,17 +524,19 @@
   }
 
   // ---- profile: name and avatar, kept for the next room and shared with the room at once ----
-  function updateProfile({ name, avatar, color } = {}) {
+  function updateProfile({ name, avatar, accessory, color } = {}) {
     if (name != null) store.set(cfg.nameKey, cleanName(name));
     if (avatar != null) store.set(AVATAR_KEY, cleanAvatar(avatar));
+    if (accessory !== undefined) store.set(ACCESSORY_KEY, cleanAccessory(accessory));
     if (color != null) store.set(COLOR_KEY, cleanColor(color));
     if (!R) return ui.render();
     if (name != null) R.name = cleanName(name);
     if (avatar != null) R.avatar = cleanAvatar(avatar);
+    if (accessory !== undefined) R.accessory = cleanAccessory(accessory);
     if (color != null) R.color = cleanColor(color);
     const me = R.players.find((p) => p.id === R.selfId);
-    if (me) { me.name = R.name; me.avatar = R.avatar; me.color = R.color; }
-    if (net && R.status !== "connecting") net.send({ t: "profile", name: R.name, avatar: R.avatar, color: R.color });
+    if (me) { me.name = R.name; me.avatar = R.avatar; me.accessory = R.accessory; me.color = R.color; }
+    if (net && R.status !== "connecting") net.send({ t: "profile", name: R.name, avatar: R.avatar, accessory: R.accessory, color: R.color });
     if (R.hostId === R.selfId) broadcastLobby();
     emit("players", snapshot().players);
     ui.render();
@@ -554,7 +614,7 @@
       const S = R && snapshot();
       const initial = (n) => esc([...String(n).trim()][0] || "?").toUpperCase();
       const colRow = (cur) => `<div class="mp-lbl">${t("color")}</div><div class="mp-avs">${COLORS.map((c) => `<button type="button" class="mp-col-pick${c === cur ? " on" : ""}" data-act="color" data-v="${c}" aria-label="${c}" style="background:${c}"></button>`).join("")}</div>`;
-      const avRow = (cur) => `<div class="mp-lbl">${t("avatar")}</div><div class="mp-avs">${AVATARS.map((a) => `<button type="button" class="mp-av-pick${a === cur ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}">${a}</button>`).join("")}</div>`;
+      const avRow = (cur) => `<div class="mp-lbl">${t("avatar")}</div><div class="mp-avs mp-av-grid">${AVATAR_FILES.map((a) => `<button type="button" class="mp-av-pick${a === cur ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}"><img src="/avatar/${esc(a)}" style="width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;" alt="" /></button>`).join("")}</div>`;
       const head = `<button class="mp-x" data-act="close" aria-label="${t("close")}">✕</button><div class="mp-head"><h3>${t("title")}</h3>`;
       const codeBlock = (c) => `<div class="mp-lbl">${t("roomCode")}</div><div class="mp-code">${esc(c)}</div>`;
       const leaveBtn = `<button class="mp-sec" data-act="leave">${t("leave")}</button>`;
@@ -575,7 +635,7 @@
       } else {
         const isHost = S.isHost, playing = R.status === "playing", enough = canStart(), tooMany = cfg.gameMax != null && R.players.length > cfg.gameMax;
         const keepPname = (this.el.querySelector("#mp-pname") || {}).value;
-        const list = S.players.map((p) => `<li class="${p.you ? "me" : ""}"><i class="mp-av" style="${p.color ? "background:" + p.color : ""}">${p.avatar ? esc(p.avatar) : initial(p.name)}</i><span class="mp-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}${p.host ? `<em>${t("host")}</em>` : ""}</span></li>`).join("");
+        const list = S.players.map((p) => `<li class="${p.you ? "me" : ""}">${compHtml(p.avatar || "", p.accessory || "", 30)}<span class="mp-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}${p.host ? `<em>${t("host")}</em>` : ""}</span></li>`).join("");
         let act;
         if (playing) act = `<p class="mp-hint">${t("inGame")}</p>${isHost ? `<button class="mp-primary mp-wide" data-act="end">${t("back")}</button>` : ""}`;
         else if (isHost && !cfg.lobbyStart) act = `<button class="mp-primary mp-wide" data-act="pick">${t("pick")}</button>`;
@@ -583,7 +643,7 @@
         else act = `<p class="mp-hint">${t("waitHost")}</p>`;
         h = `${head}</div><div class="mp-coderow">${codeBlock(R.code)}<button class="mp-qr-toggle" data-act="qr" aria-label="${t("qrShow")}" title="${t("qrShow")}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v0M17 17v4h4"/></svg></button></div>${linkBtn}
           ${R.game ? `<div class="mp-game"><span>${t("game")}</span><b>${esc(gameTitle(R.game))}</b></div>` : ""}
-          <div class="mp-me"><button type="button" class="mp-me-big" data-act="prof" aria-label="${t("profileT")}" style="${R.color ? "background:" + R.color : ""}">${R.avatar ? esc(R.avatar) : initial(R.name)}</button><small>${t("profileT")}</small></div>
+          <div class="mp-me"><button type="button" class="mp-me-big" data-act="prof" aria-label="${t("profileT")}" style="${R.color ? "background:" + R.color : ""}">${compHtml(R.avatar || "", R.accessory || "", 96)}</button><small>${t("profileT")}</small></div>
           <div class="mp-plh"><span>${t("players")}</span><b>${S.players.length}/${R.max}</b></div><ul class="mp-pl">${list}</ul>
           
           <div class="mp-act">${act}${leaveBtn}</div>`;
@@ -602,12 +662,13 @@
       const keep = (this.profEl.querySelector("#mp-pname") || {}).value;
       this.profEl.innerHTML = `<button class="mp-qr-close" data-act="profclose" aria-label="${t("close")}">✕</button><h4>${t("profileT")}</h4>
         <div class="mp-field"><label for="mp-pname">${t("yourName")}</label><input id="mp-pname" maxlength="12" autocomplete="off" spellcheck="false" value="${esc(keep ?? R.name)}" placeholder="${esc(t("player"))}"></div>
-        <div class="mp-section"><div class="mp-lbl">${t("avatar")}</div><div class="mp-avs">${AVATARS.map((a) => `<button type="button" class="mp-av-pick${a === R.avatar ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}">${a}</button>`).join("")}</div></div>
+        <div class="mp-section"><div class="mp-lbl">${t("avatar")}</div><div class="mp-avs">${AVATAR_FILES.map((a) => `<button type="button" class="mp-av-pick${a === R.avatar ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}"><img src="/avatar/${esc(a)}" style="width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;" alt="" /></button>`).join("")}</div></div>
+         <div class="mp-section"><div class="mp-lbl">${t("accessory")}</div><div class="mp-avs mp-av-grid">${`<button type="button" class="mp-av-pick${R.accessory === "" ? " on" : ""}" data-act="accessory" data-v="" aria-label="Keines">✕</button>` + ACCESSORY_FILES.map((a) => `<button type="button" class="mp-av-pick${a === R.accessory ? " on" : ""}" data-act="accessory" data-v="${a}" aria-label="${a}"><img src="/avatar/accessoires/${esc(a)}" style="width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;" alt="" /></button>`).join("")}</div></div>
         <div class="mp-section"><div class="mp-lbl">${t("color")}</div><div class="mp-avs">${COLORS.map((c) => `<button type="button" class="mp-col-pick${c === R.color ? " on" : ""}" data-act="color" data-v="${c}" aria-label="${c}" style="background:${c}"></button>`).join("")}</div></div>`;
     },
 
     pickers(av, col) {
-      return `<div class="mp-lbl">${t("avatar")}</div><div class="mp-avs">${AVATARS.map((a) => `<button type="button" class="mp-av-pick${a === av ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}">${a}</button>`).join("")}</div><div class="mp-lbl">${t("color")}</div><div class="mp-avs">${COLORS.map((c) => `<button type="button" class="mp-col-pick${c === col ? " on" : ""}" data-act="color" data-v="${c}" aria-label="${c}" style="background:${c}"></button>`).join("")}</div>`;
+      return `<div class="mp-lbl">${t("avatar")}</div><div class="mp-avs mp-av-grid">${AVATAR_FILES.map((a) => `<button type="button" class="mp-av-pick${a === av ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}"><img src="/avatar/${esc(a)}" style="width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;" alt="" /></button>`).join("")}</div><div class="mp-lbl">${t("color")}</div><div class="mp-avs">${COLORS.map((c) => `<button type="button" class="mp-col-pick${c === col ? " on" : ""}" data-act="color" data-v="${c}" aria-label="${c}" style="background:${c}"></button>`).join("")}</div>`;
     },
 
     // the invitation board on the right edge of the screen; never shifts the lobby window
@@ -644,6 +705,7 @@
         case "prof": this.profOpen = !this.profOpen; this.renderProf(); break;   // the big own icon opens the profile panel
         case "profclose": this.profOpen = false; this.renderProf(); break;
         case "avatar": updateProfile({ avatar: b.dataset.v, name: val("#mp-pname") ?? val("#mp-name") }); break;
+        case "accessory": updateProfile({ accessory: b.dataset.v, name: val("#mp-pname") ?? val("#mp-name") }); break;
         case "color": updateProfile({ color: b.dataset.v, name: val("#mp-pname") ?? val("#mp-name") }); break;
         case "share":
           navigator.share({ title: t("title"), text: t("shareText", { code: R.code }), url: roomUrl() }).catch(() => {});   // user cancelling the sheet rejects: ignore
@@ -681,7 +743,7 @@
     render() {
       if (!this.el) return;
       const S = R && R.status !== "connecting" ? snapshot() : null;
-      this.list.innerHTML = S ? S.players.map((p) => `<li class="${p.you ? "me" : ""}${p.host ? " host" : ""}"><span class="mp-dock-av" style="--h:${hue(p.id)}${p.color ? ";background:" + p.color : ""}">${p.avatar ? esc(p.avatar) : esc([...String(p.name).trim()][0] || "?").toUpperCase()}${p.host ? CROWN : ""}</span><span class="mp-dock-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}</span></li>`).join("") : "";
+      this.list.innerHTML = S ? S.players.map((p) => `<li class="${p.you ? "me" : ""}${p.host ? " host" : ""}">${compHtml(p.avatar || "", p.accessory || "", 28)}${p.host ? CROWN : ""}<span class="mp-dock-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}</span></li>`).join("") : "";
     },
   };
 
@@ -728,6 +790,8 @@
     get error() { return lastError; },
   };
 
+  // load meta.json (offsets/scale/rotation) and re-render when available
+  loadMeta();
   // a reload in the same tab: pick the room up again (after the scripts of the page have run)
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(restoreSession, 0));
   else setTimeout(restoreSession, 0);
