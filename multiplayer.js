@@ -566,7 +566,6 @@
       if (!R) {
         h = `${head}<p class="mp-sub">${t("sub", { max: cfg.max })}</p></div>
           <div class="mp-field"><label for="mp-name">${t("yourName")}</label><input id="mp-name" maxlength="12" autocomplete="off" spellcheck="false" value="${esc(keepName ?? store.get(cfg.nameKey))}" placeholder="${esc(t("player"))}"></div>
-          <div class="mp-section">${avRow(store.get(AVATAR_KEY))}${colRow(store.get(COLOR_KEY))}</div>
           ${this.linkJoin && !lastError ? "" : `<div class="mp-section"><b>${t("hostT")}</b><small>${t("hostS")}</small><button class="mp-primary mp-wide" data-act="host">${t("create")}</button></div>
           <div class="mp-or"><span>${t("or")}</span></div>`}
           <div class="mp-section"><b>${t("joinT")}</b><div class="mp-row"><input id="mp-code" maxlength="${CODE_LEN}" autocomplete="off" spellcheck="false" placeholder="ABCDE" aria-label="${t("roomCode")}" value="${esc(keepCode)}"><button class="mp-primary" data-act="join">${t("join")}</button></div></div>
@@ -601,7 +600,10 @@
       this.profEl.classList.toggle("mp-prof-open", this.profOpen);
       if (!show) return;
       const keep = (this.profEl.querySelector("#mp-pname") || {}).value;
-      this.profEl.innerHTML = `<button class="mp-qr-close" data-act="profclose" aria-label="${t("close")}">✕</button><h4>${t("profileT")}</h4><label for="mp-pname">${t("yourName")}</label><input id="mp-pname" maxlength="12" autocomplete="off" spellcheck="false" value="${esc(keep ?? R.name)}">${this.pickers(R.avatar, R.color)}`;
+      this.profEl.innerHTML = `<button class="mp-qr-close" data-act="profclose" aria-label="${t("close")}">✕</button><h4>${t("profileT")}</h4>
+        <div class="mp-field"><label for="mp-pname">${t("yourName")}</label><input id="mp-pname" maxlength="12" autocomplete="off" spellcheck="false" value="${esc(keep ?? R.name)}" placeholder="${esc(t("player"))}"></div>
+        <div class="mp-section"><div class="mp-lbl">${t("avatar")}</div><div class="mp-avs">${AVATARS.map((a) => `<button type="button" class="mp-av-pick${a === R.avatar ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}">${a}</button>`).join("")}</div></div>
+        <div class="mp-section"><div class="mp-lbl">${t("color")}</div><div class="mp-avs">${COLORS.map((c) => `<button type="button" class="mp-col-pick${c === R.color ? " on" : ""}" data-act="color" data-v="${c}" aria-label="${c}" style="background:${c}"></button>`).join("")}</div></div>`;
     },
 
     pickers(av, col) {

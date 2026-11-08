@@ -700,7 +700,7 @@ html[data-theme="pop"] #home .card:hover .star-icon { animation: pop-bounce 0.4s
 html[data-theme="pop"] #home .card { transition: transform 0.2s cubic-bezier(0.34, 1.7, 0.5, 1), box-shadow 0.2s; }
 
 /* ---- theme picker ---- */
-.theme-picker { position: relative; z-index: 120; }
+.theme-picker { position: relative; z-index: 130; }
 #app > .theme-picker,
 #home > .theme-picker { position: fixed; top: 14px; right: 16px; }
 .theme-btn {

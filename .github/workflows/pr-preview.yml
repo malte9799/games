@@ -29,6 +29,6 @@ jobs:
         run: |
           slug=$(bash scripts/gh-pages.sh slug "$BRANCH")
           export URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/previews/$slug/"
-          got=$(curl -fsS --max-time 10 "${URL}deploy.txt?t=$(date +%s)" 2>/dev/null | tr -d '[:space:]' || true)
+          got=$(curl -fsSL --max-time 10 "${URL}deploy.txt?t=$(date +%s)" 2>/dev/null | tr -d '[:space:]' || true)
           if [ "$got" = "$SHA" ]; then bash scripts/pr-status.sh "" done
           else echo "preview not (yet) at $SHA (${got:-404}) – the running build will comment"; fi
