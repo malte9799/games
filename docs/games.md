@@ -271,8 +271,8 @@ Per design: an entry in `THEMES` (themes.js, with `assets: true`, and
 ## Multiplayer
 
 `multiplayer.js` (+ `multiplayer.css`) is a game-independent room for 2–6 players, loaded on every
-game page as `window.Multiplayer`. It uses Trystero 0.26 (Nostr relays for the handshake, then direct
-WebRTC), so there is no server and no account. Nothing is downloaded until someone opens a room.
+game page as `window.Multiplayer`. Players are connected through our own room relay (`server/`, a Cloudflare Worker with one Durable Object
+per room code, WebSocket), which only forwards messages. There is no account. Nothing is downloaded until someone opens a room.
 A game only sends its own messages; room, player list, host, invite link, QR code and the lobby
 window are handled here. Try it: open `mp-demo.html` in two tabs.
 
@@ -304,7 +304,7 @@ Multiplayer.send("hand", cards, playerId);       // to one player only
 player ids stay the same. A player who is still listed (or who had a seat in a running game) is put back
 in; if nobody answers within 8 s, the room is opened again under the same code with you as host. The
 `start` event gets `resumed: true` when a running game is picked up this way. `player.id` is the seat
-token, not the WebRTC peer id, so it is stable across reloads.
+token, not the connection id, so it is stable across reloads.
 | `on(event, fn)` → `off()` | subscribe to an event (`"*"` gets `(event, data)` for all), `onMessage(type, fn)` is shorthand for `"message:<type>"` |
 | `setGame(id, { min, max })` | host: choose the game the room plays next (everybody gets a `game` event, the lobby shows it); `min`/`max` limit when `start()` works |
 | `start(options?)` | host: start for everybody (needs `min` players). `options` is any JSON every client receives |
@@ -315,7 +315,7 @@ token, not the WebRTC peer id, so it is stable across reloads.
 
 Read-only: `state` (`{ code, selfId, hostId, isHost, status, game, options, min, max, players }` or
 `null`), `players`, `me`, `isHost`, `connected`, `error`. A player is `{ id, name, host, you }`; `id` is
-the peer id and the address for `send(…, id)`. `status` is `connecting` → `lobby` ⇄ `playing`.
+the seat token and the address for `send(…, id)`. `status` is `connecting` → `lobby` ⇄ `playing`.
 
 ### Events
 
@@ -343,8 +343,7 @@ the peer id and the address for `send(…, id)`. `status` is `connecting` → `l
   (skip their turn, end the round, …).
 - Messages are not queued: nothing is delivered to players who join later. Send state on `join`
   if a game allows late joiners.
-- Games are classic scripts. The module itself loads Trystero with `new Function("u","return import(u)")`
-  because a literal `import()` is rewritten by the Vite dev server. Do the same if you need another ESM from a CDN.
+- Games are classic scripts.
 - Lobby text is German; the English dictionary is in `multiplayer.js` (`configure({ lang: "en" })`).
 
 ### The hub: switching games without leaving the room
@@ -354,7 +353,7 @@ Outside a room the heading is a "Mehrspieler / Einzelspieler" switch (`?mode=sol
 (`?room=CODE`) opens the join window without the "open a new room" parts. Each hub game needs a `preview(p, w, h)`
 (same 600×360 p5 function style as in `manifest.js`) for its card. The host
 picks a game card, presses start, and later "Zurück zur Lobby" to pick another – the page never reloads,
-so the WebRTC connection (and every player's peer id) survives. Games here are **ES modules** in
+so the room connection (and every player's connection id) survives. Games here are **ES modules** in
 `hub-games/` (not the old global scripts in `games/`), registered in the `MP_GAMES` list at the top of `hub.js`:
 
 ```js

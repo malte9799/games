@@ -1,7 +1,7 @@
-// Multiplayer hub — one WebRTC room per page, usable by every game.
+// Multiplayer hub — one room per page, usable by every game.
 //
-// Peer to peer, no game server: players meet in a room (5-letter code) through Trystero's public
-// Nostr relays and then talk directly. Loaded by index.html next to game.js; it does nothing (and
+// Players meet in a room (5-letter code); every browser holds one WebSocket to our own relay
+// (server/, Cloudflare Durable Objects) which forwards the messages. Loaded by index.html next to game.js; it does nothing (and
 // loads nothing) until a game or the lobby window calls host() / join().
 //
 //   Multiplayer.host({ name })            -> Promise<state>   open a new room, you are the host
@@ -152,7 +152,7 @@
   // ---- state ----
   // R is the room we are in (null when not in one):
   //   { code, selfId, token, name, hostId, status: "connecting"|"lobby"|"playing", game, options, players: [{ id, name }], max }
-  // Player ids are the seat tokens (stable across reloads), NOT the WebRTC peer ids, which change on every page load.
+  // Player ids are the seat tokens (stable across reloads), NOT the connection ids, which change on every page load.
   // tokenPeer / peerTok map between a seat token and the peer it currently talks through.
   let R = null;
   let net = null;                                  // { send(msg, peerId?), leave(), selfId }

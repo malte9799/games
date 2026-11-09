@@ -2,7 +2,7 @@
 //
 // The shell owns the page and the room (window.Multiplayer, see multiplayer.js). A game is an ES module
 // in hub-games/ that is loaded with import() when the host starts it and thrown away when the host
-// ends it, so the WebRTC connection never drops while the room switches games.
+// ends it, so the room connection never drops while the room switches games.
 //
 //   export default {
 //     min: 2, max: 4,                      // players it needs / allows
@@ -156,9 +156,8 @@ function renderTools() {
 
 const HOW = [
   ["So geht’s", "Oben links auf „Mehrspieler“, Raum erstellen, den 5-stelligen Code (oder Link/QR-Code) teilen. Fertig."],
-  ["Peer-to-Peer", "Kein Spiel-Server. Die Browser sind direkt per WebRTC verbunden, jeder mit jedem (max. 6 Spieler)."],
-  ["Verbindungsaufbau", "Über öffentliche Nostr-Relays, nur einmal zum Finden. Spielzüge laufen nie darüber."],
-  ["Verschlüsselung", "Die Datenkanäle sind DTLS-verschlüsselt. Mitspieler sehen deine IP-Adresse."],
+  ["Raum-Server", "Jeder Browser hält eine WebSocket-Verbindung zu einem kleinen Relay-Server (Cloudflare Workers). Er leitet Nachrichten nur an die Mitspieler im selben Raum weiter (max. 6 Spieler) und kennt die Spiele selbst nicht."],
+  ["Verschlüsselung", "Die Verbindung zum Server ist per TLS (wss://) verschlüsselt. Ende-zu-Ende verschlüsselt ist sie nicht: Der Server leitet die Nachrichten durch. Dafür sehen Mitspieler deine IP-Adresse nicht."],
   ["Raumcode", "Das einzige Geheimnis: 5 Zeichen, kein Login. Wer den Code kennt, kommt rein."],
 ];
 
