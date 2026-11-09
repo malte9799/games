@@ -1,9 +1,13 @@
 # Kartenbilder
 
-- `standard`:
-  Adrian Kennard (RevK), https://www.me.uk/cards/ — CC0 (Public Domain). Hofkarten nach Goodall & Son (19. Jh.).
-  Mit svgo verkleinert.
-- `knoll`: Byron Knoll, "vector-playing-cards" (Public Domain), via https://github.com/notpeter/vector-playing-cards.
-  Mit svgo verkleinert.
-- `skat`: RevK-Generator (CC0) mit Index in allen vier Ecken; Rückseite `backs/skat.svg` eigene Zeichnung. `backs/d3_*.svg`: BdRGames, https://opengameart.org/content/playing-cards-back-vector-svg (CC0).
-- Die Decks „Gezeichnet: …“ sind eigene Zeichnungen in `cards.js` (kein Fremdmaterial).
+Alle Blätter sind fremde, von Menschen gestaltete Werke (keine eigenen Zeichnungen).
+
+| Ordner | Quelle | Lizenz |
+| --- | --- | --- |
+| `standard` | Adrian Kennard (RevK), https://www.me.uk/cards/ — Hofkarten nach Goodall & Son. Mit svgo verkleinert. | CC0 |
+| `skat` | RevK-Generator (https://www.me.uk/cards/makeadeck.cgi), Index in allen vier Ecken | CC0 |
+| `knoll` | Byron Knoll, „vector-playing-cards“, via https://github.com/notpeter/vector-playing-cards. Mit svgo verkleinert. | Public Domain |
+| `medieval` | Aidan Walker, „Playing Cards“, https://opengameart.org/content/playing-cards-5. Aus dem Spritesheet zugeschnitten, als WebP. | CC0 |
+| `sharm` | Sharm, „Playing Cards“, https://opengameart.org/content/playing-cards. Von 3000×4200 auf 250×350 verkleinert, als WebP. | CC-BY 4.0 / 3.0 — **Namensnennung: Sharm** |
+| `pixel` | Glenn Dittmann (Lempf), „Pixel Art Cards“, https://opengameart.org/content/pixel-art-cards. Aus `.aseprite` nach PNG (36×54) umgewandelt. | CC-BY 3.0 — **Namensnennung: Glenn Dittmann** |
+| `backs/d3_*.svg` | BdRGames, https://opengameart.org/content/playing-cards-back-vector-svg, mit farbigem Grund unterlegt | CC0 |

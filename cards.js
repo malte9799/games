@@ -1,9 +1,7 @@
 // Gemeinsames Kartenbild für alle Kartenspiele (Solitär, Blackjack, ...).
-// Zwei Arten von Blättern:
-//   svg    fertige SVG-Dateien unter cards/<deck>/ (Lizenzen: cards/LICENSES.md), lazy geladen
-//          und in der gezeichneten Größe zwischengespeichert. Die Farbe pro Kartenfarbe lässt sich
-//          umstellen (tint): das SVG wird dann beim Laden umgefärbt.
-//   drawn  selbst gezeichnet (Canvas 2D), Farben pro Kartenfarbe ebenfalls einstellbar.
+// Alle Blätter sind fertige Dateien unter cards/<deck>/ (Quellen und Lizenzen: cards/LICENSES.md),
+// werden beim ersten Gebrauch geladen und in der gezeichneten Größe zwischengespeichert.
+// SVG-Blätter (Skat, Französisch) lassen sich pro Kartenfarbe umfärben; Bild-Blätter nicht.
 // Zeichnet auf einem Canvas-2D-Kontext, unabhängig von p5.
 // Suit-Index: 0 = ♠, 1 = ♥, 2 = ♦, 3 = ♣ — die Spiele rechnen immer so.
 // Die Wahl gilt global pro Browser (localStorage "games_card_*").
@@ -14,28 +12,21 @@
   const BLACK = "#000000", RED = "#ff0000";
   const SVG_COLS = [BLACK, RED, RED, BLACK];
 
-  const BACKS = [   // wählbare Rückseiten fürs französische Blatt
+  const BACKS = [   // wählbare Rückseiten (BdRGames); zusätzlich "own" = die Rückseite des Blatts selbst
     { id: "red", name: "Rot", css: "#c8384a" }, { id: "blue", name: "Blau", css: "#3a56a8" },
     { id: "green", name: "Grün", css: "#2f7a5c" }, { id: "black", name: "Schwarz", css: "#3a3a3a" },
     { id: "lightblue", name: "Hellblau", css: "#3aa3d2" },
-    { id: "skat", name: "Skat", css: "#1a3f9e" },
   ];
 
-  // svg: dir = Ordner unter cards/, ten = Dateiname der Zehn, back = feste Rückseite (sonst wählbar)
-  // drawn: cols = [♠,♥,♦,♣] als Hex, bg/panel/border/backBg/backInk als [r,g,b], back = Muster
+  // dir = Ordner unter cards/, ten = Dateiname der Zehn, ext = Dateiendung, own = eigene Rückseite (back.<ext>),
+  // defBack = Standard-Rückseite, cols = umfärbbar (nur SVG), pixel = ohne Glättung skalieren
   const DECKS = [
-    { id: "skat",    name: "Skat (Altenburger Stil)", kind: "svg", dir: "skat", ten: "T", defBack: "skat", cols: SVG_COLS },
-    { id: "french",  name: "Französisch (Goodall)",   kind: "svg", dir: "standard", ten: "T", defBack: "red", cols: SVG_COLS },
-    { id: "knoll",   name: "Klassisch (Knoll)",       kind: "svg", dir: "knoll", ten: "10", defBack: "black" },
-    { id: "classic", name: "Gezeichnet: Klassisch",   kind: "drawn", serif: true,
-      cols: ["#1c1c28", "#c8263e", "#c8263e", "#1c1c28"],
-      bg: [253, 251, 246], panel: [240, 234, 214], border: [110, 100, 90], back: "lattice", backBg: [176, 152, 255], backInk: [255, 255, 255] },
-    { id: "minimal", name: "Gezeichnet: Dunkel",      kind: "drawn", serif: false,
-      cols: ["#ecf0fa", "#ff7680", "#ff7680", "#ecf0fa"],
-      bg: [30, 33, 52], panel: [44, 48, 76], border: [70, 76, 110], back: "dots", backBg: [48, 54, 92], backInk: [140, 150, 210] },
-    { id: "deco",    name: "Gezeichnet: Art Deco",    kind: "drawn", serif: true,
-      cols: ["#e2b85a", "#e2b85a", "#e2b85a", "#e2b85a"],
-      bg: [18, 16, 14], panel: [40, 34, 24], border: [226, 184, 90], back: "fan", backBg: [18, 16, 14], backInk: [226, 184, 90] },
+    { id: "skat",     name: "Skat (Altenburger Stil)",  dir: "skat",     ten: "T",  ext: "svg", defBack: "blue", cols: SVG_COLS },
+    { id: "french",   name: "Französisch (Goodall)",    dir: "standard", ten: "T",  ext: "svg", defBack: "red",  cols: SVG_COLS },
+    { id: "knoll",    name: "Klassisch (Knoll)",        dir: "knoll",    ten: "10", ext: "svg", defBack: "black" },
+    { id: "medieval", name: "Mittelalter (A. Walker)",  dir: "medieval", ten: "T",  ext: "webp", own: true, defBack: "own" },
+    { id: "sharm",    name: "Verschnörkelt (Sharm)",    dir: "sharm",    ten: "T",  ext: "webp", own: true, defBack: "own" },
+    { id: "pixel",    name: "Pixel Art (G. Dittmann)",  dir: "pixel",    ten: "T",  ext: "png",  own: true, defBack: "own", pixel: true },
   ];
   const tintable = (D) => !!D.cols;
 
@@ -81,10 +72,11 @@
 
   function fileOf(D, rank, suit) {
     const r = rank === 1 ? "A" : rank === 10 ? D.ten : RANKS[rank];
-    return "cards/" + D.dir + "/" + r + SUITS[suit] + ".svg";
+    return "cards/" + D.dir + "/" + r + SUITS[suit] + "." + D.ext;
   }
-  const backIdOf = (D) => (BACKS.some((b) => b.id === userBacks[D.id]) && userBacks[D.id]) || D.defBack;
-  const backUrl = (D) => { const b = backIdOf(D); return b === "skat" ? "cards/backs/skat.svg" : "cards/backs/d3_" + b + ".svg"; };
+  const backsOf = (D) => (D.own ? [{ id: "own", name: "Original", css: "#888", url: "cards/" + D.dir + "/back." + D.ext }] : []).concat(BACKS);
+  const backIdOf = (D) => (backsOf(D).some((b) => b.id === userBacks[D.id]) && userBacks[D.id]) || D.defBack;
+  const backUrl = (D) => { const b = backIdOf(D); return b === "own" ? "cards/" + D.dir + "/back." + D.ext : "cards/backs/d3_" + b + ".svg"; };
   // Farbe nur angeben, wenn sie vom Original abweicht (sonst reicht die unveränderte Datei)
   const tintOf = (D, suit) => {
     if (!D.cols) return null;
@@ -93,13 +85,12 @@
   };
 
   function preload(D) {
-    if (D.kind === "drawn") return;
     load(backUrl(D));
     for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) load(fileOf(D, r, s), s, tintOf(D, s));
   }
 
   // zeichnet das Bild an (x,y,w,h); im aktuellen Gerätemaßstab zwischengespeichert, damit große SVGs nur einmal gerastert werden
-  function blit(ctx, e, key, x, y, w, h) {
+  function blit(ctx, e, key, x, y, w, h, pix) {
     if (!e.ok) {                                  // noch nicht geladen: schlichter Platzhalter
       ctx.save(); ctx.fillStyle = "#f4f1ea"; ctx.strokeStyle = "rgba(0,0,0,.25)";
       ctx.beginPath(); ctx.roundRect(x, y, w, h, w * 0.08); ctx.fill(); ctx.stroke(); ctx.restore();
@@ -112,92 +103,22 @@
     let c = scaled.get(ck);
     if (!c) {
       c = document.createElement("canvas"); c.width = pw; c.height = ph;
-      c.getContext("2d").drawImage(e.img, 0, 0, pw, ph);
+      const g = c.getContext("2d"); g.imageSmoothingEnabled = !pix; g.imageSmoothingQuality = "high"; g.drawImage(e.img, 0, 0, pw, ph);
       scaled.set(ck, c);
       if (scaled.size > 700) scaled.delete(scaled.keys().next().value);
     }
     ctx.drawImage(c, x, y, w, h);
   }
 
-  // ---- selbst gezeichnete Blätter (logische Größe 72×100) ----
-  const rgb = (a, al = 1) => `rgba(${a[0]},${a[1]},${a[2]},${al})`;
-  const PIPS = {
-    2: [[.5, .22], [.5, .78]],
-    3: [[.5, .22], [.5, .5], [.5, .78]],
-    4: [[.33, .22], [.67, .22], [.33, .78], [.67, .78]],
-    5: [[.33, .22], [.67, .22], [.5, .5], [.33, .78], [.67, .78]],
-    6: [[.33, .22], [.67, .22], [.33, .5], [.67, .5], [.33, .78], [.67, .78]],
-    7: [[.33, .22], [.67, .22], [.5, .36], [.33, .5], [.67, .5], [.33, .78], [.67, .78]],
-    8: [[.33, .22], [.67, .22], [.5, .36], [.33, .5], [.67, .5], [.5, .64], [.33, .78], [.67, .78]],
-    9: [[.33, .22], [.67, .22], [.33, .39], [.67, .39], [.5, .5], [.33, .61], [.67, .61], [.33, .78], [.67, .78]],
-    10: [[.33, .22], [.67, .22], [.5, .33], [.33, .44], [.67, .44], [.33, .56], [.67, .56], [.5, .67], [.33, .78], [.67, .78]],
-  };
-  const rrect = (ctx, x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
-
-  function drawnFace(ctx, x, y, w, h, rank, suit, D) {
-    const col = colsOf(D)[suit], fam = D.serif ? "Georgia, serif" : "system-ui, sans-serif";
-    const glyph = (cx, cy, s) => {
-      ctx.fillStyle = col; ctx.font = `${s * 1.3}px ${fam}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(GLYPH[suit], cx, cy);
-    };
-    ctx.save(); ctx.translate(x, y); ctx.scale(w / 72, h / 100);
-    ctx.lineWidth = 1;
-    ctx.fillStyle = rgb(D.bg); ctx.strokeStyle = rgb(D.border, 0.47); rrect(ctx, 0, 0, 72, 100, 9); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = rgb(D.border, 0.2); rrect(ctx, 4, 4, 64, 92, 6); ctx.stroke();
-    if (rank === 1) glyph(36, 50, 40);
-    else if (rank <= 10) { const s = rank >= 9 ? 12 : 14; for (const [fx, fy] of PIPS[rank]) glyph(fx * 72, fy * 100, s); }
-    else {
-      ctx.fillStyle = rgb(D.panel); ctx.strokeStyle = rgb(D.border, 0.55); rrect(ctx, 14, 22, 44, 56, 5); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = col; ctx.font = `bold 26px ${fam}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(RANKS[rank], 36, 40);
-      glyph(36, 66, 16);
-    }
-    const corner = () => {
-      ctx.fillStyle = col; ctx.font = `bold 16px ${fam}`; ctx.textAlign = "left"; ctx.textBaseline = "top";
-      ctx.fillText(RANKS[rank], 7, 5);
-      glyph(14, 29, 11);
-    };
-    corner();
-    ctx.translate(72, 100); ctx.rotate(Math.PI); corner();
-    ctx.restore();
-  }
-
-  function drawnBack(ctx, x, y, w, h, D) {
-    const ink = D.backInk;
-    ctx.save(); ctx.translate(x, y); ctx.scale(w / 72, h / 100);
-    ctx.lineWidth = 1;
-    ctx.fillStyle = rgb(D.backBg); ctx.strokeStyle = "rgba(0,0,0,.18)"; rrect(ctx, 0, 0, 72, 100, 9); ctx.fill(); ctx.stroke();
-    ctx.save(); ctx.beginPath(); ctx.rect(5, 5, 62, 90); ctx.clip();
-    if (D.back === "lattice") {
-      ctx.fillStyle = "rgba(255,255,255,.22)"; rrect(ctx, 6, 6, 60, 88, 6); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.47)";
-      for (let i = 0; i < 4; i++) for (let j = 0; j < 6; j++) { ctx.beginPath(); ctx.arc(14 + i * 44 / 3, 13 + j * 74 / 5, 1.5, 0, 7); ctx.fill(); }
-    } else if (D.back === "dots") {
-      ctx.fillStyle = rgb(ink, 0.43);
-      for (let i = 0; i < 8; i++) for (let j = 0; j < 11; j++) { ctx.beginPath(); ctx.arc(6 + i * 9.5, 6 + j * 9, 1.25, 0, 7); ctx.fill(); }
-    } else if (D.back === "fan") {
-      ctx.strokeStyle = rgb(ink, 0.47);
-      for (let k = 0; k <= 14; k++) {
-        const a = -Math.PI + (k * Math.PI) / 14;
-        ctx.beginPath(); ctx.moveTo(36, 100); ctx.lineTo(36 + Math.cos(a) * 160, 100 + Math.sin(a) * 160); ctx.stroke();
-      }
-    }
-    ctx.restore();
-    ctx.strokeStyle = rgb(ink, 0.63); rrect(ctx, 4, 4, 64, 92, 6); ctx.stroke();
-    ctx.restore();
-  }
-
   function face(ctx, x, y, w, h, rank, suit, o = {}) {
     const D = o.deck || current();
-    if (D.kind === "drawn") return drawnFace(ctx, x, y, w, h, rank, suit, D);
     const url = fileOf(D, rank, suit), col = tintOf(D, suit);
-    blit(ctx, load(url, suit, col), col ? url + "|" + col : url, x, y, w, h);
+    blit(ctx, load(url, suit, col), col ? url + "|" + col : url, x, y, w, h, D.pixel);
   }
   function back(ctx, x, y, w, h, o = {}) {
     const D = o.deck || current();
-    if (D.kind === "drawn") return drawnBack(ctx, x, y, w, h, D);
     const url = backUrl(D);
-    blit(ctx, load(url), url, x, y, w, h);
+    blit(ctx, load(url), url, x, y, w, h, D.pixel && backIdOf(D) === "own");
   }
 
   // ---- Auswahl ----
@@ -222,7 +143,7 @@
     preload(D); emit();
   }
   function setBack(id) {
-    if (!BACKS.some((b) => b.id === id) || current().kind === "drawn") return;
+    if (!backsOf(current()).some((b) => b.id === id)) return;
     userBacks[current().id] = id; store.set(K_BACK, JSON.stringify(userBacks));
     preload(current()); emit();
   }
@@ -276,15 +197,14 @@
   const hex = (c) => (typeof c === "string" ? c : "#000000");
   function settingsHTML() {
     const D = current();
-    if (D.kind === "drawn" && !tintable(D)) return "";
     let h = "";
     if (tintable(D)) {
       const cs = colsOf(D);
       h += `<div class="pc-row"><b>Farben</b>${GLYPH.map((g, s) => `<label>${g}<input type="color" data-suit="${s}" value="${hex(cs[s])}" aria-label="Farbe ${g}"></label>`).join("")}</div>
         <div class="pc-row"><b></b><button type="button" data-preset="default">Standard</button><button type="button" data-preset="four">Vier Farben</button></div>`;
     }
-    if (D.kind !== "drawn") {
-      h += `<div class="pc-row"><b>Rückseite</b>${BACKS.map((b) => `<button type="button" class="pc-sw" data-back="${b.id}" style="background:${b.css}" role="radio" aria-checked="${b.id === backIdOf(D)}" aria-label="${b.name}" title="${b.name}"></button>`).join("")}</div>`;
+    {
+      h += `<div class="pc-row"><b>Rückseite</b>${backsOf(D).map((b) => `<button type="button" class="pc-sw" data-back="${b.id}" style="background:${b.url ? "url(" + b.url + ") center/cover" : b.css}${D.pixel && b.url ? ";image-rendering:pixelated" : ""}" role="radio" aria-checked="${b.id === backIdOf(D)}" aria-label="${b.name}" title="${b.name}"></button>`).join("")}</div>`;
     }
     return h;
   }
@@ -318,7 +238,7 @@
     document.body.appendChild(menu);
     renderMenu();
     loadWaiters.push(drawPreviews);
-    DECKS.forEach((d) => { if (d.kind !== "drawn") { load(backUrl(d)); load(fileOf(d, 12, 1), 1, tintOf(d, 1)); } });
+    DECKS.forEach((d) => { load(backUrl(d)); load(fileOf(d, 12, 1), 1, tintOf(d, 1)); });
     const r = btn.getBoundingClientRect(), mw = menu.offsetWidth;
     const top = Math.min(r.bottom + 8, window.innerHeight - 160);
     menu.style.top = top + "px";
