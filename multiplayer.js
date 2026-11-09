@@ -17,7 +17,11 @@
 (function () {
   "use strict";
 
-  const TRYSTERO = "./vendor/trystero-nostr.bundle.mjs";
+  // Own room relay (server/, Cloudflare Durable Objects). Local development uses `pnpm dev` in server/ on port 8787.
+  // tried in order: the first one that answers wins (the workers.dev address is the fallback if the custom domain is not reachable)
+  const RELAY_URLS = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+    ? ["ws://localhost:8787/ws"]
+    : ["wss://rooms.maltee.dev/ws", "wss://games-rooms.malte9799.workers.dev/ws"];
   const QR_LIB = "vendor/qrcode.min.js";
   const APP_ID = "malte9799-games";
   const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -177,27 +181,49 @@
 
   // ---- connection ----
   async function netOpen(code, token) {
-    // via Function so the Vite dev server doesn't rewrite it (it would prepend an `import` to this classic script and break loading)
-    const mod = await new Function("u", "return import(u)")(TRYSTERO);
-    const room = mod.joinRoom({ appId: cfg.appId }, code);
-    const a = room.makeAction("mp");
-    const raw = (msg, peer) => (Array.isArray(a) ? a[0](msg, peer) : a.send(msg, peer ? { target: peer } : undefined));
-    // every message says who sent it (f = seat token), so the receiver knows the sender without a handshake
-    const send = (msg, peer) => raw({ ...msg, f: token }, peer);
+    // WebSocket to our own room server (server/src/index.js): one connection per player, the server forwards.
+    // It replaces the WebRTC mesh over public Nostr relays, which failed between players behind NATs.
+    const dial = (url) => new Promise((resolve, reject) => {
+      const ws = new WebSocket(`${url}?room=${encodeURIComponent(code)}`);
+      const timer = setTimeout(() => { try { ws.close(); } catch {} reject(new Error("relay timeout")); }, 6000);
+      ws.onmessage = (ev) => {
+        let m; try { m = JSON.parse(ev.data); } catch { return; }
+        if (m.k === "welcome") { clearTimeout(timer); resolve({ ws, ready: m }); }
+        if (m.k === "full") { clearTimeout(timer); try { ws.close(); } catch {} reject(new Error("full")); }
+      };
+      ws.onerror = () => { clearTimeout(timer); reject(new Error("relay unreachable")); };
+      ws.onclose = () => { clearTimeout(timer); reject(new Error("relay closed")); };
+    });
+    let ws = null, ready = null, lastErr = null;
+    for (const url of RELAY_URLS) {
+      try { ({ ws, ready } = await dial(url)); break; } catch (e) { lastErr = e; if (e.message === "full") break; }
+    }
+    if (!ws) throw lastErr || new Error("no relay");
     // messages of a room we already left (kept open for a moment, see leave()) are ignored: net no longer points at it
     let mine = null;
-    const handler = (m, meta) => { if (mine && net === mine) onWire(m, typeof meta === "string" ? meta : meta && meta.peerId); };
-    if (Array.isArray(a)) a[1](handler); else a.onMessage = handler;
-    room.onPeerJoin = (peer) => {
+    const sendRaw = (obj) => { if (ws.readyState === 1) ws.send(JSON.stringify(obj)); };
+    // every message says who sent it (f = seat token), so the receiver knows the sender without a handshake
+    const send = (msg, peer) => sendRaw({ k: "msg", to: peer || undefined, d: { ...msg, f: token } });
+    const introduce = (peer) => {
       if (!R || net !== mine) return;
       send({ t: "hi" }, peer);                                   // introduce ourselves, so both sides know each other's token
       if (R.hostId === R.selfId) { if (R.status !== "connecting") send(wireLobby(), peer); }
       // a guest introduces itself to everybody it meets; the host answers by sending the player list
       else if (R.status === "connecting") send({ t: "hello", name: R.name, avatar: R.avatar, accessory: R.accessory, color: R.color }, peer);
     };
-    room.onPeerLeave = (peer) => { if (net === mine) onPeerLeave(peer); };
-    mine = { send, selfId: mod.selfId, leave: () => { try { room.leave(); } catch {} } };
+    const handler = (m, peer) => { if (mine && net === mine) onWire(m, peer); };
+    ws.onmessage = (ev) => {
+      let m; try { m = JSON.parse(ev.data); } catch { return; }
+      if (!mine || net !== mine) return;
+      if (m.k === "msg") handler(m.d, m.from);
+      else if (m.k === "join") introduce(m.id);
+      else if (m.k === "leave") onPeerLeave(m.id);
+    };
+    // the relay dropped us while we are still in the room (not a deliberate leave, those reset net first)
+    ws.onclose = () => { if (net === mine) fail(t("netFail")); };
+    mine = { send, selfId: ready.id, leave: () => { try { ws.close(1000, "left"); } catch {} } };
     net = mine;
+    for (const p of ready.peers) introduce(p);                   // everybody already in the room
     return net;
   }
 
