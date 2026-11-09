@@ -209,6 +209,11 @@ const CSS = `
 .pk-hole .pcard { transform: rotateX(var(--ty)) rotateY(var(--tx)) rotateZ(var(--rz, 0deg)); transition: transform .15s ease-out, filter .3s; transform-style: preserve-3d; }
 .pk-hole .pcard:nth-child(1) { --rz: -5deg; } .pk-hole .pcard:nth-child(2) { --rz: 5deg; }
 .pk-hole .pcard:hover { transform: translateY(-8px) rotateX(var(--ty)) rotateY(var(--tx)) rotateZ(0deg); }
+/* "Karten verstecken": face down, only a faint peek while hovering / touching */
+.pk-hole.hide .pcard .pc-in { transform: rotateY(180deg); }
+.pk-hole.hide .pcard:hover .pc-in, .pk-hole.hide .pcard:active .pc-in { transform: rotateY(0deg); }
+.pk-hole.hide .pcard:hover .pc-f.fr, .pk-hole.hide .pcard:active .pc-f.fr { opacity: .38; filter: blur(.7px) saturate(.6); }
+.pk-hole.hide .pcard:hover { transform: rotateX(var(--ty)) rotateY(var(--tx)) rotateZ(var(--rz, 0deg)); }
 .pk-hole.fold .pcard { filter: grayscale(1) brightness(.6); }
 .pk-hole .pc-f { box-shadow: 0 8px 20px rgba(0, 0, 0, .45); }
 
@@ -847,6 +852,24 @@ export default {
       if (sound) snd.chip();
     });
     headEl.appendChild(sndBtn);
+
+    // hide my cards (playing side by side): face down, only faintly visible while hovering
+    let hidden = false;
+    try { hidden = localStorage.getItem("pk_hide") === "1"; } catch {}
+    const hideBtn = document.createElement("button");
+    hideBtn.type = "button"; hideBtn.className = "pk-snd"; hideBtn.title = "Eigene Karten verdecken – nur beim Drüberfahren schwach sichtbar";
+    const applyHide = () => {
+      holeEl.classList.toggle("hide", hidden);
+      hideBtn.textContent = hidden ? "Karten: verdeckt" : "Karten: offen";
+      hideBtn.setAttribute("aria-pressed", hidden ? "true" : "false");
+    };
+    hideBtn.addEventListener("click", () => {
+      hidden = !hidden;
+      try { localStorage.setItem("pk_hide", hidden ? "1" : "0"); } catch {}
+      applyHide();
+    });
+    applyHide();
+    headEl.insertBefore(hideBtn, sndBtn);
 
     // ---- host migration / leaving ----
     ctx.onEvent("host", ({ you }) => {
