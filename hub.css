@@ -430,3 +430,8 @@ body.hub-game-open { overflow-x: hidden; }
 .pz-pad button { min-width: 52px; min-height: 52px; padding: 0 14px; font-size: 20px; touch-action: none; user-select: none; -webkit-user-select: none; }
 .pz-pad .pz-fire { flex: 1; max-width: 160px; font-weight: 800; letter-spacing: .06em; font-size: 16px; }
 @media (pointer: coarse) { .pz-pad { display: flex; } }
+
+/* ---- Battleship ---- */
+#hub-stage.hub-battleship { max-width: min(1240px, 100%); }
+.hub-battleship .hk { max-width: none; }
+.hub-battleship .hk-body { min-height: 0; }
