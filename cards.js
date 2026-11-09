@@ -245,7 +245,7 @@
 .pc-row input[type=color]{width:40px;height:32px;padding:0;border:1px solid var(--panel-edge,#666);border-radius:6px;background:none;cursor:pointer}
 .pc-row button{all:unset;cursor:pointer;padding:3px 9px;border-radius:999px;border:1px solid var(--panel-edge,#666);font-size:12px}
 .pc-row button:hover,.pc-row button:focus-visible{background:var(--panel-2,#333)}
-.pc-sw{width:40px!important;height:40px!important;min-width:40px!important;box-sizing:border-box;border-radius:50%!important;padding:0!important;border:3px solid var(--panel-edge,#666)!important}
+.pc-sw{width:28px!important;height:38px!important;min-width:28px!important;box-sizing:border-box;border-radius:6px!important;padding:0!important;border:2px solid var(--panel-edge,#666)!important}
 .pc-sw[aria-checked="true"]{outline:3px solid var(--accent,#6cf);outline-offset:2px}
 @media (max-width:420px){.pc-grid{grid-template-columns:1fr}}`;
   let menu = null, menuBtn = null;
