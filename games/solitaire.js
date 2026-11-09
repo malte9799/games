@@ -626,15 +626,7 @@ function drawFace(g, x, y, c, D, o) {
   g.noStroke();
   g.fill(...col);
   g.textFont(D.serif ? "Georgia, serif" : FONT);
-  // corner indices, top-left and mirrored bottom-right
-  g.textAlign("left", "top"); g.textStyle("bold"); g.textSize(16); g.text(RANK[c.r], x + 7, y + 5);
-  suitShape(g, D, c.s, x + 14, y + 29, 11);
-  // bottom-right index: the top-left one turned by 180° around the card centre
-  g.push(); g.translate(x + CW, y + CH); g.rotate(Math.PI);
-  g.textAlign("left", "top"); g.textStyle("bold"); g.textSize(16); g.text(RANK[c.r], 7, 5);
-  suitShape(g, D, c.s, 14, 29, 11);
-  g.pop();
-  // centre art
+  // centre art (drawn first, so the corner indices always sit on top of it)
   if (c.r === 1) {
     suitShape(g, D, c.s, x + CW / 2, y + CH / 2, 40);
   } else if (c.r <= 10) {
@@ -649,6 +641,13 @@ function drawFace(g, x, y, c, D, o) {
     g.text(RANK[c.r], x + CW / 2, y + CH / 2 - 10);
     suitShape(g, D, c.s, x + CW / 2, y + CH / 2 + 16, 16);
   }
+  // corner indices last: top-left, and the same index turned by 180° at the bottom-right
+  g.textAlign("left", "top"); g.textStyle("bold"); g.textSize(16); g.text(RANK[c.r], x + 7, y + 5);
+  suitShape(g, D, c.s, x + 14, y + 29, 11);
+  g.push(); g.translate(x + CW, y + CH); g.rotate(Math.PI);
+  g.textAlign("left", "top"); g.textStyle("bold"); g.textSize(16); g.text(RANK[c.r], 7, 5);
+  suitShape(g, D, c.s, 14, 29, 11);
+  g.pop();
   g.textStyle("normal");
 }
 
