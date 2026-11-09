@@ -884,3 +884,110 @@ function drawMaumau(p, w, h) {
   p.fill(53, 182, 176); p.rect(-42, -14, 84, 28, 14); p.stroke(255); p.strokeWeight(2.5); p.noFill(); p.rect(-42, -14, 84, 28, 14); p.noStroke();
   p.fill(255); p.textStyle(p.BOLD); p.textSize(13); p.text("MAU!", 0, 0.5); p.pop();
 }
+
+// Poker (hub only): green felt oval on a wooden rim, five community cards,
+// a pot pill with chip piles, a face-down opponent hand with a name chip and
+// two face-up hole cards (A♥ A♠). Static, centred, nothing cropped.
+function pokerLerp(a, b, t) { return a.map((v, i) => v + (b[i] - v) * t); }
+
+function pokerChip(p, x, y, r, col) {
+  const ctx = p.drawingContext;
+  p.noStroke();
+  p.fill(0, 0, 0, 90); p.circle(x + 1, y + 2.5, r * 2);     // contact shadow
+  p.fill(...col); p.circle(x, y, r * 2);
+  p.noFill(); p.stroke(250, 248, 240); p.strokeWeight(Math.max(1, r * 0.16));
+  ctx.setLineDash([r * 0.28, r * 0.22]);                      // white dashed edge ring
+  p.circle(x, y, r * 1.7);
+  ctx.setLineDash([]);
+  p.noStroke(); p.fill(255, 255, 255, 40); p.circle(x, y, r * 0.9);
+}
+
+function pokerCard(p, cx, cy, cw, ch, rank, suit, rot) {
+  const red = suit === "♥" || suit === "♦";
+  const INK = red ? [200, 32, 40] : [28, 28, 34];
+  p.push(); p.translate(cx, cy); p.rotate(rot ?? 0);
+  p.noStroke();
+  p.fill(0, 0, 0, 80); p.rect(-cw / 2 + 2, -ch / 2 + 4, cw, ch, 6);      // drop shadow
+  p.fill(252, 251, 246); p.stroke(190, 186, 176); p.strokeWeight(1);
+  p.rect(-cw / 2, -ch / 2, cw, ch, 6);
+  p.noStroke();
+  p.fill(...INK); p.textStyle(p.BOLD);
+  p.textAlign(p.LEFT, p.TOP);
+  p.textSize(cw * 0.26); p.text(rank, -cw / 2 + 5, -ch / 2 + 4);
+  p.textSize(cw * 0.22); p.text(suit, -cw / 2 + 5, -ch / 2 + 4 + cw * 0.3);
+  p.textAlign(p.RIGHT, p.BOTTOM);
+  p.textSize(cw * 0.26); p.text(rank, cw / 2 - 5, ch / 2 - 4);
+  p.textAlign(p.CENTER, p.CENTER);
+  p.textSize(cw * 0.55); p.text(suit, 0, cw * 0.05);
+  p.pop();
+}
+
+function pokerBack(p, cx, cy, cw, ch, rot) {
+  const ctx = p.drawingContext;
+  p.push(); p.translate(cx, cy); p.rotate(rot ?? 0);
+  p.noStroke();
+  p.fill(0, 0, 0, 80); p.rect(-cw / 2 + 2, -ch / 2 + 4, cw, ch, 6);      // drop shadow
+  p.fill(30, 64, 150); p.rect(-cw / 2, -ch / 2, cw, ch, 6);
+  ctx.save();                                                           // crosshatch, clipped to the inset
+  ctx.beginPath(); ctx.roundRect(-cw / 2 + 4, -ch / 2 + 4, cw - 8, ch - 8, 4); ctx.clip();
+  p.stroke(130, 170, 235, 150); p.strokeWeight(1);
+  for (let k = -ch - cw; k < cw + ch; k += 5) {
+    p.line(k, -ch / 2, k + ch, ch / 2);
+    p.line(k, ch / 2, k + ch, -ch / 2);
+  }
+  ctx.restore();
+  p.noStroke(); p.noFill(); p.stroke(235, 240, 255, 220); p.strokeWeight(1.2);
+  p.rect(-cw / 2 + 4, -ch / 2 + 4, cw - 8, ch - 8, 4);
+  p.pop();
+}
+
+function drawPoker(p, w, h) {
+  p.background(24, 22, 28);
+  const cx = w / 2, cy = h / 2;
+  p.noStroke();
+  p.textAlign(p.CENTER, p.CENTER);
+
+  // table shadow, wooden rim (lighter outside, darker towards the felt)
+  p.fill(0, 0, 0, 110); p.ellipse(cx + 6, cy + 12, 548, 314);
+  for (let k = 0; k <= 11; k++) {
+    const t = k / 11;
+    p.fill(...pokerLerp([150, 90, 46], [92, 50, 24], t));
+    p.ellipse(cx, cy, 540 - k * 4, 308 - k * 2.4);
+  }
+  // felt: layered ellipses shrinking towards a lit centre
+  for (let k = 0; k <= 15; k++) {
+    const t = k / 15, s = 1 - t * 0.72;
+    p.fill(...pokerLerp([8, 50, 32], [46, 140, 90], t));
+    p.ellipse(cx, cy, 456 * s, 248 * s);
+  }
+  p.fill(255, 255, 255, 14); p.ellipse(cx - 10, cy - 18, 220, 80);     // sheen
+  p.noFill(); p.stroke(6, 34, 20, 220); p.strokeWeight(3); p.ellipse(cx, cy, 456, 248); p.noStroke();
+
+  // opponent: two face-down backs fanned at the top, name chip beside them
+  pokerBack(p, 244, 82, 32, 46, -0.16);
+  pokerBack(p, 278, 78, 32, 46, 0.12);
+  p.fill(0, 0, 0, 60); p.rect(304, 76, 88, 24, 12);
+  p.fill(253, 246, 232); p.rect(302, 74, 88, 24, 12);
+  p.fill(245, 188, 68); p.circle(316, 86, 16);
+  p.fill(91, 42, 22); p.textStyle(p.BOLD); p.textSize(12);
+  p.text("JULE", 354, 86.5);
+
+  // pot: pill label with a small chip pile to its left
+  p.fill(0, 0, 0, 120); p.rect(262, 118, 76, 20, 10);
+  p.fill(253, 246, 232); p.textStyle(p.BOLD); p.textSize(11);
+  p.text("POT  1,240", 300, 128.5);
+  const RED = [196, 36, 44], BLUE = [40, 96, 196], BLACK = [34, 34, 40], GREEN = [42, 150, 84];
+  [RED, BLUE, RED].forEach((c, i) => pokerChip(p, 236, 134 - i * 3, 7, c));
+
+  // bottom-left chip stack (four chips)
+  const stack = [RED, BLUE, BLACK, GREEN];
+  stack.forEach((c, i) => pokerChip(p, 150 + (i % 2 ? 1 : -1), 262 - i * 5, 15, c));
+
+  // five community cards, face-up
+  const board = [["A", "♠"], ["K", "♠"], ["Q", "♥"], ["10", "♦"], ["7", "♣"]];
+  board.forEach(([r, s], i) => pokerCard(p, cx + (i - 2) * 50, cy, 42, 60, r, s, 0));
+
+  // my hole cards, fanned at the bottom: A♥ A♠
+  pokerCard(p, 268, 286, 44, 62, "A", "♥", -0.12);
+  pokerCard(p, 332, 286, 44, 62, "A", "♠", 0.12);
+}
