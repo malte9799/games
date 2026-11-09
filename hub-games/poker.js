@@ -89,26 +89,26 @@ const CSS = `
 .pk-snd { flex: none; padding: 6px 12px !important; font-size: 12px !important; opacity: .85; }
 
 /* ---- the scene: perspective + tilted felt ---- */
-.pk-scene { --rx: 0deg; --ry: 0deg; position: relative; width: min(820px, 100%); aspect-ratio: 1.62; container-type: inline-size;
+.pk-scene { position: relative; width: min(820px, 100%); aspect-ratio: 1.62; container-type: inline-size;
   perspective: 1300px; perspective-origin: 50% 20%; border-radius: 22px; overflow: hidden;
-  background: radial-gradient(120% 90% at 50% 0%, #2a2230 0%, #15111a 60%, #0c0a10 100%);
+  background: repeating-linear-gradient(92deg, rgba(0,0,0,.16) 0 2px, transparent 2px 64px), radial-gradient(ellipse 95% 90% at 50% 45%, #4a2c18 0%, #2c190c 62%, #170c05 100%);
   box-shadow: var(--wrap-shadow), 0 0 0 var(--border-w) var(--hairline); }
 .pk-felt { position: absolute; left: 3%; right: 3%; top: 7%; bottom: 17%; transform-style: preserve-3d;
-  transform: rotateX(calc(36deg + var(--rx))) rotateY(var(--ry)); transform-origin: 50% 60%; transition: transform .25s ease-out; }
+  transform: rotateX(36deg); transform-origin: 50% 60%; }
 .pk-rim { position: absolute; inset: 0; border-radius: 50%;
-  background: linear-gradient(160deg, #8b5a37, #5a3520 55%, #3d2314);
+  background: repeating-linear-gradient(97deg, rgba(40,20,6,.28) 0 1px, transparent 1px 9px), repeating-linear-gradient(83deg, rgba(255,214,150,.07) 0 2px, transparent 2px 23px), linear-gradient(160deg, #a5733f, #6b4528 48%, #432712);
   box-shadow: 0 3cqw 4cqw rgba(0, 0, 0, .65), inset 0 .5cqw 1cqw rgba(255, 220, 170, .35), inset 0 -1cqw 1.4cqw rgba(0, 0, 0, .55);
   transform: translateZ(-1.4cqw); }
 .pk-cloth { position: absolute; inset: 3.2cqw; border-radius: 50%; overflow: hidden;
-  background: radial-gradient(75% 70% at 50% 42%, #2f8a56 0%, #1f6b41 55%, #124a2c 100%);
+  background: radial-gradient(75% 70% at 50% 42%, #24774d 0%, #1b5a3a 58%, #10402a 100%);
   box-shadow: inset 0 0 3cqw rgba(0, 0, 0, .6), inset 0 0 0 .35cqw rgba(255, 255, 255, .12); }
 .pk-cloth::after { content: ""; position: absolute; inset: 0; opacity: .35; mix-blend-mode: multiply;
   background-image: radial-gradient(rgba(0, 0, 0, .55) 1px, transparent 1.3px); background-size: 7px 7px; }
-.pk-cloth::before { content: ""; position: absolute; inset: 6.5%; border-radius: 50%; border: .25cqw dashed rgba(255, 255, 255, .22); }
-.pk-logo { position: absolute; left: 0; right: 0; top: 56%; text-align: center; font: 800 italic 3.4cqw/1 var(--font-display), var(--font);
-  letter-spacing: .5em; color: rgba(255, 255, 255, .09); text-transform: uppercase; pointer-events: none; }
+.pk-cloth::before { content: ""; position: absolute; inset: 6.5%; border-radius: 50%; border: .22cqw solid rgba(255, 214, 110, .28); }
+.pk-logo { position: absolute; left: 0; right: 0; top: 56%; text-align: center; font: 400 5cqw/1 "Caveat Brush", "Caveat", Georgia, cursive;
+  letter-spacing: .18em; color: rgba(255, 226, 150, .13); text-transform: uppercase; pointer-events: none; }
 
-.pk-layer { position: absolute; inset: 0; --cw: 7.4cqw; font-size: clamp(10px, 1.7cqw, 15px); }
+.pk-layer { position: absolute; inset: 0; font-family: Georgia, "Times New Roman", serif; --cw: 7.4cqw; font-size: clamp(10px, 1.7cqw, 15px); }
 .pk-layer > * { position: absolute; }
 
 /* ---- 3D cards ---- */
@@ -117,7 +117,7 @@ const CSS = `
 .pcard.down .pc-in { transform: rotateY(180deg); }
 .pc-f { position: absolute; inset: 0; border-radius: 9%; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden;
   box-shadow: 0 .5cqw 1.2cqw rgba(0, 0, 0, .45); }
-.pc-f.fr { background: linear-gradient(160deg, #fff, #f1ecdf); color: #1d1a22; border: 1px solid #d8d2c4; }
+.pc-f.fr { background: linear-gradient(160deg, #fbf6e8, #ece6d6); color: #2a170a; border: 1px solid #cdbf9f; }
 .pc-f.fr.red { color: #cf2f2a; }
 .pc-f.bk { transform: rotateY(180deg); border: calc(var(--cw) * .06) solid #fff;
   background: repeating-linear-gradient(45deg, #274a9c 0 6px, #1d3a82 6px 12px); }
@@ -137,8 +137,8 @@ const CSS = `
 .pk-seat .pk-cards .pcard + .pcard { margin-left: -1.4cqw; }
 .pk-seat .pk-cards .pcard:nth-child(1) { transform: rotate(-7deg); } .pk-seat .pk-cards .pcard:nth-child(2) { transform: rotate(7deg) translateY(.2cqw); }
 .pk-plate { position: relative; display: flex; align-items: center; gap: .9cqw; padding: .55cqw 1.7cqw .55cqw .6cqw; border-radius: 999px;
-  background: rgba(24, 20, 30, .88); border: .2cqw solid rgba(255, 255, 255, .22); box-shadow: 0 .6cqw 1.4cqw rgba(0, 0, 0, .5); color: #f6f2ea; white-space: nowrap; z-index: 2; }
-.pk-seat.me .pk-plate { border-color: #ffd94d; background: rgba(48, 38, 12, .9); }
+  background: linear-gradient(#6b4528, #3f2616); border: .2cqw solid #c99a4a; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 .5cqw 0 #1b0e06, 0 1cqw 1.6cqw rgba(0, 0, 0, .5); color: #f6e7b4; white-space: nowrap; z-index: 2; }
+.pk-seat.me .pk-plate { border-color: #ffe08a; background: linear-gradient(#85592f, #4f301a); }
 .pk-seat.turn .pk-plate { border-color: #7dffb0; box-shadow: 0 0 0 .3cqw rgba(125, 255, 176, .35), 0 0 2.4cqw rgba(125, 255, 176, .7); animation: pk-glow 1.2s ease-in-out infinite; }
 @keyframes pk-glow { 50% { box-shadow: 0 0 0 .5cqw rgba(125, 255, 176, .2), 0 0 3.4cqw rgba(125, 255, 176, .9); } }
 .pk-seat.win .pk-plate { border-color: #ffd94d; box-shadow: 0 0 0 .4cqw rgba(255, 217, 77, .5), 0 0 3cqw rgba(255, 217, 77, .95); animation: pk-bounce .8s ease-in-out 3; }
@@ -149,7 +149,7 @@ const CSS = `
 .pk-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .pk-nm { display: flex; flex-direction: column; line-height: 1.15; max-width: 12cqw; }
 .pk-nm span { overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
-.pk-nm b { color: #ffd94d; font-variant-numeric: tabular-nums; font-size: .95em; }
+.pk-nm b { color: #ffe08a; font-variant-numeric: tabular-nums; font-size: .95em; }
 .pk-tag { position: absolute; top: -1cqw; right: -.4cqw; font: 800 1.15cqw/1 var(--font); padding: .35cqw .8cqw; border-radius: 999px; background: #eea41c; color: #3c2a05; font-style: normal; }
 .pk-tag.allin { background: #e0473a; color: #fff; left: 50%; right: auto; transform: translateX(-50%); animation: pk-pop .35s cubic-bezier(.2, 1.6, .4, 1); }
 .pk-tag.act { background: #fdf6e8; color: #333; left: 50%; right: auto; top: auto; bottom: -1.2cqw; transform: translateX(-50%); }
@@ -184,10 +184,10 @@ const CSS = `
 
 /* ---- result banner ---- */
 .pk-res { left: 50%; top: 71%; transform: translate(-50%, -50%); z-index: 6; display: flex; flex-direction: column; align-items: center; gap: .6cqw; padding: 1.1cqw 2.6cqw;
-  border-radius: 1.8cqw; background: rgba(18, 14, 24, .9); border: .25cqw solid #ffd94d; box-shadow: 0 1cqw 3cqw rgba(0, 0, 0, .6); color: #fff; text-align: center; animation: pk-banner .5s cubic-bezier(.2, 1.4, .4, 1); }
+  border-radius: 1.8cqw; background: linear-gradient(#3b2516ee, #20120aee); border: .25cqw solid #c99a4a; box-shadow: 0 2cqw 5cqw rgba(0, 0, 0, .65), inset 0 0 0 .5cqw rgba(0, 0, 0, .25); color: #ecdab0; text-align: center; animation: pk-banner .5s cubic-bezier(.2, 1.4, .4, 1); }
 .pk-res[hidden] { display: none; }
-.pk-res h3 { margin: 0; font: 800 italic 2.4cqw var(--font-display), var(--font); color: #ffd94d; }
-.pk-res p { margin: 0; font-size: 1.05em; line-height: 1.35; } .pk-res p em { font-style: normal; color: #7dffb0; }
+.pk-res h3 { margin: 0; font: 400 4.2cqw/1.05 "Caveat Brush", "Caveat", Georgia, cursive; color: #ffe08a; text-shadow: 0 .3cqw 0 #7d4d0c, 0 1cqw 2cqw rgba(0, 0, 0, .5); }
+.pk-res p { margin: 0; font-size: 1.05em; line-height: 1.35; } .pk-res p em { font-style: normal; color: #ffe6a6; font-weight: 700; }
 .pk-res .pk-nextbtn { margin-top: .4cqw; }
 @keyframes pk-banner { from { transform: translate(-50%, -30%) scale(.6); opacity: 0; } }
 
@@ -196,24 +196,35 @@ const CSS = `
 .pk-status.mine { color: var(--ink); font-weight: 700; }
 .pk-note { margin: -4px 0 0; font-size: 13px; color: var(--dim); min-height: 18px; text-align: center; }
 .pk-act { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; min-height: 56px; width: min(820px, 100%); }
-.pk-act button { flex: none; padding: 11px 24px; font-size: 15px; border-radius: 999px; border: 2.5px solid #fff; box-shadow: 0 4px 10px rgba(0, 0, 0, .35); font-weight: 700; color: #fff !important; }
-.pk-act .b-fold { background: #a63a35 !important; } .pk-act .b-call { background: #2f8a56 !important; } .pk-act .b-raise { background: #d18a0d !important; } .pk-act .b-next { background: #35b6b0 !important; }
-.pk-act button:hover { transform: translateY(-2px) scale(1.04); }
+.pk-act button { flex: none; padding: 11px 24px; font: 700 15px Georgia, serif; letter-spacing: .08em; border-radius: 999px; border: 1px solid #c99a4a; color: #f6e7b4 !important; background: linear-gradient(#70492a, #3b2314) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 5px 0 #1b0e06, 0 12px 20px rgba(0, 0, 0, .45); transition: transform .08s, filter .2s; }
+.pk-act .b-call, .pk-act .b-raise, .pk-act .b-next { color: #3d2106 !important; border-color: #fff0b8; background: linear-gradient(#ffe69a, #e2a42a) !important; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 5px 0 #7d4d0c, 0 12px 20px rgba(0, 0, 0, .5); }
+.pk-act .b-fold { border-color: #b4563f; }
+.pk-act button:hover { filter: brightness(1.1); }
+.pk-act button:active { transform: translateY(3px); box-shadow: 0 2px 0 #1b0e06; }
 .pk-act button:disabled { opacity: .5; cursor: default; transform: none; }
-.pk-raise { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 6px 12px; border-radius: 16px; background: var(--chip-bg); border: var(--border-w) solid var(--hairline); }
+.pk-raise { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 6px 12px; border-radius: 16px; background: linear-gradient(#3b2516, #24150c); border: 1px solid #c99a4a; color: #f6e7b4; }
 .pk-raise input[type=range] { width: 160px; accent-color: #d18a0d; }
 .pk-raise output { min-width: 56px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
-.pk-raise .q { padding: 5px 10px !important; font-size: 12px !important; border-width: 1.5px !important; background: #3b3347 !important; box-shadow: none !important; }
+.pk-raise .q { padding: 5px 10px !important; font-size: 12px !important; letter-spacing: 0 !important; box-shadow: 0 3px 0 #1b0e06 !important; }
 
 .pk-hole { --cw: 96px; display: flex; justify-content: center; gap: 14px; min-height: calc(var(--cw) / .7 + 8px); perspective: 900px; padding-top: 4px; --tx: 0deg; --ty: 0deg; }
 .pk-hole .pcard { transform: rotateX(var(--ty)) rotateY(var(--tx)) rotateZ(var(--rz, 0deg)); transition: transform .15s ease-out, filter .3s; transform-style: preserve-3d; }
 .pk-hole .pcard:nth-child(1) { --rz: -5deg; } .pk-hole .pcard:nth-child(2) { --rz: 5deg; }
 .pk-hole .pcard:hover { transform: translateY(-8px) rotateX(var(--ty)) rotateY(var(--tx)) rotateZ(0deg); }
+/* "Karten verstecken": face down, only a faint peek while hovering / touching */
+.pk-hole.hide .pcard .pc-in { transform: rotateY(180deg); }
+.pk-hole.hide .pcard:hover .pc-in, .pk-hole.hide .pcard:active .pc-in { transform: rotateY(0deg); }
+.pk-holerow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+.pk-eye { justify-self: start; margin-left: 14px; width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 2px solid #c99a4a; background: linear-gradient(#6b4528, #3f2616); color: #f3dba0; cursor: pointer; display: grid; place-items: center; }
+.pk-eye svg { width: 22px; height: 22px; }
+.pk-eye[aria-pressed="true"] { color: #ffd94d; background: linear-gradient(#85592f, #4f301a); }
+.pk-hole.hide .pcard:hover { transform: rotateX(var(--ty)) rotateY(var(--tx)) rotateZ(var(--rz, 0deg)); }
 .pk-hole.fold .pcard { filter: grayscale(1) brightness(.6); }
 .pk-hole .pc-f { box-shadow: 0 8px 20px rgba(0, 0, 0, .45); }
 
 @media (max-width: 640px) {
-  .pk-scene { aspect-ratio: 1.02; } .pk-felt { top: 9%; bottom: 20%; transform: rotateX(calc(26deg + var(--rx))) rotateY(var(--ry)); }
+  .pk-scene { aspect-ratio: 1.02; } .pk-felt { top: 9%; bottom: 20%; transform: rotateX(26deg); }
   .pk-layer { --cw: 11.5cqw; font-size: 11px; } .pk-seat .pk-cards { --cw: 8cqw; margin-bottom: -2cqw; } .pk-seat .pk-cards .pcard + .pcard { margin-left: -2.6cqw; }
   .pk-deck { --cw: 9cqw; left: 17%; } .pk-board { gap: 1.4cqw; } .pk-pot { left: 74%; top: 27%; }
   .ch-stack, .ch { width: 5.4cqw; } .ch { height: 3.2cqw; } .ch-stack { height: 3.4cqw; } .ch { transform: translateY(calc(var(--n) * -.7cqw)); }
@@ -328,7 +339,7 @@ export default {
       <div class="pk-status" aria-live="polite"></div>
       <p class="pk-note"></p>
       <div class="pk-act"></div>
-      <div class="pk-hole"></div>
+      <div class="pk-holerow"><span></span><div class="pk-hole"></div><button type="button" class="pk-eye"></button></div>
     </div>`;
     const rootEl = root.firstElementChild;
     const $ = (s) => rootEl.querySelector(s);
@@ -821,14 +832,7 @@ export default {
       else if (k === "r") { e.preventDefault(); send("raise", myRaise); }
     });
 
-    // tilt: the table leans towards the pointer, my cards follow it
-    sceneEl.addEventListener("pointermove", (e) => {
-      const r = sceneEl.getBoundingClientRect();
-      const px = (e.clientX - r.left) / r.width - 0.5, py = (e.clientY - r.top) / r.height - 0.5;
-      sceneEl.style.setProperty("--ry", (px * 7).toFixed(2) + "deg");
-      sceneEl.style.setProperty("--rx", (-py * 5).toFixed(2) + "deg");
-    });
-    sceneEl.addEventListener("pointerleave", () => { sceneEl.style.setProperty("--ry", "0deg"); sceneEl.style.setProperty("--rx", "0deg"); });
+    // my cards tilt towards the pointer (the table itself stays put)
     holeEl.addEventListener("pointermove", (e) => {
       const r = holeEl.getBoundingClientRect();
       holeEl.style.setProperty("--tx", (((e.clientX - r.left) / r.width - 0.5) * 28).toFixed(1) + "deg");
@@ -847,6 +851,25 @@ export default {
       if (sound) snd.chip();
     });
     headEl.appendChild(sndBtn);
+
+    // hide my cards (playing side by side): face down, only faintly visible while hovering
+    let hidden = false;
+    try { hidden = localStorage.getItem("pk_hide") === "1"; } catch {}
+    const hideBtn = $(".pk-eye");
+    hideBtn.title = "Eigene Karten verdecken – nur beim Drüberfahren sichtbar";
+    const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/>';
+    const applyHide = () => {
+      holeEl.classList.toggle("hide", hidden);
+      hideBtn.innerHTML = EYE + (hidden ? '<path d="M3 3l18 18"/>' : "") + "</svg>";
+      hideBtn.setAttribute("aria-pressed", hidden ? "true" : "false");
+      hideBtn.setAttribute("aria-label", hidden ? "Karten anzeigen" : "Karten verdecken");
+    };
+    hideBtn.addEventListener("click", () => {
+      hidden = !hidden;
+      try { localStorage.setItem("pk_hide", hidden ? "1" : "0"); } catch {}
+      applyHide();
+    });
+    applyHide();
 
     // ---- host migration / leaving ----
     ctx.onEvent("host", ({ you }) => {
