@@ -379,6 +379,33 @@ function drawClickRace(p, w, h) {
   });
 }
 
+function drawWortbombe(p, w, h) {
+  p.background(72, 63, 56);
+  p.noStroke();
+  for (let k = 5; k >= 1; k--) { p.fill(96, 84, 74, 22); p.ellipse(w / 2, h / 2, w * (0.25 + k * 0.1), h * (0.3 + k * 0.12)); }
+  const cx = w / 2, cy = h / 2, R = 118;
+  const names = ["Mia", "Ben", "Lena", "Du", "Tom", "Ida"], lives = [3, 2, 3, 1, 2, 3];
+  p.textAlign(p.CENTER, p.CENTER); p.textStyle(p.BOLD);
+  for (let i = 0; i < 6; i++) {
+    const a = (-120 + 60 * i) * Math.PI / 180, x = cx + Math.cos(a) * R * 1.45, y = cy + Math.sin(a) * R * 0.95, s = 40;
+    p.fill(...PAL.panel); p.rect(x - s / 2, y - s / 2, s, s, 4);
+    p.fill(...[PAL.sky, PAL.rose, PAL.mint, PAL.lilac, PAL.sun, PAL.sky][i], 140); p.rect(x - s / 2, y - s / 2, s, s, 4);
+    p.fill(240); p.textSize(13); p.text(names[i], x, y - s / 2 - 17);
+    p.fill(226, 52, 52);
+    for (let k = 0; k < lives[i]; k++) p.circle(x - 11 + k * 11, y - s / 2 - 3, 9);
+  }
+  // Pfeil zum Spieler "Du"
+  const ta = (-120 + 180) * Math.PI / 180;
+  p.stroke(240, 208, 51); p.strokeWeight(6); p.strokeCap(p.ROUND);
+  p.line(cx - Math.cos(ta) * 30, cy - Math.sin(ta) * 30, cx + Math.cos(ta) * 108, cy + Math.sin(ta) * 74);
+  p.noStroke(); p.fill(240, 208, 51);
+  p.push(); p.translate(cx + Math.cos(ta) * 120, cy + Math.sin(ta) * 80); p.rotate(Math.atan2(Math.sin(ta) * 80, Math.cos(ta) * 120)); p.triangle(8, 0, -8, -9, -8, 9); p.pop();
+  // Bombe mit Buchstaben
+  p.fill(58, 50, 44); p.stroke(36, 31, 27); p.strokeWeight(4); p.circle(cx, cy, 78);
+  p.noStroke(); p.fill(246, 198, 14); p.circle(cx + 28, cy - 36, 14);
+  p.fill(255); p.textSize(30); p.text("EN", cx, cy + 1);
+}
+
 function drawFlood(p, w, h) {
   previewBg(p, w, h);
   const N = 10, cs = 26, SW = 44;
