@@ -23,6 +23,7 @@ const GAMES = [
   { id: "kniffel",     title: "Kniffel · Yahtzee", desc: "roll · hold · write it down", preview: drawKniffel },
   { id: "kritzel",     title: "Kritzel-Revier",    desc: "kritzle das größte Revier",   preview: drawKritzel },
   { id: "kart",        title: "Kart-Rennen",       desc: "drift · turbo · Bestzeit",    preview: drawKart },
+  { id: "battleship", title: "Schiffe versenken", desc: "Flotte aufstellen und feuern, gegen den Computer · drei Stufen", preview: drawBattleship },
 ];
 
 // ---- preview renderers ----
@@ -974,6 +975,48 @@ function drawMaumau(p, w, h) {
   p.push(); p.translate(452, 240); p.rotate(-0.1);
   p.fill(53, 182, 176); p.rect(-42, -14, 84, 28, 14); p.stroke(255); p.strokeWeight(2.5); p.noFill(); p.rect(-42, -14, 84, 28, 14); p.noStroke();
   p.fill(255); p.textStyle(p.BOLD); p.textSize(13); p.text("MAU!", 0, 0.5); p.pop();
+}
+
+// Battleship (Schiffe versenken): zwei Seekarten mit Schiffen, Treffern, Wasserringen und Fadenkreuz
+function drawBattleship(p, w, h) {
+  p.background(12, 30, 56);
+  p.noStroke();
+  for (let i = 0; i < 9; i++) { p.fill(255, 255, 255, 7); p.rect(0, 14 + i * 34, w, 6); }
+  const cs = 17, bs = cs * 10, gap = 34, ox = (w - (bs * 2 + gap)) / 2, oy = (h - bs) / 2 - 8;
+  const ship = (bx, by, x, y, len, horiz, c) => {
+    const sw = horiz ? len * cs - 3 : cs - 5, sh = horiz ? cs - 5 : len * cs - 3;
+    const sx = bx + x * cs + 1.5 + (horiz ? 0 : 1), sy = by + y * cs + 1.5 + (horiz ? 1 : 0);
+    p.fill(0, 0, 0, 70); p.rect(sx + 2, sy + 3, sw, sh, 6);
+    p.fill(c[0], c[1], c[2]); p.rect(sx, sy, sw, sh, 6);
+    p.fill(255, 255, 255, 70); p.rect(sx + (horiz ? 4 : 2), sy + (horiz ? 2 : 4), horiz ? sw - 8 : 2, horiz ? 2 : sh - 8, 1);
+    p.fill(60, 70, 84);
+    for (let k = 0; k < Math.max(1, len - 1); k++) p.circle(horiz ? sx + 9 + k * 13 : sx + sw / 2, horiz ? sy + sh / 2 : sy + 9 + k * 13, 4.5);
+  };
+  const board = (bx, by, label, ships, marks, hot) => {
+    p.fill(0, 0, 0, 70); p.rect(bx - 8, by - 8, bs + 16, bs + 16, 12);
+    p.fill(30, 36, 62); p.rect(bx - 6, by - 6, bs + 12, bs + 12, 10);
+    p.fill(24, 96, 150); p.rect(bx, by, bs, bs, 6);
+    p.fill(255, 255, 255, 18);
+    for (let i = 1; i < 10; i++) { p.rect(bx + i * cs, by, 1, bs); p.rect(bx, by + i * cs, bs, 1); }
+    for (const s of ships) ship(bx, by, s[0], s[1], s[2], s[3], s[4]);
+    for (const [x, y, hit] of marks) {
+      const cx = bx + x * cs + cs / 2, cy = by + y * cs + cs / 2;
+      if (hit) { p.fill(255, 150, 50, 90); p.circle(cx, cy, cs * 1.5); p.fill(255, 110, 30); p.circle(cx, cy + 1, cs * 0.6); p.fill(255, 230, 120); p.circle(cx, cy + 2, cs * 0.28); }
+      else { p.noFill(); p.stroke(235, 247, 255, 200); p.strokeWeight(1.4); p.circle(cx, cy, cs * 0.62); p.noStroke(); p.fill(235, 247, 255); p.circle(cx, cy, 3); }
+    }
+    if (hot) {
+      const cx = bx + hot[0] * cs + cs / 2, cy = by + hot[1] * cs + cs / 2;
+      p.noFill(); p.stroke(255, 84, 112); p.strokeWeight(1.8); p.circle(cx, cy, cs * 0.95);
+      p.line(cx - cs * 0.8, cy, cx + cs * 0.8, cy); p.line(cx, cy - cs * 0.8, cx, cy + cs * 0.8); p.noStroke();
+    }
+    p.fill(205, 220, 240); p.textStyle(p.BOLD); p.textSize(12); p.textAlign(p.CENTER, p.CENTER);
+    p.text(label, bx + bs / 2, by - 17);
+  };
+  const hull = [150, 162, 178], wood = [176, 132, 82], dark = [74, 86, 98];
+  board(ox, oy, "DEINE FLOTTE", [[1, 1, 5, true, [110, 122, 138]], [2, 4, 4, false, wood], [6, 3, 3, true, wood], [8, 6, 3, false, dark], [4, 8, 2, true, hull]], [[3, 1, true], [4, 1, true], [8, 7, true], [6, 6, false], [0, 6, false], [7, 0, false]]);
+  board(ox + bs + gap, oy, "GEGNER", [[1, 6, 2, false, wood]], [[1, 6, true], [1, 7, true], [4, 2, false], [6, 5, false], [3, 8, false], [8, 3, false], [7, 7, true]], [5, 4]);
+  p.fill(116, 226, 178); p.rect(w / 2 - 66, h - 36, 132, 26, 13);
+  p.fill(14, 40, 40); p.textStyle(p.BOLD); p.textSize(13); p.text("DU BIST DRAN", w / 2, h - 23);
 }
 
 // Poker (hub only): green felt oval on a wooden rim, five community cards,
