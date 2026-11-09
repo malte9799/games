@@ -8,7 +8,7 @@ import { ROOT, gameIds, gamePage } from './pages.mjs';
 const OUT = join(ROOT, 'dist');
 const PUBLIC = join(ROOT, 'public');
 const SKIP = new Set([
-  '.git', '.github', '.gitignore', 'node_modules', 'dist', 'scripts', 'public',
+  '.git', '.github', '.gitignore', 'node_modules', 'dist', 'scripts', 'public', 'server',
   'package.json', 'pnpm-lock.yaml', 'vite.config.js', 'README.md', 'TODO.md', '.DS_Store',
 ]);
 const noDsStore = s => !s.endsWith('.DS_Store');
