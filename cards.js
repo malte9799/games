@@ -18,14 +18,15 @@
     { id: "red", name: "Rot", css: "#c8384a" }, { id: "blue", name: "Blau", css: "#3a56a8" },
     { id: "green", name: "Grün", css: "#2f7a5c" }, { id: "black", name: "Schwarz", css: "#3a3a3a" },
     { id: "lightblue", name: "Hellblau", css: "#3aa3d2" },
+    { id: "skat", name: "Skat", css: "#1a3f9e" },
   ];
 
   // svg: dir = Ordner unter cards/, ten = Dateiname der Zehn, back = feste Rückseite (sonst wählbar)
   // drawn: cols = [♠,♥,♦,♣] als Hex, bg/panel/border/backBg/backInk als [r,g,b], back = Muster
   const DECKS = [
-    { id: "skat",    name: "Skat (Altenburger Stil)", kind: "svg", dir: "skat", ten: "T", back: "cards/backs/skat.svg", cols: SVG_COLS },
-    { id: "french",  name: "Französisch (Goodall)",   kind: "svg", dir: "standard", ten: "T", pickBack: true, cols: SVG_COLS },
-    { id: "knoll",   name: "Klassisch (Knoll)",       kind: "svg", dir: "knoll", ten: "10", back: "cards/backs/d3_black.svg" },
+    { id: "skat",    name: "Skat (Altenburger Stil)", kind: "svg", dir: "skat", ten: "T", defBack: "skat", cols: SVG_COLS },
+    { id: "french",  name: "Französisch (Goodall)",   kind: "svg", dir: "standard", ten: "T", defBack: "red", cols: SVG_COLS },
+    { id: "knoll",   name: "Klassisch (Knoll)",       kind: "svg", dir: "knoll", ten: "10", defBack: "black" },
     { id: "classic", name: "Gezeichnet: Klassisch",   kind: "drawn", serif: true,
       cols: ["#1c1c28", "#c8263e", "#c8263e", "#1c1c28"],
       bg: [253, 251, 246], panel: [240, 234, 214], border: [110, 100, 90], back: "lattice", backBg: [176, 152, 255], backInk: [255, 255, 255] },
@@ -45,7 +46,7 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch {} },
   };
   let userCols = {}; try { userCols = JSON.parse(store.get(K_COLS)) || {}; } catch {}
-  let backId = BACKS.some((b) => b.id === store.get(K_BACK)) ? store.get(K_BACK) : "red";
+  let userBacks = {}; try { userBacks = JSON.parse(store.get(K_BACK)) || {}; } catch {}   // pro Blatt: { deckId: backId }
   let idx = Math.max(0, DECKS.findIndex((d) => d.id === store.get(K_DECK)));
   const listeners = [];
   const current = () => DECKS[idx];
@@ -82,7 +83,8 @@
     const r = rank === 1 ? "A" : rank === 10 ? D.ten : RANKS[rank];
     return "cards/" + D.dir + "/" + r + SUITS[suit] + ".svg";
   }
-  const backUrl = (D) => D.pickBack ? "cards/backs/d3_" + backId + ".svg" : D.back;
+  const backIdOf = (D) => (BACKS.some((b) => b.id === userBacks[D.id]) && userBacks[D.id]) || D.defBack;
+  const backUrl = (D) => { const b = backIdOf(D); return b === "skat" ? "cards/backs/skat.svg" : "cards/backs/d3_" + b + ".svg"; };
   // Farbe nur angeben, wenn sie vom Original abweicht (sonst reicht die unveränderte Datei)
   const tintOf = (D, suit) => {
     if (!D.cols) return null;
@@ -220,8 +222,8 @@
     preload(D); emit();
   }
   function setBack(id) {
-    if (!BACKS.some((b) => b.id === id)) return;
-    backId = id; store.set(K_BACK, id);
+    if (!BACKS.some((b) => b.id === id) || current().kind === "drawn") return;
+    userBacks[current().id] = id; store.set(K_BACK, JSON.stringify(userBacks));
     preload(current()); emit();
   }
   preload(current());
@@ -274,15 +276,15 @@
   const hex = (c) => (typeof c === "string" ? c : "#000000");
   function settingsHTML() {
     const D = current();
-    if (!tintable(D) && !D.pickBack) return "";
+    if (D.kind === "drawn" && !tintable(D)) return "";
     let h = "";
     if (tintable(D)) {
       const cs = colsOf(D);
       h += `<div class="pc-row"><b>Farben</b>${GLYPH.map((g, s) => `<label>${g}<input type="color" data-suit="${s}" value="${hex(cs[s])}" aria-label="Farbe ${g}"></label>`).join("")}</div>
         <div class="pc-row"><b></b><button type="button" data-preset="default">Standard</button><button type="button" data-preset="four">Vier Farben</button></div>`;
     }
-    if (D.pickBack) {
-      h += `<div class="pc-row"><b>Rückseite</b>${BACKS.map((b) => `<button type="button" class="pc-sw" data-back="${b.id}" style="background:${b.css}" role="radio" aria-checked="${b.id === backId}" aria-label="${b.name}" title="${b.name}"></button>`).join("")}</div>`;
+    if (D.kind !== "drawn") {
+      h += `<div class="pc-row"><b>Rückseite</b>${BACKS.map((b) => `<button type="button" class="pc-sw" data-back="${b.id}" style="background:${b.css}" role="radio" aria-checked="${b.id === backIdOf(D)}" aria-label="${b.name}" title="${b.name}"></button>`).join("")}</div>`;
     }
     return h;
   }
