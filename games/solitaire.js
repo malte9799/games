@@ -29,7 +29,7 @@ initGame({
   buttons: [
     { id: "btn-new",  label: "Neues Spiel", primary: true, onClick: () => newGame() },
     { id: "btn-undo", label: "Zurück",                     onClick: () => undo() },
-    { id: "btn-hint", label: "Tipp",                       onClick: () => showHint() },
+    { id: "btn-targets", label: "Zielhilfe",                onClick: () => toggleTargets() },
     { id: "btn-deck", label: "Karten",                     onClick: () => PlayingCards.openMenu(document.getElementById("btn-deck")) },
   ],
   sliders: [],
@@ -415,8 +415,9 @@ function mouseReleased() {
     const dest = destAt(mouseX, mouseY);
     if (dest && tryMove(selected, dest)) return;
     if (d.src && sameSrc(selected, d.src)) { selected = null; return; }
-    // a destination was clicked but the card may not go there: say so, keep the selection
-    if (dest) { flashNote("Dorthin darf diese Karte nicht"); return; }
+    // leeres Ziel angeklickt, aber die Karte darf nicht dorthin: Hinweis, Auswahl bleibt.
+    // Eine andere Karte angeklickt: die wird neu ausgewählt (weiter unten).
+    if (dest && !d.src) { flashNote("Dorthin darf diese Karte nicht"); return; }
   }
   if (d.src) { selected = d.src; lastClick = { src: d.src, t: now }; }
   else selected = null;
@@ -455,6 +456,17 @@ function refreshDeckButton() {
 }
 PlayingCards.onChange(refreshDeckButton);
 refreshDeckButton();
+
+// Zielhilfe: rahmt bei gewählter Karte alle erlaubten Ziele. Standard aus, global pro Browser.
+const TARGETS_KEY = "games_solitaire_targets";
+let showTargets = false;
+try { showTargets = localStorage.getItem(TARGETS_KEY) === "1"; } catch {}
+function toggleTargets() {
+  showTargets = !showTargets;
+  try { localStorage.setItem(TARGETS_KEY, showTargets ? "1" : "0"); } catch {}
+  setButtonActive("btn-targets", showTargets);
+}
+setButtonActive("btn-targets", showTargets);
 
 function drawFace(g, x, y, c, o) {
   PlayingCards.face(g.drawingContext, x, y, CW, CH, c.r, c.s);
@@ -601,7 +613,7 @@ function draw() {
   }
 
   // while a card is selected: every place it may go gets a sun frame
-  if (selCards.length && !dragging.length) {
+  if (showTargets && selCards.length && !dragging.length) {
     const pulse = 150 + 80 * Math.sin(now / 220);
     for (let s = 0; s < 4; s++) {
       if (legal(selected, { t: "fnd", s })) targetFrame(colX(3 + s), SOL_M, pulse);
