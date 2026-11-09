@@ -72,7 +72,7 @@
     const r = rank === 1 ? "A" : rank === 10 ? D.ten : RANKS[rank];
     return "cards/" + D.dir + "/" + r + SUITS[suit] + "." + D.ext;
   }
-  const backsOf = (D) => (D.own ? [{ id: "own", name: "Original", css: "#888", url: "cards/" + D.dir + "/back." + D.ext }] : []).concat(BACKS);
+  const backsOf = (D) => (D.own ? [] : BACKS);   // Bild-Blätter haben nur ihre eigene Rückseite
   const backIdOf = (D) => (backsOf(D).some((b) => b.id === userBacks[D.id]) && userBacks[D.id]) || D.defBack;
   const backUrl = (D) => { const b = backIdOf(D); return b === "own" ? "cards/" + D.dir + "/back." + D.ext : "cards/backs/d3_" + b + ".svg"; };
   // Farbe nur angeben, wenn sie vom Original abweicht (sonst reicht die unveränderte Datei)
@@ -201,7 +201,7 @@
       h += `<div class="pc-row"><b>Farben</b>${GLYPH.map((g, s) => `<label>${g}<input type="color" data-suit="${s}" value="${hex(cs[s])}" aria-label="Farbe ${g}"></label>`).join("")}</div>
         <div class="pc-row"><b></b><button type="button" data-preset="default">Standard</button><button type="button" data-preset="four">Vier Farben</button></div>`;
     }
-    {
+    if (!D.own) {
       h += `<div class="pc-row"><b>Rückseite</b>${backsOf(D).map((b) => `<button type="button" class="pc-sw" data-back="${b.id}" style="background:${b.url ? "url(" + b.url + ") center/cover" : b.css}${D.pixel && b.url ? ";image-rendering:pixelated" : ""}" role="radio" aria-checked="${b.id === backIdOf(D)}" aria-label="${b.name}" title="${b.name}"></button>`).join("")}</div>`;
     }
     return h;
