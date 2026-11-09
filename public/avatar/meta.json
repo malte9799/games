@@ -1,0 +1,188 @@
+{
+  "canvas_size": 1024,
+  "avatar_size": 1024,
+  "accessory_size": 1024,
+  "avatarAdjustments": {
+    "animal_mascot_4.png": {
+      "y": 90
+    },
+    "animal_sticker_4.png": {
+      "y": 50
+    },
+    "animal_sticker_3.png": {
+      "y": 36
+    },
+    "animal_sticker_2.png": {
+      "y": 96
+    },
+    "animal_sticker_1.png": {
+      "y": 54
+    }
+  },
+  "adjustments": {
+    "accessoire_2_muetzen_3.png": {
+      "y": -392,
+      "x": 0,
+      "scale": 80,
+      "rotation": 0
+    },
+    "accessoire_2_muetzen_4.png": {
+      "y": -352,
+      "x": 0,
+      "scale": 80,
+      "rotation": 0
+    },
+    "accessoire_3_brillen_1.png": {
+      "y": -352,
+      "x": 0,
+      "scale": 80,
+      "rotation": 0
+    },
+    "accessoire_6_masken_1.png": {
+      "y": 64,
+      "x": 0,
+      "scale": 65,
+      "rotation": 0
+    },
+    "accessoire_6_masken_2.png": {
+      "y": 64,
+      "x": 0,
+      "scale": 65,
+      "rotation": 0
+    },
+    "accessoire_6_masken_3.png": {
+      "y": 2,
+      "x": 0,
+      "scale": 83,
+      "rotation": 0
+    },
+    "accessoire_7_abenteuer_1.png": {
+      "y": -92,
+      "x": 0,
+      "scale": 100,
+      "rotation": 0
+    },
+    "accessoire_7_abenteuer_3.png": {
+      "y": -300,
+      "x": 0,
+      "scale": 100,
+      "rotation": 0
+    },
+    "accessoire_7_abenteuer_4.png": {
+      "y": -238,
+      "x": 0,
+      "scale": 100,
+      "rotation": 0
+    },
+    "accessoire_8_extra_1.png": {
+      "y": -342,
+      "x": 0,
+      "scale": 80,
+      "rotation": 0
+    },
+    "accessoire_3_brillen_2.png": {
+      "y": -320,
+      "x": 0,
+      "scale": 80,
+      "rotation": 0
+    },
+    "accessoire_3_brillen_4.png": {
+      "y": -400,
+      "x": 0,
+      "scale": 70,
+      "rotation": 0
+    },
+    "accessoire_5_kopfhoerer_4.png": {
+      "y": -352,
+      "x": 0,
+      "scale": 80,
+      "rotation": 0
+    },
+    "accessoire_6_masken_4.png": {
+      "y": 2,
+      "x": 0,
+      "scale": 83,
+      "rotation": 0
+    },
+    "accessoire_8_extra_2.png": {
+      "y": -342,
+      "x": 0,
+      "scale": 80,
+      "rotation": 0
+    },
+    "accessoire_8_extra_3.png": {
+      "y": -342,
+      "x": 0,
+      "scale": 65,
+      "rotation": 0
+    },
+    "accessoire_8_extra_4.png": {
+      "y": -342,
+      "x": 0,
+      "scale": 58,
+      "rotation": 0
+    },
+    "accessory_02_krone.png": {
+      "y": -342,
+      "x": 0,
+      "scale": 71,
+      "rotation": 0
+    },
+    "accessory_03_partyhut.png": {
+      "y": -528,
+      "x": 0,
+      "scale": 71,
+      "rotation": 0
+    },
+    "accessory_06_cap.png": {
+      "y": -342,
+      "x": 0,
+      "scale": 57,
+      "rotation": 0
+    },
+    "accessory_07_zauberhut.png": {
+      "y": -486,
+      "x": 0,
+      "scale": 77,
+      "rotation": 0
+    },
+    "accessory_08_piratenhut.png": {
+      "y": -400,
+      "x": 0,
+      "scale": 100,
+      "rotation": 0
+    },
+    "accessory_09_weihnachtsmuetze.png": {
+      "y": -530,
+      "x": 0,
+      "scale": 90,
+      "rotation": 0
+    },
+    "accessory_13_zylinder.png": {
+      "y": -400,
+      "x": 0,
+      "scale": 70,
+      "rotation": 0
+    },
+    "accessory_16_cowboyhut.png": {
+      "y": -348,
+      "x": 0,
+      "scale": 70,
+      "rotation": 0
+    }
+  },
+  "discarded": [
+    "accessoire_2_muetzen_1.png",
+    "accessoire_2_muetzen_2.png",
+    "accessoire_4_frisuren_2.png",
+    "accessoire_4_frisuren_3.png",
+    "accessoire_4_frisuren_4.png",
+    "accessoire_5_kopfhoerer_1.png",
+    "accessoire_5_kopfhoerer_2.png",
+    "accessoire_5_kopfhoerer_3.png",
+    "accessoire_7_abenteuer_2.png",
+    "accessory_05_schleife.png",
+    "accessory_14_haarband.png",
+    "accessory_15_schnurrbart.png"
+  ]
+}
