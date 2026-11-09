@@ -1,6 +1,6 @@
 // Builds the static site into dist/: the whole repo root (minus tooling) plus one page per solo game.
 // Run with `pnpm build`. The result is served from the root of the host (GitHub Pages: /games/).
-// Like Vite, the contents of public/ are served from the site root: public/avatar/x.png -> /avatar/x.png.
+// Like Vite, the contents of public/ are served from the site root: public/avatar/x.webp -> /avatar/x.webp.
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, gameIds, gamePage } from './pages.mjs';

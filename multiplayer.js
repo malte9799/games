@@ -65,11 +65,11 @@
   const cleanName = (n) => String(n || "").trim().slice(0, 12) || t("player");
   const makeCode = () => { let c = ""; for (let i = 0; i < CODE_LEN; i++) c += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]; return c; };
   // avatars: PNG files in /avatar/ (replaces emoji)
-  const AVATAR_FILES = ["animal_mascot_1.png", "animal_mascot_2.png", "animal_mascot_4.png", "animal_sticker_1.png", "animal_sticker_2.png", "animal_sticker_3.png", "animal_sticker_4.png"];
+  const AVATAR_FILES = ["animal_mascot_1.webp", "animal_mascot_2.webp", "animal_mascot_4.webp", "animal_sticker_1.webp", "animal_sticker_2.webp", "animal_sticker_3.webp", "animal_sticker_4.webp"];
   const AVATAR_KEY = "mp_avatar";
   const cleanAvatar = (a) => (AVATAR_FILES.includes(a) ? a : "");
   // accessories: PNG files in /avatar/accessoires/
-  const ACCESSORY_FILES = ["accessoire_2_muetzen_3.png", "accessoire_2_muetzen_4.png", "accessoire_3_brillen_1.png", "accessoire_3_brillen_2.png", "accessoire_3_brillen_3.png", "accessoire_3_brillen_4.png", "accessoire_4_frisuren_1.png", "accessoire_6_masken_1.png", "accessoire_6_masken_2.png", "accessoire_6_masken_3.png", "accessoire_6_masken_4.png", "accessoire_7_abenteuer_1.png", "accessoire_7_abenteuer_3.png", "accessoire_7_abenteuer_4.png", "accessoire_8_extra_1.png", "accessoire_8_extra_2.png", "accessoire_8_extra_3.png", "accessoire_8_extra_4.png", "accessory_02_krone.png", "accessory_03_partyhut.png", "accessory_06_cap.png", "accessory_07_zauberhut.png", "accessory_08_piratenhut.png", "accessory_09_weihnachtsmuetze.png", "accessory_13_zylinder.png", "accessory_16_cowboyhut.png"];
+  const ACCESSORY_FILES = ["accessoire_2_muetzen_3.webp", "accessoire_2_muetzen_4.webp", "accessoire_3_brillen_1.webp", "accessoire_3_brillen_2.webp", "accessoire_3_brillen_3.webp", "accessoire_3_brillen_4.webp", "accessoire_4_frisuren_1.webp", "accessoire_6_masken_1.webp", "accessoire_6_masken_2.webp", "accessoire_6_masken_3.webp", "accessoire_6_masken_4.webp", "accessoire_7_abenteuer_1.webp", "accessoire_7_abenteuer_3.webp", "accessoire_7_abenteuer_4.webp", "accessoire_8_extra_1.webp", "accessoire_8_extra_2.webp", "accessoire_8_extra_3.webp", "accessoire_8_extra_4.webp", "accessory_02_krone.webp", "accessory_03_partyhut.webp", "accessory_06_cap.webp", "accessory_07_zauberhut.webp", "accessory_08_piratenhut.webp", "accessory_09_weihnachtsmuetze.webp", "accessory_13_zylinder.webp", "accessory_16_cowboyhut.webp"];
   const ACCESSORY_KEY = "mp_accessory";
   const cleanAccessory = (a) => (a === "" || ACCESSORY_FILES.includes(a) ? (a || "") : "");
   // background colours for the avatar circle
