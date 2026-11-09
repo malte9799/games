@@ -1,38 +1,79 @@
 // Gemeinsames Kartenbild für alle Kartenspiele (Solitär, Blackjack, ...).
-// Die Karten sind fertige SVG-Dateien unter cards/<deck>/ (Lizenzen: cards/LICENSES.md),
-// werden beim ersten Gebrauch geladen und in der gezeichneten Größe zwischengespeichert.
+// Zwei Arten von Blättern:
+//   svg    fertige SVG-Dateien unter cards/<deck>/ (Lizenzen: cards/LICENSES.md), lazy geladen
+//          und in der gezeichneten Größe zwischengespeichert. Die Farbe pro Kartenfarbe lässt sich
+//          umstellen (tint): das SVG wird dann beim Laden umgefärbt.
+//   drawn  selbst gezeichnet (Canvas 2D), Farben pro Kartenfarbe ebenfalls einstellbar.
 // Zeichnet auf einem Canvas-2D-Kontext, unabhängig von p5.
 // Suit-Index: 0 = ♠, 1 = ♥, 2 = ♦, 3 = ♣ — die Spiele rechnen immer so.
-// Die Wahl gilt global pro Browser (localStorage "games_card_deck").
+// Die Wahl gilt global pro Browser (localStorage "games_card_*").
 (function () {
   const RANKS = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
   const SUITS = ["S", "H", "D", "C"];
+  const GLYPH = ["♠", "♥", "♦", "♣"];
+  const BLACK = "#000000", RED = "#ff0000";
+  const SVG_COLS = [BLACK, RED, RED, BLACK];
 
-  // dir = Ordner unter cards/, ten = Dateiname der Zehn, back = Rückseite (sonst <dir>/1B.svg)
-  const BK = (n) => "cards/backs/" + n + ".svg";
-  const DECKS = [
-    { id: "skat",       name: "Skat (Altenburger Stil)", dir: "skat",     ten: "T", back: BK("skat") },
-    { id: "standard",   name: "Standard (Goodall)",  dir: "standard",   ten: "T", back: BK("d3_red") },
-    { id: "plain",      name: "Schlicht",            dir: "plain",      ten: "T", back: BK("d2_black") },
-    { id: "fourcolour", name: "Vier Farben",         dir: "fourcolour", ten: "T", back: BK("d3_green") },
-    { id: "blue",       name: "Blau",                dir: "blue",       ten: "T", back: BK("d3_blue") },
-    { id: "grey",       name: "Grau",                dir: "grey",       ten: "T", back: BK("d2_lightblue") },
-    { id: "ghost",      name: "Ghost",               dir: "ghost",      ten: "T", back: BK("d1_black") },
-    { id: "symmetric",  name: "Symmetrisch",         dir: "symmetric",  ten: "T", back: BK("d2_blue") },
-    { id: "super",      name: "Großer Index",        dir: "super",      ten: "T", back: BK("d2_red") },
-    { id: "knoll",      name: "Klassisch (Knoll)",   dir: "knoll",      ten: "10", back: BK("d3_black") },
+  const BACKS = [   // wählbare Rückseiten fürs französische Blatt
+    { id: "red", name: "Rot", css: "#c8384a" }, { id: "blue", name: "Blau", css: "#3a56a8" },
+    { id: "green", name: "Grün", css: "#2f7a5c" }, { id: "black", name: "Schwarz", css: "#3a3a3a" },
+    { id: "lightblue", name: "Hellblau", css: "#3aa3d2" },
   ];
 
-  const imgs = new Map();     // url -> { img, ok }
-  const scaled = new Map();   // url|w|h -> canvas
+  // svg: dir = Ordner unter cards/, ten = Dateiname der Zehn, back = feste Rückseite (sonst wählbar)
+  // drawn: cols = [♠,♥,♦,♣] als Hex, bg/panel/border/backBg/backInk als [r,g,b], back = Muster
+  const DECKS = [
+    { id: "skat",    name: "Skat (Altenburger Stil)", kind: "svg", dir: "skat", ten: "T", back: "cards/backs/skat.svg", cols: SVG_COLS },
+    { id: "french",  name: "Französisch (Goodall)",   kind: "svg", dir: "standard", ten: "T", pickBack: true, cols: SVG_COLS },
+    { id: "knoll",   name: "Klassisch (Knoll)",       kind: "svg", dir: "knoll", ten: "10", back: "cards/backs/d3_black.svg" },
+    { id: "classic", name: "Gezeichnet: Klassisch",   kind: "drawn", serif: true,
+      cols: ["#1c1c28", "#c8263e", "#c8263e", "#1c1c28"],
+      bg: [253, 251, 246], panel: [240, 234, 214], border: [110, 100, 90], back: "lattice", backBg: [176, 152, 255], backInk: [255, 255, 255] },
+    { id: "minimal", name: "Gezeichnet: Dunkel",      kind: "drawn", serif: false,
+      cols: ["#ecf0fa", "#ff7680", "#ff7680", "#ecf0fa"],
+      bg: [30, 33, 52], panel: [44, 48, 76], border: [70, 76, 110], back: "dots", backBg: [48, 54, 92], backInk: [140, 150, 210] },
+    { id: "deco",    name: "Gezeichnet: Art Deco",    kind: "drawn", serif: true,
+      cols: ["#e2b85a", "#e2b85a", "#e2b85a", "#e2b85a"],
+      bg: [18, 16, 14], panel: [40, 34, 24], border: [226, 184, 90], back: "fan", backBg: [18, 16, 14], backInk: [226, 184, 90] },
+  ];
+  const tintable = (D) => !!D.cols;
 
-  function load(url) {
-    let e = imgs.get(url);
+  // ---- Einstellungen (global pro Browser) ----
+  const K_DECK = "games_card_deck", K_COLS = "games_card_colors", K_BACK = "games_card_back";
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+  let userCols = {}; try { userCols = JSON.parse(store.get(K_COLS)) || {}; } catch {}
+  let backId = BACKS.some((b) => b.id === store.get(K_BACK)) ? store.get(K_BACK) : "red";
+  let idx = Math.max(0, DECKS.findIndex((d) => d.id === store.get(K_DECK)));
+  const listeners = [];
+  const current = () => DECKS[idx];
+  const colsOf = (D) => (D.cols && userCols[D.id]) || D.cols;
+  const emit = () => listeners.forEach((f) => f(current()));
+
+  // ---- SVG laden (ggf. umgefärbt) ----
+  const imgs = new Map();     // key -> { img, ok }
+  const scaled = new Map();   // key|w|h -> canvas
+  const loadWaiters = [];
+  let waitTick = 0;
+  const loaded = () => { if (!waitTick) waitTick = requestAnimationFrame(() => { waitTick = 0; loadWaiters.forEach((f) => f()); }); };
+
+  // Schwarze Farben tragen ihre Farbe implizit (Pfad ohne fill) → fill am Wurzelelement; Index-Strich explizit.
+  // Rote Farben stehen als fill/stroke="red" im SVG.
+  function recolor(svg, suit, col) {
+    if (suit === 1 || suit === 2) return svg.replace(/(fill|stroke)="red"/g, `$1="${col}"`);
+    return svg.replace('stroke="#000" stroke-linecap', `stroke="${col}" stroke-linecap`).replace("<svg ", `<svg fill="${col}" `);
+  }
+  function load(url, suit, col) {
+    const key = col ? url + "|" + col : url;
+    let e = imgs.get(key);
     if (!e) {
       e = { img: new Image(), ok: false };
-      e.img.onload = () => { e.ok = true; };
-      e.img.src = url;
-      imgs.set(url, e);
+      e.img.onload = () => { e.ok = true; loaded(); };
+      imgs.set(key, e);
+      if (col) fetch(url).then((r) => r.text()).then((t) => { e.img.src = URL.createObjectURL(new Blob([recolor(t, suit, col)], { type: "image/svg+xml" })); }).catch(() => {});
+      else e.img.src = url;
     }
     return e;
   }
@@ -41,70 +82,176 @@
     const r = rank === 1 ? "A" : rank === 10 ? D.ten : RANKS[rank];
     return "cards/" + D.dir + "/" + r + SUITS[suit] + ".svg";
   }
-  const backOf = (D) => D.back || "cards/" + D.dir + "/1B.svg";
+  const backUrl = (D) => D.pickBack ? "cards/backs/d3_" + backId + ".svg" : D.back;
+  // Farbe nur angeben, wenn sie vom Original abweicht (sonst reicht die unveränderte Datei)
+  const tintOf = (D, suit) => {
+    if (!D.cols) return null;
+    const c = (colsOf(D)[suit] || "").toLowerCase();
+    return c && c !== SVG_COLS[suit] ? c : null;
+  };
 
   function preload(D) {
-    load(backOf(D));
-    for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) load(fileOf(D, r, s));
+    if (D.kind === "drawn") return;
+    load(backUrl(D));
+    for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) load(fileOf(D, r, s), s, tintOf(D, s));
   }
 
-  // draws the image at (x,y,w,h); cached at the current device scale so big SVGs are rasterised once
-  function blit(ctx, url, x, y, w, h) {
-    const e = load(url);
-    if (!e.ok) {                                  // not loaded yet: plain card-coloured placeholder
+  // zeichnet das Bild an (x,y,w,h); im aktuellen Gerätemaßstab zwischengespeichert, damit große SVGs nur einmal gerastert werden
+  function blit(ctx, e, key, x, y, w, h) {
+    if (!e.ok) {                                  // noch nicht geladen: schlichter Platzhalter
       ctx.save(); ctx.fillStyle = "#f4f1ea"; ctx.strokeStyle = "rgba(0,0,0,.25)";
       ctx.beginPath(); ctx.roundRect(x, y, w, h, w * 0.08); ctx.fill(); ctx.stroke(); ctx.restore();
       return;
     }
     const m = ctx.getTransform();
-    const k = Math.hypot(m.c, m.d) || 1;            // vertical scale: flips squeeze x only
+    const k = Math.hypot(m.c, m.d) || 1;            // vertikaler Maßstab: Flips stauchen nur x
     const pw = Math.max(1, Math.round(w * k)), ph = Math.max(1, Math.round(h * k));
-    const key = url + "|" + pw + "|" + ph;
-    let c = scaled.get(key);
+    const ck = key + "|" + pw + "|" + ph;
+    let c = scaled.get(ck);
     if (!c) {
       c = document.createElement("canvas"); c.width = pw; c.height = ph;
       c.getContext("2d").drawImage(e.img, 0, 0, pw, ph);
-      scaled.set(key, c);
-      if (scaled.size > 600) scaled.delete(scaled.keys().next().value);
+      scaled.set(ck, c);
+      if (scaled.size > 700) scaled.delete(scaled.keys().next().value);
     }
     ctx.drawImage(c, x, y, w, h);
   }
 
-  function face(ctx, x, y, w, h, rank, suit, o = {}) { blit(ctx, fileOf(o.deck || current(), rank, suit), x, y, w, h); }
-  function back(ctx, x, y, w, h, o = {}) { blit(ctx, backOf(o.deck || current()), x, y, w, h); }
+  // ---- selbst gezeichnete Blätter (logische Größe 72×100) ----
+  const rgb = (a, al = 1) => `rgba(${a[0]},${a[1]},${a[2]},${al})`;
+  const PIPS = {
+    2: [[.5, .22], [.5, .78]],
+    3: [[.5, .22], [.5, .5], [.5, .78]],
+    4: [[.33, .22], [.67, .22], [.33, .78], [.67, .78]],
+    5: [[.33, .22], [.67, .22], [.5, .5], [.33, .78], [.67, .78]],
+    6: [[.33, .22], [.67, .22], [.33, .5], [.67, .5], [.33, .78], [.67, .78]],
+    7: [[.33, .22], [.67, .22], [.5, .36], [.33, .5], [.67, .5], [.33, .78], [.67, .78]],
+    8: [[.33, .22], [.67, .22], [.5, .36], [.33, .5], [.67, .5], [.5, .64], [.33, .78], [.67, .78]],
+    9: [[.33, .22], [.67, .22], [.33, .39], [.67, .39], [.5, .5], [.33, .61], [.67, .61], [.33, .78], [.67, .78]],
+    10: [[.33, .22], [.67, .22], [.5, .33], [.33, .44], [.67, .44], [.33, .56], [.67, .56], [.5, .67], [.33, .78], [.67, .78]],
+  };
+  const rrect = (ctx, x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
 
-  // ---- selection, global per browser ----
-  const KEY = "games_card_deck";
-  let idx = 0;
-  try { const i = DECKS.findIndex((d) => d.id === localStorage.getItem(KEY)); if (i >= 0) idx = i; } catch {}
-  const listeners = [];
-  function current() { return DECKS[idx]; }
+  function drawnFace(ctx, x, y, w, h, rank, suit, D) {
+    const col = colsOf(D)[suit], fam = D.serif ? "Georgia, serif" : "system-ui, sans-serif";
+    const glyph = (cx, cy, s) => {
+      ctx.fillStyle = col; ctx.font = `${s * 1.3}px ${fam}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(GLYPH[suit], cx, cy);
+    };
+    ctx.save(); ctx.translate(x, y); ctx.scale(w / 72, h / 100);
+    ctx.lineWidth = 1;
+    ctx.fillStyle = rgb(D.bg); ctx.strokeStyle = rgb(D.border, 0.47); rrect(ctx, 0, 0, 72, 100, 9); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = rgb(D.border, 0.2); rrect(ctx, 4, 4, 64, 92, 6); ctx.stroke();
+    if (rank === 1) glyph(36, 50, 40);
+    else if (rank <= 10) { const s = rank >= 9 ? 12 : 14; for (const [fx, fy] of PIPS[rank]) glyph(fx * 72, fy * 100, s); }
+    else {
+      ctx.fillStyle = rgb(D.panel); ctx.strokeStyle = rgb(D.border, 0.55); rrect(ctx, 14, 22, 44, 56, 5); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = col; ctx.font = `bold 26px ${fam}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(RANKS[rank], 36, 40);
+      glyph(36, 66, 16);
+    }
+    const corner = () => {
+      ctx.fillStyle = col; ctx.font = `bold 16px ${fam}`; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillText(RANKS[rank], 7, 5);
+      glyph(14, 29, 11);
+    };
+    corner();
+    ctx.translate(72, 100); ctx.rotate(Math.PI); corner();
+    ctx.restore();
+  }
+
+  function drawnBack(ctx, x, y, w, h, D) {
+    const ink = D.backInk;
+    ctx.save(); ctx.translate(x, y); ctx.scale(w / 72, h / 100);
+    ctx.lineWidth = 1;
+    ctx.fillStyle = rgb(D.backBg); ctx.strokeStyle = "rgba(0,0,0,.18)"; rrect(ctx, 0, 0, 72, 100, 9); ctx.fill(); ctx.stroke();
+    ctx.save(); ctx.beginPath(); ctx.rect(5, 5, 62, 90); ctx.clip();
+    if (D.back === "lattice") {
+      ctx.fillStyle = "rgba(255,255,255,.22)"; rrect(ctx, 6, 6, 60, 88, 6); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.47)";
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 6; j++) { ctx.beginPath(); ctx.arc(14 + i * 44 / 3, 13 + j * 74 / 5, 1.5, 0, 7); ctx.fill(); }
+    } else if (D.back === "dots") {
+      ctx.fillStyle = rgb(ink, 0.43);
+      for (let i = 0; i < 8; i++) for (let j = 0; j < 11; j++) { ctx.beginPath(); ctx.arc(6 + i * 9.5, 6 + j * 9, 1.25, 0, 7); ctx.fill(); }
+    } else if (D.back === "fan") {
+      ctx.strokeStyle = rgb(ink, 0.47);
+      for (let k = 0; k <= 14; k++) {
+        const a = -Math.PI + (k * Math.PI) / 14;
+        ctx.beginPath(); ctx.moveTo(36, 100); ctx.lineTo(36 + Math.cos(a) * 160, 100 + Math.sin(a) * 160); ctx.stroke();
+      }
+    }
+    ctx.restore();
+    ctx.strokeStyle = rgb(ink, 0.63); rrect(ctx, 4, 4, 64, 92, 6); ctx.stroke();
+    ctx.restore();
+  }
+
+  function face(ctx, x, y, w, h, rank, suit, o = {}) {
+    const D = o.deck || current();
+    if (D.kind === "drawn") return drawnFace(ctx, x, y, w, h, rank, suit, D);
+    const url = fileOf(D, rank, suit), col = tintOf(D, suit);
+    blit(ctx, load(url, suit, col), col ? url + "|" + col : url, x, y, w, h);
+  }
+  function back(ctx, x, y, w, h, o = {}) {
+    const D = o.deck || current();
+    if (D.kind === "drawn") return drawnBack(ctx, x, y, w, h, D);
+    const url = backUrl(D);
+    blit(ctx, load(url), url, x, y, w, h);
+  }
+
+  // ---- Auswahl ----
   function select(id) {
     const i = DECKS.findIndex((d) => d.id === id);
     if (i < 0 || i === idx) return current();
-    idx = i;
-    try { localStorage.setItem(KEY, current().id); } catch {}
-    preload(current());
-    listeners.forEach((f) => f(current()));
+    idx = i; store.set(K_DECK, current().id);
+    preload(current()); emit();
     return current();
   }
   function cycle() { return select(DECKS[(idx + 1) % DECKS.length].id); }
+  function setColor(deckId, suit, hex) {
+    const D = DECKS.find((d) => d.id === deckId); if (!D || !D.cols) return;
+    const c = colsOf(D).slice(); c[suit] = hex.toLowerCase();
+    userCols[deckId] = c; store.set(K_COLS, JSON.stringify(userCols));
+    preload(D); emit();
+  }
+  function setColors(deckId, cols) {
+    const D = DECKS.find((d) => d.id === deckId); if (!D || !D.cols) return;
+    if (cols) userCols[deckId] = cols.map((c) => c.toLowerCase()); else delete userCols[deckId];
+    store.set(K_COLS, JSON.stringify(userCols));
+    preload(D); emit();
+  }
+  function setBack(id) {
+    if (!BACKS.some((b) => b.id === id)) return;
+    backId = id; store.set(K_BACK, id);
+    preload(current()); emit();
+  }
+  preload(current());
 
-  // ---- Auswahlmenü: Kacheln mit Vorderseite (Q♥) + Rückseite, geöffnet unter dem Button ----
+  // ---- Auswahlmenü: Kacheln (Dame ♥ + Rückseite) und Farbeinstellungen, geöffnet unter dem Button ----
   const CSS = `
-.pc-menu{position:fixed;z-index:500;width:min(420px,calc(100vw - 24px));max-height:min(70vh,560px);overflow-y:auto;padding:6px;
-  display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--modal-bg,var(--panel,#222));color:var(--ink,#eee);
+.pc-menu{position:fixed;z-index:500;width:min(420px,calc(100vw - 24px));max-height:min(70vh,640px);overflow-y:auto;padding:6px;
+  background:var(--modal-bg,var(--panel,#222));color:var(--ink,#eee);font-size:13px;
   border:var(--border-w,1px) solid var(--panel-edge,#555);border-radius:var(--r-md,12px);box-shadow:0 16px 40px -12px rgba(0,0,0,.5)}
+.pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
 .pc-opt{all:unset;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px;cursor:pointer;
-  border-radius:calc(var(--r-sm,8px)*.7);text-align:center;font:inherit;font-size:13px;color:inherit}
+  border-radius:calc(var(--r-sm,8px)*.7);text-align:center;font:inherit;color:inherit}
 .pc-opt:hover,.pc-opt:focus-visible{background:var(--panel-2,#333)}
 .pc-opt[aria-checked="true"]{outline:2px solid var(--accent,#6cf);outline-offset:-2px}
 .pc-pair{display:flex;gap:6px}
-.pc-pair img{width:56px;height:auto;aspect-ratio:5/7;display:block;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.35);background:#fff}
-@media (max-width:420px){.pc-menu{grid-template-columns:1fr}}`;
+.pc-pair canvas{width:56px;height:78px;display:block}
+.pc-set{margin:6px 4px 2px;padding-top:8px;border-top:1px solid var(--hairline,rgba(128,128,128,.35));display:grid;gap:8px}
+.pc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pc-row>b{min-width:66px;font-weight:600}
+.pc-row label{display:flex;align-items:center;gap:4px;font-size:15px}
+.pc-row input[type=color]{width:32px;height:26px;padding:0;border:1px solid var(--panel-edge,#666);border-radius:6px;background:none;cursor:pointer}
+.pc-row button{all:unset;cursor:pointer;padding:3px 9px;border-radius:999px;border:1px solid var(--panel-edge,#666);font-size:12px}
+.pc-row button:hover,.pc-row button:focus-visible{background:var(--panel-2,#333)}
+.pc-sw{width:24px;height:24px;border-radius:50%!important;padding:0!important;border:2px solid transparent!important}
+.pc-sw[aria-checked="true"]{outline:2px solid var(--accent,#6cf);outline-offset:2px}
+@media (max-width:420px){.pc-grid{grid-template-columns:1fr}}`;
   let menu = null, menuBtn = null;
   function closeMenu() {
     if (!menu) return;
+    const i = loadWaiters.indexOf(drawPreviews); if (i >= 0) loadWaiters.splice(i, 1);
     menu.remove(); menu = null;
     document.removeEventListener("pointerdown", onOutside, true);
     document.removeEventListener("keydown", onKey, true);
@@ -112,6 +259,40 @@
   }
   const onOutside = (e) => { if (menu && !menu.contains(e.target) && !(menuBtn && menuBtn.contains(e.target))) closeMenu(); };
   const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); closeMenu(); } };
+
+  function drawPreviews() {
+    if (!menu) return;
+    const dpr = window.devicePixelRatio || 1;
+    menu.querySelectorAll(".pc-pair canvas").forEach((cv) => {
+      const D = DECKS.find((d) => d.id === cv.dataset.deck);
+      if (cv.width !== 56 * dpr) { cv.width = 56 * dpr; cv.height = 78 * dpr; }
+      const ctx = cv.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, 56, 78);
+      if (cv.dataset.side === "face") face(ctx, 0, 0, 56, 78, 12, 1, { deck: D }); else back(ctx, 0, 0, 56, 78, { deck: D });
+    });
+  }
+  const hex = (c) => (typeof c === "string" ? c : "#000000");
+  function settingsHTML() {
+    const D = current();
+    if (!tintable(D) && !D.pickBack) return "";
+    let h = "";
+    if (tintable(D)) {
+      const cs = colsOf(D);
+      h += `<div class="pc-row"><b>Farben</b>${GLYPH.map((g, s) => `<label>${g}<input type="color" data-suit="${s}" value="${hex(cs[s])}" aria-label="Farbe ${g}"></label>`).join("")}</div>
+        <div class="pc-row"><b></b><button type="button" data-preset="default">Standard</button><button type="button" data-preset="four">Vier Farben</button></div>`;
+    }
+    if (D.pickBack) {
+      h += `<div class="pc-row"><b>Rückseite</b>${BACKS.map((b) => `<button type="button" class="pc-sw" data-back="${b.id}" style="background:${b.css}" role="radio" aria-checked="${b.id === backId}" aria-label="${b.name}" title="${b.name}"></button>`).join("")}</div>`;
+    }
+    return h;
+  }
+  function renderMenu() {
+    menu.innerHTML = `<div class="pc-grid">${DECKS.map((d) => `<button class="pc-opt" type="button" role="menuitemradio" data-id="${d.id}" aria-checked="${d === current()}">
+      <span class="pc-pair"><canvas data-deck="${d.id}" data-side="face"></canvas><canvas data-deck="${d.id}" data-side="back"></canvas></span><span>${d.name}</span></button>`).join("")}</div>
+      <div class="pc-set">${settingsHTML()}</div>`;
+    if (!menu.querySelector(".pc-set").children.length) menu.querySelector(".pc-set").remove();
+    drawPreviews();
+  }
   function openMenu(btn) {
     if (menu) { const same = menuBtn === btn; closeMenu(); if (same) return; }
     if (!document.getElementById("pc-style")) {
@@ -120,15 +301,22 @@
     menuBtn = btn;
     menu = document.createElement("div");
     menu.className = "pc-menu"; menu.setAttribute("role", "menu");
-    menu.innerHTML = DECKS.map((d) => `<button class="pc-opt" type="button" role="menuitemradio" data-id="${d.id}" aria-checked="${d === current()}">
-      <span class="pc-pair"><img src="${fileOf(d, 12, 1)}" alt=""><img src="${backOf(d)}" alt=""></span><span>${d.name}</span></button>`).join("");
     menu.addEventListener("click", (e) => {
-      const o = e.target.closest(".pc-opt"); if (!o) return;
       e.stopPropagation();
-      select(o.dataset.id);
-      menu.querySelectorAll(".pc-opt").forEach((x) => x.setAttribute("aria-checked", String(x === o)));
+      const o = e.target.closest(".pc-opt"), p = e.target.closest("[data-preset]"), b = e.target.closest("[data-back]");
+      if (o) { select(o.dataset.id); renderMenu(); }
+      else if (p) { setColors(current().id, p.dataset.preset === "four" ? ["#000000", "#ff0000", "#1f4fff", "#1a9a3c"] : null); renderMenu(); }
+      else if (b) { setBack(b.dataset.back); renderMenu(); }
+    });
+    // "change" statt "input": der Farbwähler feuert beim Ziehen laufend, jede Farbe lädt 13 SVGs neu
+    menu.addEventListener("change", (e) => {
+      const i = e.target.closest("input[data-suit]"); if (!i) return;
+      setColor(current().id, +i.dataset.suit, i.value); drawPreviews();
     });
     document.body.appendChild(menu);
+    renderMenu();
+    loadWaiters.push(drawPreviews);
+    DECKS.forEach((d) => { if (d.kind !== "drawn") { load(backUrl(d)); load(fileOf(d, 12, 1), 1, tintOf(d, 1)); } });
     const r = btn.getBoundingClientRect(), mw = menu.offsetWidth;
     const top = Math.min(r.bottom + 8, window.innerHeight - 160);
     menu.style.top = top + "px";
@@ -138,7 +326,9 @@
     document.addEventListener("keydown", onKey, true);
     window.addEventListener("resize", closeMenu);
   }
-  preload(current());
 
-  window.PlayingCards = { decks: DECKS, ranks: RANKS, current, cycle, select, openMenu, face, back, preload, onChange: (f) => listeners.push(f) };
+  window.PlayingCards = {
+    decks: DECKS, ranks: RANKS, current, cycle, select, openMenu, setColor, setColors, setBack,
+    face, back, preload, onChange: (f) => listeners.push(f),
+  };
 })();
