@@ -435,3 +435,19 @@ body.hub-game-open { overflow-x: hidden; }
 #hub-stage.hub-battleship { max-width: min(1240px, 100%); }
 .hub-battleship .hk { max-width: none; }
 .hub-battleship .hk-body { min-height: 0; }
+
+/* ---- "Eigenes Spiel hinzufügen" card + modal ---- */
+#home .card-add { font: inherit; text-align: left; white-space: normal; min-width: 0; cursor: pointer; padding: 0; border-style: dashed; background: transparent; }
+#home .card-add .preview { display: grid; place-items: center; background: color-mix(in srgb, var(--card-bg) 60%, transparent); }
+#home .card-add .add-plus { width: 28%; max-width: 110px; fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-linecap: round; transition: transform .3s var(--ease), stroke .2s; }
+#home .card-add:hover .add-plus { stroke: var(--accent); transform: rotate(90deg) scale(1.08); }
+.custom-game { max-width: 640px; gap: 12px; }
+.custom-game .custom-game-x { position: absolute; top: 12px; right: 12px; }
+.custom-game-prompt { width: 100%; box-sizing: border-box; height: min(46vh, 380px); resize: vertical; padding: 12px 14px; border: 1px solid var(--hairline); border-radius: var(--r-lg, 12px); background: var(--board); color: var(--ink); font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.custom-game-actions { display: flex; justify-content: flex-end; }
+/* rotating app name on the "add" card */
+#home .card-add .rot { display: inline-grid; vertical-align: bottom; overflow: hidden; font-weight: 700; color: var(--ink); }
+#home .card-add .rot > span { grid-area: 1 / 1; justify-self: center; transform: translateY(110%); opacity: 0; transition: transform .45s var(--ease), opacity .45s; }
+#home .card-add .rot > .on { transform: none; opacity: 1; }
+#home .card-add .rot > .out { transform: translateY(-110%); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
