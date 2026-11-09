@@ -24,7 +24,7 @@
     { id: "skat",     name: "Klassisch",  dir: "skat",     ten: "T",  ext: "svg", defBack: "blue", cols: SVG_COLS },
     { id: "medieval", name: "Mittelalter (A. Walker)",  dir: "medieval", ten: "T",  ext: "webp", own: true, defBack: "own" },
     { id: "sharm",    name: "Verschnörkelt (Sharm)",    dir: "sharm",    ten: "T",  ext: "webp", own: true, defBack: "own" },
-    { id: "simple",   name: "Schlicht",                 draw: true, own: true, cols: ["#26262b", "#d01f3a", "#d01f3a", "#26262b"] },
+    { id: "simple",   name: "Schlicht",                 draw: true, defBack: "blue", cols: ["#26262b", "#d01f3a", "#d01f3a", "#26262b"] },
     { id: "pixel",    name: "Pixel Art (G. Dittmann)",  dir: "pixel",    ten: "T",  ext: "png",  own: true, defBack: "own", pixel: true },
   ];
   const tintable = (D) => !!D.cols;
@@ -134,10 +134,10 @@
     corner(); ctx.translate(72, 100); ctx.rotate(Math.PI); corner();
     ctx.restore();
   }
-  function simpleBack(ctx, x, y, w, h) {
+  function simpleBack(ctx, x, y, w, h, css) {
     ctx.save(); ctx.translate(x, y); ctx.scale(w / 72, h / 100);
-    simplePath(ctx, 72, 100); ctx.fillStyle = "#3d5f93"; ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = "#233a5e"; ctx.stroke();
+    simplePath(ctx, 72, 100); ctx.fillStyle = css; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "rgba(0,0,0,.4)"; ctx.stroke();
     ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255,255,255,.9)";
     ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(8, 8, 56, 84, 5); else ctx.rect(8, 8, 56, 84); ctx.stroke();
     ctx.restore();
@@ -154,7 +154,7 @@
   }
   function back(ctx, x, y, w, h, o = {}) {
     const D = o.deck || current();
-    if (D.draw) return simpleBack(ctx, x, y, w, h);
+    if (D.draw) return simpleBack(ctx, x, y, w, h, BACKS.find((b) => b.id === backIdOf(D)).css);
     let url = backUrl(D), e = load(url);
     // neue Rückseite lädt noch: bis dahin die zuletzt gezeigte Rückseite dieses Blatts
     if (e.ok) lastBack[D.id] = url; else if (lastBack[D.id]) { const e0 = load(lastBack[D.id]); if (e0.ok) { e = e0; url = lastBack[D.id]; } }
