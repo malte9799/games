@@ -416,12 +416,15 @@ function mouseReleased() {
     const dest = destAt(mouseX, mouseY);
     if (dest && tryMove(selected, dest)) return;
     if (d.src && sameSrc(selected, d.src)) { selected = null; return; }
+    // a destination was clicked but the card may not go there: say so, keep the selection
+    if (dest) { flashNote("Dorthin darf diese Karte nicht"); return; }
   }
   if (d.src) { selected = d.src; lastClick = { src: d.src, t: now }; }
   else selected = null;
 }
 
 function keyPressed() {
+  if (keyCode === 27) { selected = null; flashNote(""); return false; }   // Escape drops the selection
   if (key === "n" || key === "N") { newGame(); return false; }
   if (key === "u" || key === "U") { undo(); return false; }
   if (key === " ") { clickStock(); return false; }
@@ -689,6 +692,12 @@ function solSlot(g, x, y, glyph, ink) {
   }
 }
 
+// frame around a legal target slot, pulsing softly
+function targetFrame(x, y, alpha) {
+  noFill(); stroke(...PAL.sun, alpha); strokeWeight(3);
+  rect(x - 3, y - 3, CW + 6, CH + 6, 11);
+}
+
 // felt-like table: soft lamp glow in the middle
 function solTable() {
   background(...PAL.board);
@@ -773,6 +782,17 @@ function draw() {
       const y = dest.t === "fnd" ? SOL_M : colTop(dest.c, tab[dest.c].length);
       noFill(); stroke(...PAL.mint, 230); strokeWeight(3);
       rect(x - 3, y - 3, CW + 6, CH + 6, 11);
+    }
+  }
+
+  // while a card is selected: every place it may go gets a sun frame
+  if (selCards.length && !dragging.length) {
+    const pulse = 150 + 80 * Math.sin(now / 220);
+    for (let s = 0; s < 4; s++) {
+      if (legal(selected, { t: "fnd", s })) targetFrame(colX(3 + s), SOL_M, pulse);
+    }
+    for (let c = 0; c < 7; c++) {
+      if (legal(selected, { t: "tab", c })) targetFrame(colX(c), tab[c].length ? colTop(c, tab[c].length) : Y0, pulse);
     }
   }
 
