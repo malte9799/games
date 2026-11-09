@@ -24,7 +24,7 @@
     { id: "skat",     name: "Klassisch",  dir: "skat",     ten: "T",  ext: "svg", defBack: "blue", cols: SVG_COLS },
     { id: "medieval", name: "Mittelalter (A. Walker)",  dir: "medieval", ten: "T",  ext: "webp", own: true, defBack: "own" },
     { id: "sharm",    name: "Verschnörkelt (Sharm)",    dir: "sharm",    ten: "T",  ext: "webp", own: true, defBack: "own" },
-    { id: "simple",   name: "Schlicht",                 draw: true, own: true, cols: ["#9a9a9a", "#d4868f", "#d4868f", "#9a9a9a"] },
+    { id: "simple",   name: "Schlicht",                 draw: true, own: true, cols: ["#26262b", "#d01f3a", "#d01f3a", "#26262b"] },
     { id: "pixel",    name: "Pixel Art (G. Dittmann)",  dir: "pixel",    ten: "T",  ext: "png",  own: true, defBack: "own", pixel: true },
   ];
   const tintable = (D) => !!D.cols;
@@ -123,8 +123,8 @@
   function simpleFace(ctx, x, y, w, h, rank, suit, D) {
     const col = colsOf(D)[suit];
     ctx.save(); ctx.translate(x, y); ctx.scale(w / 72, h / 100);
-    simplePath(ctx, 72, 100); ctx.fillStyle = "#f1ede3"; ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = "#b4b1aa"; ctx.stroke();
+    simplePath(ctx, 72, 100); ctx.fillStyle = "#fbf8f1"; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "#5d5a54"; ctx.stroke();
     ctx.fillStyle = col; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.font = "40px system-ui, sans-serif"; ctx.fillText(SYM[suit], 36, 52);
     const corner = () => {
@@ -136,9 +136,9 @@
   }
   function simpleBack(ctx, x, y, w, h) {
     ctx.save(); ctx.translate(x, y); ctx.scale(w / 72, h / 100);
-    simplePath(ctx, 72, 100); ctx.fillStyle = "#a9b4c2"; ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = "#8e9aa9"; ctx.stroke();
-    ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255,255,255,.7)";
+    simplePath(ctx, 72, 100); ctx.fillStyle = "#3d5f93"; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "#233a5e"; ctx.stroke();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255,255,255,.9)";
     ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(8, 8, 56, 84, 5); else ctx.rect(8, 8, 56, 84); ctx.stroke();
     ctx.restore();
   }
