@@ -416,3 +416,15 @@ body.hub-game-open { overflow-x: hidden; }
 .wb-win { font: 800 26px/1.2 var(--font-display); }
 @media (max-width: 520px) { .wb-stage { min-width: 0; } .wb-name { max-width: 90px; } }
 @media (prefers-reduced-motion: reduce) { .wb-spark, .wb-stage.shake { animation: none; } }
+
+/* ---- Panzerschlacht ---- */
+#hub-stage.hub-panzer { max-width: min(1240px, 100%); }
+.hub-panzer .hk { max-width: none; }
+.hub-panzer .hk-body { min-height: 0; }
+.pz { position: relative; width: 100%; max-width: calc((100dvh - 190px) * 2); min-width: 320px; margin: 0 auto; }
+.pz-cv { display: block; width: 100%; aspect-ratio: 2 / 1; border-radius: var(--r-xl); background: #10143a; touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; box-shadow: var(--card-shadow); }
+.pz-pad { display: none; gap: 10px; justify-content: space-between; align-items: center; margin-top: 10px; }
+.pz-grp { display: flex; gap: 8px; }
+.pz-pad button { min-width: 52px; min-height: 52px; padding: 0 14px; font-size: 20px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.pz-pad .pz-fire { flex: 1; max-width: 160px; font-weight: 800; letter-spacing: .06em; font-size: 16px; }
+@media (pointer: coarse) { .pz-pad { display: flex; } }

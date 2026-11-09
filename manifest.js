@@ -407,6 +407,37 @@ function drawWortbombe(p, w, h) {
   p.fill(255); p.textSize(30); p.text("EN", cx, cy + 1);
 }
 
+function drawPanzer(p, w, h) {
+  const sky = p.drawingContext.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, "#10143a"); sky.addColorStop(0.55, "#4a2f72"); sky.addColorStop(1, "#e8756a");
+  p.drawingContext.fillStyle = sky; p.drawingContext.fillRect(0, 0, w, h);
+  p.noStroke();
+  p.fill(255, 214, 150, 230); p.circle(w * 0.7, h * 0.5, 70);
+  const bump = (x, c, s) => Math.exp(-Math.pow((x - c) / s, 2));
+  const gy = (x) => h * 0.7 - 60 * bump(x, w * 0.5, 90) - 18 * Math.sin(x * 0.012) - 40 * bump(x, w * 0.86, 60);
+  const crater = (x) => { const d = (x - w * 0.62) / 34; return Math.abs(d) < 1 ? 34 * Math.sqrt(1 - d * d) : 0; };
+  p.fill(94, 66, 44); p.beginShape(); p.vertex(0, h);
+  for (let x = 0; x <= w; x += 6) p.vertex(x, gy(x) + crater(x));
+  p.vertex(w, h); p.endShape(p.CLOSE);
+  p.noFill(); p.stroke(111, 205, 90); p.strokeWeight(5); p.beginShape();
+  for (let x = 0; x <= w; x += 6) p.vertex(x, gy(x) + crater(x));
+  p.endShape();
+  p.noStroke();
+  const tank = (x, col, a) => {
+    const y = gy(x);
+    p.push(); p.translate(x, y);
+    p.fill(36, 38, 48); p.rect(-22, -11, 44, 12, 6);
+    p.fill(...col); p.rect(-18, -21, 36, 12, 4); p.arc(0, -17, 20, 20, p.PI, 0);
+    p.stroke(...col); p.strokeWeight(5); p.line(0, -18, Math.cos(a) * 30, -18 - Math.sin(a) * 30);
+    p.pop();
+  };
+  tank(w * 0.16, PAL.sky, 0.9); tank(w * 0.84, PAL.rose, 2.4);
+  p.noStroke(); p.fill(255, 240, 190, 90); for (let k = 0; k < 7; k++) p.circle(w * 0.16 + 40 + k * 46, h * 0.7 - 70 - Math.sin(k / 6 * Math.PI) * 90 + k * 6, 6);
+  p.fill(255, 210, 120); p.circle(w * 0.62, gy(w * 0.62) - 6, 24); p.fill(255, 255, 255, 200); p.circle(w * 0.62, gy(w * 0.62) - 6, 11);
+  p.fill(12, 12, 28, 200); p.rect(w / 2 - 120, 14, 240, 28, 8);
+  p.fill(...PAL.sky); p.rect(w / 2 - 112, 30, 100, 6, 3); p.fill(...PAL.rose); p.rect(w / 2 + 12, 30, 70, 6, 3);
+}
+
 function drawFlood(p, w, h) {
   previewBg(p, w, h);
   const N = 10, cs = 26, SW = 44;
