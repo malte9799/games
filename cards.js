@@ -24,9 +24,11 @@
     { id: "skat",     name: "Klassisch",  dir: "skat",     ten: "T",  ext: "svg", defBack: "blue", cols: SVG_COLS },
     { id: "medieval", name: "Mittelalter (A. Walker)",  dir: "medieval", ten: "T",  ext: "webp", own: true, defBack: "own" },
     { id: "sharm",    name: "Verschnörkelt (Sharm)",    dir: "sharm",    ten: "T",  ext: "webp", own: true, defBack: "own" },
+    { id: "simple",   name: "Schlicht",                 draw: true, own: true, cols: ["#9a9a9a", "#d4868f", "#d4868f", "#9a9a9a"] },
     { id: "pixel",    name: "Pixel Art (G. Dittmann)",  dir: "pixel",    ten: "T",  ext: "png",  own: true, defBack: "own", pixel: true },
   ];
   const tintable = (D) => !!D.cols;
+  // draw = gezeichnet (Canvas) statt Bilddatei; einzige eigene Zeichnung, bewusst ganz schlicht wie die Ablagefelder
 
   // ---- Einstellungen (global pro Browser) ----
   const K_DECK = "games_card_deck", K_COLS = "games_card_colors", K_BACK = "games_card_back";
@@ -81,12 +83,13 @@
   const backUrl = (D) => { const b = backIdOf(D); return b === "own" ? "cards/" + D.dir + "/back." + D.ext : "cards/backs/d3_" + b + ".svg"; };
   // Farbe nur angeben, wenn sie vom Original abweicht (sonst reicht die unveränderte Datei)
   const tintOf = (D, suit) => {
-    if (!D.cols) return null;
+    if (!D.cols || D.draw) return null;
     const c = (colsOf(D)[suit] || "").toLowerCase();
     return c && c !== SVG_COLS[suit] ? c : null;
   };
 
   function preload(D) {
+    if (D.draw) return;
     load(backUrl(D));
     for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) load(fileOf(D, r, s), s, tintOf(D, s));
   }
@@ -114,8 +117,35 @@
     ctx.drawImage(c, x, y, w, h);
   }
 
+  // Schlicht: cremefarbene Karte, grauer Rand, ein großes Symbol, Zahl in den Ecken (logische Größe 72×100)
+  const SYM = ["♠\uFE0E", "♥\uFE0E", "♦\uFE0E", "♣\uFE0E"];
+  function simplePath(ctx, w, h) { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(1, 1, w - 2, h - 2, 9); else ctx.rect(1, 1, w - 2, h - 2); }
+  function simpleFace(ctx, x, y, w, h, rank, suit, D) {
+    const col = colsOf(D)[suit];
+    ctx.save(); ctx.translate(x, y); ctx.scale(w / 72, h / 100);
+    simplePath(ctx, 72, 100); ctx.fillStyle = "#f1ede3"; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "#b4b1aa"; ctx.stroke();
+    ctx.fillStyle = col; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "40px system-ui, sans-serif"; ctx.fillText(SYM[suit], 36, 52);
+    const corner = () => {
+      ctx.font = "bold 16px system-ui, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillText(RANKS[rank], 7, 6);
+    };
+    corner(); ctx.translate(72, 100); ctx.rotate(Math.PI); corner();
+    ctx.restore();
+  }
+  function simpleBack(ctx, x, y, w, h) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(w / 72, h / 100);
+    simplePath(ctx, 72, 100); ctx.fillStyle = "#a9b4c2"; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "#8e9aa9"; ctx.stroke();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255,255,255,.7)";
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(8, 8, 56, 84, 5); else ctx.rect(8, 8, 56, 84); ctx.stroke();
+    ctx.restore();
+  }
+
   function face(ctx, x, y, w, h, rank, suit, o = {}) {
     const D = o.deck || current();
+    if (D.draw) return simpleFace(ctx, x, y, w, h, rank, suit, D);
     const url = fileOf(D, rank, suit), col = tintOf(D, suit);
     let e = load(url, suit, col), key = col ? url + "|" + col : url;
     // umgefärbte Karte lädt noch (oder ist fehlgeschlagen): solange die Originalfarbe zeigen statt eines leeren Rechtecks
@@ -124,6 +154,7 @@
   }
   function back(ctx, x, y, w, h, o = {}) {
     const D = o.deck || current();
+    if (D.draw) return simpleBack(ctx, x, y, w, h);
     let url = backUrl(D), e = load(url);
     // neue Rückseite lädt noch: bis dahin die zuletzt gezeigte Rückseite dieses Blatts
     if (e.ok) lastBack[D.id] = url; else if (lastBack[D.id]) { const e0 = load(lastBack[D.id]); if (e0.ok) { e = e0; url = lastBack[D.id]; } }
@@ -247,7 +278,7 @@
     document.body.appendChild(menu);
     renderMenu();
     loadWaiters.push(drawPreviews);
-    DECKS.forEach((d) => { load(backUrl(d)); load(fileOf(d, 12, 1), 1, tintOf(d, 1)); });
+    DECKS.forEach((d) => { if (!d.draw) { load(backUrl(d)); load(fileOf(d, 12, 1), 1, tintOf(d, 1)); } });
     const r = btn.getBoundingClientRect(), mw = menu.offsetWidth;
     const top = Math.min(r.bottom + 8, window.innerHeight - 160);
     menu.style.top = top + "px";
