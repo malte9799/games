@@ -507,6 +507,54 @@ export function makeKartModel(T, color, name, opts = {}) {
   };
 }
 
+
+// ---------- Lakitu: Wolke + Schildkröte mit Zielflagge, trägt Karts zurück auf die Strecke ----------
+
+export function makeLakitu(T) {
+  const root = new T.Group();
+  const mk = (c, e = 0) => new T.MeshLambertMaterial({ color: c, flatShading: true, emissive: e });
+  const white = mk(0xffffff, 0x303038), yellow = mk(0xffc928), green = mk(0x3fae4f), dark = mk(0x23262e), lens = new T.MeshBasicMaterial({ color: 0x9fe3ff });
+  const add = (g, m, x, y, z, sx = 1, sy = sx, sz = sx) => { const me = new T.Mesh(g, m); me.position.set(x, y, z); me.scale.set(sx, sy, sz); root.add(me); return me; };
+  const ico = (r, d = 0) => new T.IcosahedronGeometry(r, d);
+  // Wolke
+  add(ico(1.15), white, 0, 0, 0, 1.2, 0.85, 1.05);
+  [[-1.15, -0.1, 0.1, 0.7], [1.15, -0.1, 0.1, 0.7], [-0.6, 0.45, 0.2, 0.6], [0.6, 0.45, 0.2, 0.6], [0, -0.45, 0.5, 0.6], [-0.7, -0.4, 0.3, 0.5], [0.7, -0.4, 0.3, 0.5]].forEach(([x, y, z, r]) => add(ico(r), white, x, y, z));
+  add(new T.SphereGeometry(0.11, 6, 5), dark, -0.34, 0.1, 1.05, 1, 1.5, 0.6); add(new T.SphereGeometry(0.11, 6, 5), dark, 0.34, 0.1, 1.05, 1, 1.5, 0.6);
+  // Schildkröte
+  add(ico(0.8, 1), green, 0, 1.55, -0.45, 1.05, 0.85, 0.8);
+  add(new T.SphereGeometry(0.5, 8, 6), yellow, 0, 1.4, 0.05, 1, 1, 0.9);
+  const head = new T.Group(); head.position.set(0, 2.15, 0.2); root.add(head);
+  const hadd = (g, m, x, y, z, rx = 0) => { const me = new T.Mesh(g, m); me.position.set(x, y, z); me.rotation.x = rx; head.add(me); return me; };
+  hadd(new T.SphereGeometry(0.44, 8, 6), yellow, 0, 0, 0);
+  hadd(new T.SphereGeometry(0.2, 6, 5), yellow, 0, -0.1, 0.42);
+  for (const x of [-0.2, 0.2]) { hadd(new T.CylinderGeometry(0.19, 0.19, 0.14, 8), dark, x, 0.08, 0.38, Math.PI / 2); hadd(new T.CylinderGeometry(0.13, 0.13, 0.16, 8), lens, x, 0.08, 0.4, Math.PI / 2); }
+  hadd(new T.TorusGeometry(0.45, 0.04, 4, 10), dark, 0, 0.08, 0.02, 0).rotation.x = Math.PI / 2;
+  for (let i = -1; i <= 1; i++) hadd(new T.ConeGeometry(0.05, 0.3, 4), dark, i * 0.1, 0.47, -0.02);
+  // Arm + Fahne
+  add(new T.BoxGeometry(0.2, 0.2, 0.7), yellow, 0.55, 1.65, 0.45).rotation.set(-0.5, -0.4, 0);
+  const pole = add(new T.CylinderGeometry(0.04, 0.04, 2.6, 5), mk(0x8a6a3a), 0.9, 2.55, 0.7);
+  const flagTex = (() => {
+    const c = document.createElement("canvas"); c.width = 128; c.height = 96; const g = c.getContext("2d");
+    for (let y = 0; y < 4; y++) for (let x = 0; x < 6; x++) { g.fillStyle = (x + y) % 2 ? "#fff" : "#111"; g.fillRect(x * 21.4, y * 24, 22, 24); }
+    return new T.CanvasTexture(c);
+  })();
+  const flag = new T.Mesh(new T.PlaneGeometry(1.5, 1.1, 6, 1), new T.MeshBasicMaterial({ map: flagTex, side: T.DoubleSide }));
+  flag.position.set(1.65, 3.4, 0.7); root.add(flag);
+  const fpos = flag.geometry.attributes.position, base = Array.from(fpos.array);
+  root.visible = false;
+  return {
+    root,
+    set(x, y, z, cx, cz, t) {
+      root.visible = true;
+      root.position.set(x, y + Math.sin(t * 5) * 0.15, z);
+      root.rotation.y = Math.atan2(cx - x, cz - z);              // schaut zur Kamera
+      for (let i = 0; i < fpos.count; i++) fpos.setZ(i, Math.sin(t * 9 + base[i * 3] * 3) * 0.12 * (base[i * 3] + 0.75));
+      fpos.needsUpdate = true;
+    },
+    hide() { root.visible = false; },
+  };
+}
+
 // ---------- Partikel ----------
 
 function makeParticles(T, scene, cap = 900) {
@@ -660,6 +708,7 @@ export function createWorld(T, host, track, themeKey, opts = {}) {
     removeItem(id) { const o = dyn.get(id); if (o) { scene.remove(o.mesh); dyn.delete(id); } },
     clearItems() { for (const id of [...dyn.keys()]) this.removeItem(id); },
     makeKart: (color, name, o) => makeKartModel(T, color, name, o),
+    makeLakitu: () => { const l = makeLakitu(T); scene.add(l.root); return l; },
     render() { renderer.render(scene, camera); },
     dispose() {
       renderer.dispose();

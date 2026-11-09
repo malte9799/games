@@ -143,6 +143,7 @@ export async function createKart(env) {
   let msgTimer = 0, destroyed = false, raf = 0, last = 0, acc = 0, time = 0, resultsAt = 0, soloRecordNew = false;
   const results = new Map();                // Spieler-ID → Zeit (Infinity = nicht angekommen)
   let hudCache = {};
+  let rescue = null, lkOut = null, lkMe = null, lkRem = new Map();
 
   // ---------- Welt ----------
   function loadWorld() {
@@ -157,6 +158,7 @@ export async function createKart(env) {
     models = players.map((p, i) => world.makeKart(colorOf(i), p.name || "Spieler", { local: i === myIdx }));
     models.forEach((m) => world.scene.add(m.root));
     meModel = models[myIdx];
+    lkMe = world.makeLakitu(); lkRem = new Map(); players.forEach((p, i) => { if (i !== myIdx) lkRem.set(p.id, world.makeLakitu()); }); rescue = null; lkOut = null;
     rem = new Map();
     players.forEach((p, i) => { if (i !== myIdx) rem.set(p.id, mkRemote(p, i)); });
     parkOnGrid();
@@ -335,6 +337,7 @@ export async function createKart(env) {
     for (const b of world.boxes) { b.active = true; b.pop = 1; b.back = 0; }
     laps = sel.laps; lapsDone = 0; lapStart = 0; bestLap = Infinity; finished = false; finT = 0; firstFinAt = 0; wrongT = 0; resultShown = false; soloRecordNew = false;
     item = null; itemCount = 0; rolling = 0; itemPress = false; gasEarly = -1; time = 0;
+    rescue = null; lkOut = null; lkMe && lkMe.hide();
     results.clear(); raceT = 0; cd = COUNTDOWN; phase = "countdown";
     menuEl.hidden = true; resEl.hidden = true; hud.hidden = false; center.hidden = false; hudCache = {};
     if (isTouch) setFull(true);
@@ -570,24 +573,60 @@ export async function createKart(env) {
     else if (e.target.closest("[data-menu]")) { net && net.send("menu", {}); showMenu(); }
   });
 
+  // Lakitu holt das Kart ab, trägt es langsam zur Strecke und setzt es ab
+  const RESCUE = { up: 0.8, carry: 1.5, down: 0.8, lift: 5 };
   function doReset() {
-    respawn(me, track, pointAt); camYaw = me.yaw; say("Zurück auf der Strecke", "", 900);
+    if (rescue || me.spinT > 0) return;
+    const loc = locate(track, me.x, me.z, -1, {});
+    const s2 = (loc.s + 4) % track.L, tgt = pointAt(track, s2, clamp(loc.d, -5, 5));
+    let ds = s2 - me.lastS; if (ds < -track.L / 2) ds += track.L; else if (ds > track.L / 2) ds -= track.L;
+    rescue = { t: 0, fx: me.x, fz: me.z, fy: me.yaw, tx: tgt.x, tz: tgt.z, ty: tgt.yaw, ds, s2 };
+    me.vx = me.vz = 0; me.drift = 0; me.driftT = 0; me.driftLvl = 0; me.boostT = 0; me.steer = 0;
+    say("Lakitu kommt!", "", 1200);
+  }
+  const ease = (u) => u * u * (3 - 2 * u);
+  function rescueStep(dt) {
+    const r = rescue, R = RESCUE;
+    r.t += dt;
+    let h;
+    if (r.t < R.up) { h = ease(r.t / R.up) * R.lift; me.x = r.fx; me.z = r.fz; }
+    else if (r.t < R.up + R.carry) {
+      const u = ease((r.t - R.up) / R.carry); h = R.lift + Math.sin(u * Math.PI) * 0.8;
+      me.x = lerp(r.fx, r.tx, u); me.z = lerp(r.fz, r.tz, u); me.yaw = r.fy + angDiff(r.ty, r.fy) * u;
+    } else { h = (1 - ease(clamp((r.t - R.up - R.carry) / R.down, 0, 1))) * R.lift; me.x = r.tx; me.z = r.tz; me.yaw = r.ty; }
+    me.hop = h; me.hopV = 0; me.vx = me.vz = 0; me.along = 0; me.steer = 0; me.spinVis = 0;
+    if (r.t >= R.up + R.carry + R.down) {
+      me.hop = 0; me.prog += r.ds; me.lastS = r.s2; me.s = r.s2; me.idx = locate(track, me.x, me.z, -1, {}).i; me.inv = 1.5; me.offroad = false; me.grip = 1;
+      lkOut = { t: 0, x: me.x, z: me.z, h: R.lift + 3.6 };
+      rescue = null; camYaw = me.yaw;
+    }
+  }
+  function lakituPose(t) {
+    const cam = world.camera.position;
+    if (rescue) {
+      const R = RESCUE, a = clamp(1 - rescue.t / 0.9, 0, 1);       // anfliegen
+      lkMe.set(me.x + ease(a) * 16, me.hop + 3.4 + ease(a) * 9, me.z + ease(a) * 4, cam.x, cam.z, t);
+    } else if (lkOut) {
+      lkOut.t += 1 / 60;
+      const u = clamp(lkOut.t / 1.0, 0, 1);
+      if (u >= 1) { lkOut = null; lkMe.hide(); } else lkMe.set(lkOut.x + ease(u) * 14, 3.4 + ease(u) * 12, lkOut.z - ease(u) * 6, cam.x, cam.z, t);
+    } else lkMe.hide();
   }
 
   // ---------- Simulation (fester Schritt) ----------
   function simStep() {
     const inp = readInput();
     if (phase === "race" || phase === "done") {
-      step(me, inp, DT, track, null);      // keine Kart-Kollisionen: Latenz würde sie unfair machen
-      if (itemPress) { itemPress = false; if (!rolling) useItem(); }
+      if (rescue) rescueStep(DT); else step(me, inp, DT, track, null);      // keine Kart-Kollisionen: Latenz würde sie unfair machen
+      if (itemPress) { itemPress = false; if (!rolling && !rescue) useItem(); }
       // Boxen
-      for (const b of world.boxes) if (b.active) { const dx = b.x - me.x, dz = b.z - me.z; if (dx * dx + dz * dz < 3.6 * 3.6) pickBox(b); }
+      if (!rescue) for (const b of world.boxes) if (b.active) { const dx = b.x - me.x, dz = b.z - me.z; if (dx * dx + dz * dz < 3.6 * 3.6) pickBox(b); }
       // Boost-Pads
-      for (const p of track.pads) {
+      if (!rescue) for (const p of track.pads) {
         const pp = pointAt(track, p.i * track.sp, p.lat), dx = me.x - pp.x, dz = me.z - pp.z;
         if (dx * dx + dz * dz < 5.5 * 5.5 && me.boostT < 0.5) { boost(me, 1.0); say("Turbo!", "gold", 600); }
       }
-      lapLogic();
+      if (!rescue) lapLogic();
       // falsche Richtung
       const f = Math.sin(me.yaw) * track.fx[me.idx] + Math.cos(me.yaw) * track.fz[me.idx];
       if (me.along > 5 && f < -0.35) wrongT += DT; else wrongT = Math.max(0, wrongT - DT * 2);
@@ -604,7 +643,7 @@ export async function createKart(env) {
       me.events.length = 0;
     }
     if (++sendN % SEND_EVERY === 0 && net && (phase === "race" || phase === "done")) {
-      const flags = (me.drift < 0 ? 1 : 0) | (me.drift > 0 ? 2 : 0) | (me.boostT > 0 ? 4 : 0) | (me.spinT > 0 ? 8 : 0) | (me.starT > 0 ? 16 : 0) | (finished ? 32 : 0) | (me.offroad ? 64 : 0) | (me.driftLvl << 7);
+      const flags = (me.drift < 0 ? 1 : 0) | (me.drift > 0 ? 2 : 0) | (me.boostT > 0 ? 4 : 0) | (me.spinT > 0 ? 8 : 0) | (me.starT > 0 ? 16 : 0) | (finished ? 32 : 0) | (me.offroad ? 64 : 0) | (me.driftLvl << 7) | (rescue ? 512 : 0);
       const r2 = (v) => Math.round(v * 100) / 100;
       net.send("k", [r2(me.x), r2(me.z), Math.round(me.yaw * 1000) / 1000, r2(me.vx), r2(me.vz), r2(me.prog), flags, Math.round(me.steer * 100)]);
     }
@@ -647,11 +686,13 @@ export async function createKart(env) {
       const ex = r.tx + r.tvx * age, ez = r.tz + r.tvz * age;
       const k = Math.min(1, dt * 11);
       r.x += (ex - r.x) * k; r.z += (ez - r.z) * k; r.yaw += angDiff(r.ty, r.yaw) * k;
+      const f0 = r.flags;
       const sp = Math.hypot(r.tvx, r.tvz); r.wheel += sp * dt / 0.42;
       if (r.spinT > 0) { r.spinT -= dt; r.spinVis = ((1.35 - r.spinT) / 1.35) * Math.PI * 2 * r.spinDir; if (r.spinT <= 0) r.spinVis = 0; } else r.spinVis = 0;
-      if (r.hopV !== 0 || r.hop > 0) { r.hopV -= 24 * dt; r.hop += r.hopV * dt; if (r.hop <= 0) { r.hop = 0; r.hopV = 0; } }
+      if (f0 & 512) r.hop = lerp(r.hop, RESCUE.lift, Math.min(1, dt * 4)); else if (r.hopV !== 0 || r.hop > 0) { r.hopV -= 24 * dt; r.hop += r.hopV * dt; if (r.hop <= 0) { r.hop = 0; r.hopV = 0; } }
       const f = r.flags, dr = f & 1 ? -1 : f & 2 ? 1 : 0;
       kartFx({ x: r.x, z: r.z, yaw: r.yaw, vx: r.tvx, vz: r.tvz, drift: dr, driftLvl: (f >> 7) & 3, boost: !!(f & 4), offroad: !!(f & 64) }, dt);
+      { const lk = lkRem.get(r.id); if (lk) { if (f & 512) lk.set(r.x, r.hop + 3.4, r.z, world.camera.position.x, world.camera.position.z, time); else lk.hide(); } }
       models[r.idx].set({ x: r.x, z: r.z, yaw: r.yaw, hop: r.hop, steer: r.steer, drift: dr, spinVis: r.spinVis, wheel: r.wheel, boost: !!(f & 4), star: !!(f & 16) }, time);
     }
     // eigenes Kart
@@ -664,6 +705,7 @@ export async function createKart(env) {
     }
 
     camera(dt);
+    if (phase !== "menu") lakituPose(time); else lkMe && lkMe.hide();
     world.update(dt, time);
     world.render();
     if (phase !== "menu") { hudUpdate(); checkDone(performance.now()); }
@@ -688,10 +730,10 @@ export async function createKart(env) {
     let target = me.yaw;
     if (sp > 8 && me.drift) target = me.yaw + clamp(angDiff(Math.atan2(me.vx, me.vz), me.yaw), -0.5, 0.5) * 0.6;   // Winkel sauber mitteln (kein Umklappen bei ±π)
     camYaw += angDiff(target, camYaw) * Math.min(1, dt * (me.drift ? 3.2 : 5.5));
-    const portrait0 = cam.aspect < 1, dist = (portrait0 ? 10.5 : 8.6) + frac * 1.4 + (me.boostT > 0 ? 1.1 : 0), h = (portrait0 ? 4.6 : 3.9) + frac * 0.25;
+    const portrait0 = cam.aspect < 1, dist = (portrait0 ? 10.5 : 8.6) + frac * 1.4 + (me.boostT > 0 ? 1.1 : 0) + (rescue ? 4 : 0), h = (portrait0 ? 4.6 : 3.9) + frac * 0.25;
     const sx = Math.sin(camYaw), cz = Math.cos(camYaw);
-    camPos.set(me.x - sx * dist, h + me.hop * 0.4, me.z - cz * dist);
-    camLook.set(me.x + sx * 5.5, 1.3, me.z + cz * 5.5);
+    camPos.set(me.x - sx * dist, h + me.hop * (rescue ? 1.0 : 0.4), me.z - cz * dist);
+    camLook.set(me.x + sx * 5.5, 1.3 + (rescue ? me.hop * 1.1 + 1.5 : 0), me.z + cz * 5.5);
     shake = Math.max(0, shake - dt * 2.4);
     if (shake > 0) { camPos.x += (Math.random() - 0.5) * shake * 0.5; camPos.y += (Math.random() - 0.5) * shake * 0.4; camPos.z += (Math.random() - 0.5) * shake * 0.5; }
     cam.position.copy(camPos); cam.lookAt(camLook);
