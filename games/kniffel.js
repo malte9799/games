@@ -1898,7 +1898,14 @@ const hubPlayers = () => NET.players.map((p) => ({ id: p.id, name: p.name }));
 
 function onNet(m, from) {
   if (!m || typeof m !== "object" || !from) return;
-  if (m.t === "begin") {                                  // the host chose the variant and started
+  if (m.t === "need") {                                   // somebody came back after a reload and asks where we are
+    if (MP && NET.isHost && MP.players.some((p) => p.id === from)) mpSend(mpSyncMsg(), from);
+  } else if (m.t === "sync") {                            // the host tells us the state of the running game
+    if (from !== NET.hostId || MP) return;
+    if (!D.length) { inbox = [[m, from]]; return; }
+    const ps = cleanPlayers(m.players);
+    mpStart(ps, m.rules, m);
+  } else if (m.t === "begin") {                           // the host chose the variant and started
     if (from !== NET.hostId) return;
     if (!D.length) { inbox = [[m, from]]; return; }       // 3D is still loading: start as soon as it is there
     mpStart(cleanPlayers(m.players), m.rules);
@@ -1929,7 +1936,17 @@ function mpRematch() {
   mpBegin(MP.players.filter((p) => !p.left).map((p) => ({ id: p.id, name: p.name })), MP.rules);
 }
 
-function mpStart(players, rid) {
+// whole state of the running game, for a player who reloaded the page
+const mpSyncMsg = () => ({ t: "sync", rules: MP.rules, turn: MP.turn, over: MP.over,
+  players: MP.players.map((p) => ({ id: p.id, name: p.name, cells: p.cur.cells, yb: p.cur.yb })) });
+// back after a reload: ask the host (the hub says so through NET.resumed) until the state arrives
+function mpAskSync(n = 0) {
+  if (MP || destroyed || !NET || n > 8) return;
+  NET.send("k", { t: "need" }, NET.isHost ? undefined : NET.hostId);
+  setTimeout(() => mpAskSync(n + 1), 2500);
+}
+
+function mpStart(players, rid, snap) {
   if (!NET || !D.length || !players.some((p) => p.id === NET.me.id)) return;
   const rr = RULES[rid] ? rid : "kniffel";
   MP = { host: NET.isHost, hostId: NET.hostId, myId: NET.me.id, rules: rr, turn: 0, over: false,
@@ -1937,11 +1954,21 @@ function mpStart(players, rid) {
   menuClose();
   overEl.classList.remove("show");
   for (const d of D) if (d.state === "phys") world.removeBody(d.body);
-  G = freshGame(); G.cur = MP.players[0].cur; G.phase = myTurn() ? "idle" : "wait";
+  if (snap && Array.isArray(snap.players)) {              // resume: take over cells, turn and end state
+    snap.players.forEach((q) => {
+      const p = MP.players.find((x) => x.id === String(q.id));
+      if (!p || !q.cells || typeof q.cells !== "object") return;
+      for (const c of CATS) if (q.cells[c] != null) p.cur.cells[c] = clamp(q.cells[c] | 0, 0, 100);
+      p.cur.yb = clamp(q.yb | 0, 0, 9);
+    });
+    MP.turn = clamp(snap.turn | 0, 0, MP.players.length - 1); MP.over = !!snap.over;
+  }
+  G = freshGame(); G.cur = MP.players[MP.turn].cur; G.phase = MP.over ? "over" : myTurn() ? "idle" : "wait";
   mpSnap = "";
   applyRules(rr);
   applyDiceTheme(); placeDice(); setHover(-1);
   renderCard(); layout(); updateBar(); updateHUD(); refreshPicks();
+  if (snap) { sync(false); markColumn(); refreshPicks(); mpFinishCheck(); }
   clearInterval(mpTimer); mpTimer = setInterval(mpTick, 300);
   const queued = inbox; inbox = [];
   for (const [m, from] of queued) onNet(m, from);
@@ -2333,7 +2360,7 @@ function destroy() {
   if (root) root.remove();
 }
 
-return { destroy, go() { hubReady = true; if (menuIsOpen()) menuRender(); } };
+return { destroy, go() { hubReady = true; if (NET && NET.resumed && !MP) mpAskSync(); if (menuIsOpen()) menuRender(); } };
 };
 
 if (!window.__KN_HUB__) window.createKniffel();

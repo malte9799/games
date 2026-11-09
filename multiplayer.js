@@ -36,7 +36,7 @@
       players: "Spieler", start: "Spiel starten", pick: "Spiel auswählen", needMore: "Warte auf weitere Spieler …", tooMany: "Zu viele Spieler für dieses Spiel (max. {n}).", waitHost: "Warte auf den Start durch den Host …",
       connecting: "Verbinde …", leave: "Raum verlassen", you: "du", host: "Host", game: "Spiel",
       full: "Der Raum ist voll oder das Spiel läuft schon.", noRoom: "Kein Raum mit diesem Code gefunden.",
-      netFail: "Verbindung fehlgeschlagen. Prüfe deine Internetverbindung.", hostLeft: "Der Host hat den Raum verlassen.",
+      netFail: "Verbindung fehlgeschlagen. Prüfe deine Internetverbindung.", hostLeft: "Der Host hat den Raum verlassen.", kicked: "Der Host hat dich aus dem Raum entfernt.", kick: "Entfernen",
       qrShow: "QR-Code anzeigen", qrHide: "QR-Code ausblenden", qrTitle: "Mitspieler einladen", qrHint: "QR-Code scannen – öffnet direkt diesen Raum", close: "Schließen", button: "Mehrspieler",
       inGame: "Spiel läuft", back: "Zurück zur Lobby", lobbyBtn: "Lobby", profileT: "Profil", avatar: "Avatar", color: "Hintergrund", saveProfile: "Speichern", saved: "Gespeichert ✓",
     },
@@ -47,7 +47,7 @@
       players: "Players", start: "Start game", pick: "Choose game", needMore: "Waiting for more players…", tooMany: "Too many players for this game (max {n}).", waitHost: "Waiting for the host to start…",
       connecting: "Connecting…", leave: "Leave room", you: "you", host: "host", game: "Game",
       full: "That room is full or already playing.", noRoom: "No room found with that code.",
-      netFail: "Couldn't connect. Check your internet connection.", hostLeft: "The host left the room.",
+      netFail: "Couldn't connect. Check your internet connection.", hostLeft: "The host left the room.", kicked: "The host removed you from the room.", kick: "Remove",
       qrShow: "Show QR code", qrHide: "Hide QR code", qrTitle: "Invite players", qrHint: "Scan the QR code — it opens this room directly", close: "Close", button: "Multiplayer",
       inGame: "Game running", back: "Back to lobby", lobbyBtn: "Lobby", profileT: "Profile", avatar: "Avatar", color: "Background", saveProfile: "Save", saved: "Saved ✓",
     },
@@ -331,6 +331,7 @@
         break;
       case "hello": {
         if (!isHost || R.status === "connecting") return;
+        if (R.banned && R.banned.has(from)) return net.send({ t: "kick", id: from }, peer);   // removed before: stays out
         if (!R.players.some((p) => p.id === from)) {
           // a seat that was taken during a running game may come back to it; anybody else is refused while a game runs
           const back = R.status === "playing" && !!R.seated && R.seated.has(from);
@@ -345,6 +346,11 @@
       }
       case "full":
         if (!isHost) fail(t("full"));
+        break;
+      case "kick":                                            // the host removed somebody
+        if (from !== R.hostId) break;
+        if (String(m.id) === R.selfId) { fail(t("kicked")); ui.show(); }
+        else if (!isHost && R.players.some((p) => p.id === String(m.id))) { tokenPeer.delete(String(m.id)); dropPlayer(String(m.id)); }
         break;
       case "lobby": {
         const claims = String(m.hostId || "") === from;     // the sender says it is the host
@@ -432,6 +438,19 @@
     R.hostId = next ? next.id : R.selfId;
     emit("host", { hostId: R.hostId, previous, you: R.hostId === R.selfId });
     if (R.hostId === R.selfId) broadcastLobby();
+  }
+
+  /** host: remove a player from the room. They are told, drop out of a running game at once and cannot come back with the same seat. */
+  function kick(id) {
+    if (!needHost("kick") || !net) return false;
+    id = String(id);
+    if (id === R.selfId || !R.players.some((p) => p.id === id)) return false;
+    (R.banned || (R.banned = new Set())).add(id);
+    net.send({ t: "kick", id });                              // everybody: the kicked one leaves, the others drop the seat
+    clearTimeout(graceTimers.get(id)); graceTimers.delete(id);
+    tokenPeer.delete(id);
+    dropPlayer(id);
+    return true;
   }
 
   function dropPlayer(id) {
@@ -661,7 +680,7 @@
       } else {
         const isHost = S.isHost, playing = R.status === "playing", enough = canStart(), tooMany = cfg.gameMax != null && R.players.length > cfg.gameMax;
         const keepPname = (this.el.querySelector("#mp-pname") || {}).value;
-        const list = S.players.map((p) => `<li class="${p.you ? "me" : ""}">${compHtml(p.avatar || "", p.accessory || "", 30)}<span class="mp-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}${p.host ? `<em>${t("host")}</em>` : ""}</span></li>`).join("");
+        const list = S.players.map((p) => `<li class="${p.you ? "me" : ""}">${compHtml(p.avatar || "", p.accessory || "", 30)}<span class="mp-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}${p.host ? `<em>${t("host")}</em>` : ""}</span>${isHost && !p.you ? `<button type="button" class="mp-kick" data-act="kick" data-id="${esc(p.id)}" title="${t("kick")}" aria-label="${t("kick")}: ${esc(p.name)}">✕</button>` : ""}</li>`).join("");
         let act;
         if (playing) act = `<p class="mp-hint">${t("inGame")}</p>${isHost ? `<button class="mp-primary mp-wide" data-act="end">${t("back")}</button>` : ""}`;
         else if (isHost && !cfg.lobbyStart) act = `<button class="mp-primary mp-wide" data-act="pick">${t("pick")}</button>`;
@@ -728,6 +747,7 @@
         case "end": endGame(); break;
         case "pick": this.hide(); emit("pick", {}); break;       // host wants to choose the game: back to the page that shows the picker
         case "leave": leave(); break;
+        case "kick": kick(b.dataset.id); break;
         case "prof": this.profOpen = !this.profOpen; this.renderProf(); break;   // the big own icon opens the profile panel
         case "profclose": this.profOpen = false; this.renderProf(); break;
         case "avatar": updateProfile({ avatar: b.dataset.v, name: val("#mp-pname") ?? val("#mp-name") }); break;
@@ -804,7 +824,7 @@
 
   window.Multiplayer = {
     mountDock: () => dock.mount(),
-    configure, host, join, leave, send, deliver, on, setGame, start, endGame, roomUrl, mountButton, openFromUrl,
+    configure, host, join, leave, kick, send, deliver, on, setGame, start, endGame, roomUrl, mountButton, openFromUrl,
     onMessage: (type, fn) => on("message:" + type, fn),
     openUI: (prefill) => ui.show(prefill),
     closeUI: () => ui.hide(),

@@ -216,6 +216,7 @@ function makeCtx(rt, players, options) {
   const key = (type) => rt.id + "/" + type;
   return {
     root: rt.root, options, players,
+    get resumed() { return !!rt.resumed; },     // this client reloaded and came back into a running game
     get me() { return MP.me; },
     get isHost() { return MP.isHost; },
     get hostId() { return MP.state && MP.state.hostId; },
@@ -239,6 +240,7 @@ async function startGame({ game, options, players, resumed }) {
   if (!g || !id) { MP.endGame(); return; }
   const rt = { id, root, ready: new Set([MP.me.id]), mounted: false, went: false, offs: [], timer: 0, ctx: null, inst: null };
   rt.offs.push(MP.onMessage(id + "/state", ({ data }) => cacheState(id, data)));   // remember what the host last showed us
+  rt.resumed = !!resumed;
   run = rt;
   root.hidden = false; root.className = "hub-stage hk-page hub-" + g.id;
   root.innerHTML = `<p class="hub-loading">Lade ${esc(g.title)} …</p>`;
