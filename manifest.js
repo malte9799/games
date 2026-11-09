@@ -540,20 +540,10 @@ function drawBlackjack(p, w, h) {
     }
   };
   const face = (x, y, r, s) => {
-    const col = (s === 1 || s === 2) ? [200, 28, 44] : [28, 26, 36];
     p.fill(0, 0, 0, 40); p.noStroke(); p.rect(x + 1, y + 4, cw, ch, 9);
-    p.stroke(70, 56, 36, 190); p.strokeWeight(1); p.fill(252, 249, 240); p.rect(x, y, cw, ch, 9);
-    p.noStroke(); p.fill(...col); p.textAlign(p.LEFT, p.TOP); p.textStyle(p.BOLD); p.textSize(r === 10 ? 18 : 20);
-    p.text(RANK[r], x + 7, y + 6);
-    suit(s, x + 14, y + 37, 13, col);
-    if (r > 10) { p.textAlign(p.CENTER, p.CENTER); p.textSize(36); p.text(RANK[r], x + cw / 2 + 7, y + ch / 2 + 14); suit(s, x + cw / 2 + 10, y + ch / 2 - 16, 20, col); }
-    else suit(s, x + cw / 2 + 6, y + ch / 2 + 9, r === 1 ? 38 : 32, col);
+    PlayingCards.face(p.drawingContext, x, y, cw, ch, r, s);
   };
-  const back = (x, y) => {
-    p.stroke(70, 56, 36, 190); p.strokeWeight(1); p.fill(252, 249, 240); p.rect(x, y, cw, ch, 9); p.noStroke(); p.fill(168, 22, 44); p.rect(x + 5, y + 5, cw - 10, ch - 10, 5);
-    p.noFill(); p.stroke(244, 200, 92, 220); p.strokeWeight(1.5); p.rect(x + 9, y + 9, cw - 18, ch - 18, 4);
-    p.noStroke(); p.fill(244, 200, 92); p.quad(x + cw / 2, y + ch / 2 - 18, x + cw / 2 + 13, y + ch / 2, x + cw / 2, y + ch / 2 + 18, x + cw / 2 - 13, y + ch / 2);
-  };
+  const back = (x, y) => PlayingCards.back(p.drawingContext, x, y, cw, ch);
   const chip = (cx, cy, rad, v, col) => {
     p.noStroke(); p.fill(0, 0, 0, 40); p.circle(cx + 1, cy + 3, rad * 2);
     p.fill(...col); p.circle(cx, cy, rad * 2);
@@ -587,18 +577,13 @@ function drawSolitaire(p, w, h) {
   const cw = 48, ch = 68, gap = 8;
   const ox = (w - (7 * cw + 6 * gap)) / 2;
   const colX = (i) => ox + i * (cw + gap);
-  const SU = ["♠", "♥", "♦", "♣"], RK = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
   const card = (x, y, r, s) => {
     p.noStroke(); p.fill(0, 0, 0, 50); p.rect(x + 2, y + 3, cw, ch, 6);
-    p.fill(252, 250, 244); p.rect(x, y, cw, ch, 6);
-    p.fill(s === 1 || s === 2 ? [206, 44, 68] : [30, 30, 44]);
-    p.textAlign(p.LEFT, p.TOP); p.textStyle(p.BOLD); p.textSize(12); p.text(RK[r], x + 5, y + 4);
-    p.textStyle(p.NORMAL); p.textAlign(p.CENTER, p.CENTER); p.textSize(24); p.text(SU[s], x + cw / 2, y + ch / 2 + 3);
+    PlayingCards.face(p.drawingContext, x, y, cw, ch, r, s);
   };
   const back = (x, y) => {
     p.noStroke(); p.fill(0, 0, 0, 50); p.rect(x + 2, y + 3, cw, ch, 6);
-    p.fill(...PAL.lilac); p.rect(x, y, cw, ch, 6);
-    p.noFill(); p.stroke(255, 255, 255, 110); p.strokeWeight(1.5); p.rect(x + 5, y + 5, cw - 10, ch - 10, 4); p.noStroke();
+    PlayingCards.back(p.drawingContext, x, y, cw, ch);
   };
   const slot = (x, y) => { p.noFill(); p.stroke(...PAL.lineHi); p.strokeWeight(1.2); p.rect(x, y, cw, ch, 6); p.noStroke(); };
   const top = 26;

@@ -11,8 +11,7 @@
 // Kaskade springender Karten. Die Zustandsänderung passiert sofort, die Animation
 // zeigt sie nur — Flights verbergen die Karte am Ziel, bis sie angekommen ist.
 //
-// Kartenbilder: fünf Gestaltungen (DECKS), gespeichert global pro Browser wie das
-// Site-Design (DECK_KEY). Die Regeln hängen nicht vom Kartenbild ab.
+// Kartenbilder: gemeinsames cards.js (PlayingCards), global pro Browser wählbar. Die Regeln hängen nicht vom Kartenbild ab.
 
 const SOL_PRESETS = [
   { label: "Klassisch · 1 Karte · unbegrenzt (Standard)", values: [1, 0, 1, 0] },
@@ -448,207 +447,26 @@ function refreshStatus() {
 }
 
 // ---- card designs ----
-// Eigene Gestaltungen im Geist der traditionellen Blätter: französisch (Klassisch),
-// deutsches Blatt (Eichel · Herz · Schellen · Laub), spanisches Blatt (Espadas ·
-// Copas · Oros · Bastos), minimal dunkel und Art Deco in Gold. Nur die Optik
-// ändert sich — Farben (cols) bestimmen die Anzeige, nicht die Regeln.
-// cols: [♠, ♥, ♦, ♣] als [r,g,b]; back: Rückseitenmuster; bg/panel: Kartenfläche.
-
-const DECKS = [
-  { id: "classic", name: "Klassisch", suits: "unicode", serif: true,
-    cols: [[28, 28, 40], [200, 38, 62], [200, 38, 62], [28, 28, 40]],
-    bg: [253, 251, 246], panel: [240, 234, 214], border: [110, 100, 90], back: "lattice", backBg: null, backInk: [255, 255, 255] },
-  { id: "deutsch", name: "Deutsches Blatt", suits: "german", serif: true,
-    cols: [[92, 58, 30], [176, 36, 34], [176, 36, 34], [38, 110, 58]],
-    bg: [247, 240, 218], panel: [236, 220, 178], border: [120, 88, 48], back: "ornament", backBg: [150, 34, 32], backInk: [240, 220, 160] },
-  { id: "spanisch", name: "Spanisches Blatt", suits: "spanish", serif: true,
-    cols: [[40, 44, 60], [186, 40, 46], [196, 128, 30], [54, 120, 60]],
-    bg: [250, 244, 226], panel: [242, 226, 186], border: [130, 96, 52], back: "stripes", backBg: [34, 86, 120], backInk: [230, 220, 190] },
-  { id: "minimal", name: "Minimal dunkel", suits: "unicode", serif: false,
-    cols: [[236, 238, 250], [255, 118, 128], [255, 118, 128], [236, 238, 250]],
-    bg: [30, 33, 52], panel: [44, 48, 76], border: [70, 76, 110], back: "dots", backBg: [48, 54, 92], backInk: [140, 150, 210] },
-  { id: "deco", name: "Art Deco Gold", suits: "unicode", serif: true,
-    cols: [[226, 184, 90], [226, 184, 90], [226, 184, 90], [226, 184, 90]],
-    bg: [18, 16, 14], panel: [40, 34, 24], border: [226, 184, 90], back: "fan", backBg: [18, 16, 14], backInk: [226, 184, 90] },
-];
-
-// global per browser, like the site design (themes.js THEME_KEY) — not per game state
-const DECK_KEY = "games_card_deck";
-let deckIdx = 0;
-(function restoreDeck() {
-  let id = null;
-  try { id = localStorage.getItem(DECK_KEY); } catch {}
-  const i = DECKS.findIndex((d) => d.id === id);
-  deckIdx = i >= 0 ? i : 0;
-  refreshDeckButton();
-})();
-function curDeck() { return DECKS[deckIdx]; }
-function cycleDeck() {
-  deckIdx = (deckIdx + 1) % DECKS.length;
-  try { localStorage.setItem(DECK_KEY, curDeck().id); } catch {}
-  refreshDeckButton();
-}
+// Das Kartenbild kommt aus dem gemeinsamen cards.js (PlayingCards) und gilt für alle
+// Kartenspiele. Die Wahl ist global pro Browser; nur die Optik ändert sich, nicht die Regeln.
+function cycleDeck() { PlayingCards.cycle(); }
 function refreshDeckButton() {
   const b = document.getElementById("btn-deck");
-  if (b) b.textContent = "Karten: " + curDeck().name;
+  if (b) b.textContent = "Karten: " + PlayingCards.current().name;
 }
+PlayingCards.onChange(refreshDeckButton);
+refreshDeckButton();
 
-// pip layout for 2..10, as fractions of the card (x: 0..1, y: 0..1)
-const PIPS = {
-  2: [[.5, .22], [.5, .78]],
-  3: [[.5, .22], [.5, .5], [.5, .78]],
-  4: [[.33, .22], [.67, .22], [.33, .78], [.67, .78]],
-  5: [[.33, .22], [.67, .22], [.5, .5], [.33, .78], [.67, .78]],
-  6: [[.33, .22], [.67, .22], [.33, .5], [.67, .5], [.33, .78], [.67, .78]],
-  7: [[.33, .22], [.67, .22], [.5, .36], [.33, .5], [.67, .5], [.33, .78], [.67, .78]],
-  8: [[.33, .22], [.67, .22], [.5, .36], [.33, .5], [.67, .5], [.5, .64], [.33, .78], [.67, .78]],
-  9: [[.33, .22], [.67, .22], [.33, .39], [.67, .39], [.5, .5], [.33, .61], [.67, .61], [.33, .78], [.67, .78]],
-  10: [[.33, .22], [.67, .22], [.5, .33], [.33, .44], [.67, .44], [.33, .56], [.67, .56], [.5, .67], [.33, .78], [.67, .78]],
-};
-
-// suit shape per design; 'unicode' uses the glyphs, the others draw the traditional emblem
-const SUIT_KIND = {
-  unicode: ["spade", "heart", "diamond", "club"],
-  german: ["acorn", "heart", "bell", "leaf"],
-  spanish: ["sword", "cup", "coin", "stick"],
-};
-
-// draws one suit emblem centred on (cx,cy) in box size s, in the design's colour for suit s
-function suitShape(g, D, suit, cx, cy, s) {
-  const kind = SUIT_KIND[D.suits][suit];
-  const col = D.cols[suit];
-  g.push();
-  g.noStroke();
-  g.fill(...col);
-  if (kind === "spade" || kind === "heart" || kind === "diamond" || kind === "club") {
-    g.textAlign("center", "center"); g.textStyle("normal"); g.textSize(s * 1.3);
-    g.text(SUIT[suit], cx, cy);
-  }
-  else if (kind === "acorn") {
-    g.ellipse(cx, cy + s * 0.12, s * 0.55, s * 0.7);
-    g.rect(cx - s * 0.3, cy - s * 0.22, s * 0.6, s * 0.26, s * 0.12);
-    g.rect(cx - s * 0.03, cy - s * 0.42, s * 0.06, s * 0.2);
-  } else if (kind === "bell") {
-    g.ellipse(cx, cy - s * 0.1, s * 0.6, s * 0.6);
-    g.beginShape();
-    g.vertex(cx - s * 0.3, cy - s * 0.1); g.vertex(cx + s * 0.3, cy - s * 0.1);
-    g.vertex(cx + s * 0.42, cy + s * 0.3); g.vertex(cx - s * 0.42, cy + s * 0.3);
-    g.endShape(g.CLOSE);
-    g.ellipse(cx, cy + s * 0.38, s * 0.16, s * 0.16);
-  } else if (kind === "leaf") {
-    g.push(); g.translate(cx, cy); g.rotate(-0.6);
-    g.ellipse(0, 0, s * 0.45, s * 0.92);
-    g.stroke(...D.cols[suit].map((v) => Math.min(255, v + 90)), 170); g.strokeWeight(Math.max(1, s * 0.05));
-    g.line(0, -s * 0.46, 0, s * 0.46);
-    g.pop();
-  } else if (kind === "sword") {
-    g.triangle(cx - s * 0.09, cy + s * 0.14, cx + s * 0.09, cy + s * 0.14, cx, cy - s * 0.52);
-    g.rect(cx - s * 0.3, cy + s * 0.14, s * 0.6, s * 0.09, 2);
-    g.rect(cx - s * 0.06, cy + s * 0.22, s * 0.12, s * 0.26, 2);
-    g.ellipse(cx, cy + s * 0.54, s * 0.14, s * 0.14);
-  } else if (kind === "cup") {
-    g.arc(cx, cy - s * 0.12, s * 0.9, s * 0.8, 0, Math.PI, "chord");
-    g.rect(cx - s * 0.45, cy - s * 0.22, s * 0.9, s * 0.1, 2);
-    g.rect(cx - s * 0.06, cy + s * 0.2, s * 0.12, s * 0.2);
-    g.rect(cx - s * 0.26, cy + s * 0.38, s * 0.52, s * 0.1, 2);
-  } else if (kind === "coin") {
-    g.ellipse(cx, cy, s, s);
-    g.noFill(); g.stroke(255, 255, 255, 120); g.strokeWeight(Math.max(1, s * 0.08));
-    g.ellipse(cx, cy, s * 0.62, s * 0.62);
-  } else if (kind === "stick") {
-    g.push(); g.translate(cx, cy);
-    g.rotate(-0.35); g.rect(-s * 0.09, -s * 0.46, s * 0.18, s * 0.92, s * 0.09);
-    g.rotate(0.7); g.rect(-s * 0.09, -s * 0.46, s * 0.18, s * 0.92, s * 0.09);
-    g.pop();
-  }
-  g.pop();
-}
-
-// clip everything inside the card so patterns stay within the edges
-function clipCard(g, x, y, inset) {
-  const ctx = g.drawingContext;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(x + inset, y + inset, CW - 2 * inset, CH - 2 * inset);
-  ctx.clip();
-  return () => ctx.restore();
-}
-
-function drawBack(g, x, y, D) {
-  const bg = D.backBg || PAL.lilac, ink = D.backInk;
-  g.fill(...bg); g.stroke(0, 0, 0, 45); g.strokeWeight(1);
-  g.rect(x, y, CW, CH, 9);
-  const done = clipCard(g, x, y, 5);
-  g.noStroke();
-  if (D.back === "lattice") {
-    g.fill(255, 255, 255, 55); g.rect(x + 6, y + 6, CW - 12, CH - 12, 6);
-    g.fill(255, 255, 255, 120);
-    for (let i = 0; i < 4; i++) for (let j = 0; j < 6; j++) g.circle(x + 14 + i * (CW - 28) / 3, y + 13 + j * (CH - 26) / 5, 3);
-  } else if (D.back === "ornament") {
-    g.fill(...ink, 150);
-    for (let j = 0; j < 6; j++) {
-      const yy = y + 12 + j * 15;
-      const xx = j % 2 ? [x + CW * 0.3, x + CW * 0.7] : [x + CW * 0.5];
-      for (const cx of xx) g.quad(cx, yy - 5, cx + 5, yy, cx, yy + 5, cx - 5, yy);
-    }
-  } else if (D.back === "stripes") {
-    g.stroke(...ink, 70); g.strokeWeight(3);
-    for (let k = -CH; k < CW + CH; k += 9) g.line(x + k, y, x + k - CH, y + CH);
-  } else if (D.back === "dots") {
-    g.fill(...ink, 110);
-    for (let i = 0; i < 8; i++) for (let j = 0; j < 11; j++) g.circle(x + 6 + i * 9.5, y + 6 + j * 9, 2.5);
-  } else if (D.back === "fan") {
-    g.stroke(...ink, 120); g.strokeWeight(1);
-    const cx = x + CW / 2, cy = y + CH;
-    for (let k = 0; k <= 14; k++) {
-      const a = -Math.PI + (k * Math.PI) / 14;
-      g.line(cx, cy, cx + Math.cos(a) * 160, cy + Math.sin(a) * 160);
-    }
-  }
-  done();
-  g.noFill(); g.stroke(...ink, 160); g.strokeWeight(1);
-  g.rect(x + 4, y + 4, CW - 8, CH - 8, 6);
-}
-
-function drawFace(g, x, y, c, D, o) {
-  g.fill(...D.bg); g.stroke(...D.border, 120); g.strokeWeight(1);
-  g.rect(x, y, CW, CH, 9);
-  g.noFill(); g.stroke(...D.border, 50);
-  g.rect(x + 4, y + 4, CW - 8, CH - 8, 6);
+function drawFace(g, x, y, c, o) {
+  PlayingCards.face(g.drawingContext, x, y, CW, CH, c.r, c.s);
   if (o.hl) {
     const a = 165 + 90 * Math.sin(millis() / 170);
+    g.noFill();
     g.stroke(o.hl[0], o.hl[1], o.hl[2], 60); g.strokeWeight(6);
     g.rect(x - 3, y - 3, CW + 6, CH + 6, 12);
     g.stroke(o.hl[0], o.hl[1], o.hl[2], a); g.strokeWeight(3);
     g.rect(x - 1.5, y - 1.5, CW + 3, CH + 3, 10);
   }
-  const col = D.cols[c.s];
-  g.noStroke();
-  g.fill(...col);
-  g.textFont(D.serif ? "Georgia, serif" : FONT);
-  // centre art (drawn first, so the corner indices always sit on top of it)
-  if (c.r === 1) {
-    suitShape(g, D, c.s, x + CW / 2, y + CH / 2, 40);
-  } else if (c.r <= 10) {
-    const pips = PIPS[c.r], size = c.r >= 9 ? 12 : 14;
-    for (const [fx, fy] of pips) suitShape(g, D, c.s, x + fx * CW, y + fy * CH, size);
-  } else {
-    // court card: framed panel with the letter and the suit
-    g.fill(...D.panel); g.stroke(...D.border, 140); g.strokeWeight(1);
-    g.rect(x + 14, y + 22, CW - 28, CH - 44, 5);
-    g.noStroke(); g.fill(...col);
-    g.textAlign("center", "center"); g.textStyle("bold"); g.textSize(26);
-    g.text(RANK[c.r], x + CW / 2, y + CH / 2 - 10);
-    suitShape(g, D, c.s, x + CW / 2, y + CH / 2 + 16, 16);
-  }
-  // corner indices last: top-left, and the same index turned by 180° at the bottom-right
-  g.textAlign("left", "top"); g.textStyle("bold"); g.textSize(16); g.text(RANK[c.r], x + 7, y + 5);
-  suitShape(g, D, c.s, x + 14, y + 29, 11);
-  g.push(); g.translate(x + CW, y + CH); g.rotate(Math.PI);
-  g.textAlign("left", "top"); g.textStyle("bold"); g.textSize(16); g.text(RANK[c.r], 7, 5);
-  suitShape(g, D, c.s, 14, 29, 11);
-  g.pop();
-  g.textStyle("normal");
 }
 
 // one card. g = p5 instance or `window` (global mode). o: { hl, sx, back, lift }
@@ -657,7 +475,6 @@ function drawFace(g, x, y, c, D, o) {
 function solCard(g, x, y, c, o = {}) {
   const lift = o.lift || 0;
   const back = o.back ?? !c.up;
-  const D = curDeck();
   g.push();
   if (o.sx !== undefined && o.sx !== 1) {
     g.translate(x + CW / 2, y + CH / 2);
@@ -671,8 +488,8 @@ function solCard(g, x, y, c, o = {}) {
   g.fill(0, 0, 0, 30 + lift * 30);
   g.rect(x + 1, y + 3 + lift * 2, CW, CH, 9);
 
-  if (back) drawBack(g, x, y, D);
-  else drawFace(g, x, y, c, D, o);
+  if (back) PlayingCards.back(g.drawingContext, x, y, CW, CH);
+  else drawFace(g, x, y, c, o);
   g.pop();
 }
 
