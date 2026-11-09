@@ -17,7 +17,7 @@ initGame({
     { label: "1 deck",           values: [1] },
     { label: "2 decks",          values: [2] },
   ],
-  buttons: [],                        // the controls live on the table itself, see TABLE_BUTTONS
+  buttons: [{ id: "btn-deck", label: "Karten", onClick: () => PlayingCards.openMenu(document.getElementById("btn-deck")) }],   // the other controls live on the table itself, see TABLE_BUTTONS
   sliders: [],
   onPreset: ([n]) => {
     decks = n;
@@ -363,121 +363,27 @@ function arcText(str, cx, cy, r, size, col, track = 0) {
 
 // ---- cards ----
 
-function drawSuit(p, s, cx, cy, size, col) {
-  p.noStroke();
-  p.fill(...col);
-  if (s === 0) {          // spade
-    p.circle(cx - size * 0.24, cy + size * 0.1, size * 0.52);
-    p.circle(cx + size * 0.24, cy + size * 0.1, size * 0.52);
-    p.triangle(cx - size * 0.49, cy + size * 0.04, cx + size * 0.49, cy + size * 0.04, cx, cy - size * 0.52);
-    p.triangle(cx, cy + size * 0.1, cx - size * 0.2, cy + size * 0.5, cx + size * 0.2, cy + size * 0.5);
-  } else if (s === 1) {   // heart
-    p.circle(cx - size * 0.24, cy - size * 0.14, size * 0.52);
-    p.circle(cx + size * 0.24, cy - size * 0.14, size * 0.52);
-    p.triangle(cx - size * 0.49, cy - size * 0.06, cx + size * 0.49, cy - size * 0.06, cx, cy + size * 0.5);
-  } else if (s === 2) {   // diamond
-    p.quad(cx, cy - size * 0.52, cx + size * 0.38, cy, cx, cy + size * 0.52, cx - size * 0.38, cy);
-  } else {                // club
-    p.circle(cx, cy - size * 0.2, size * 0.44);
-    p.circle(cx - size * 0.23, cy + size * 0.1, size * 0.44);
-    p.circle(cx + size * 0.23, cy + size * 0.1, size * 0.44);
-    p.triangle(cx, cy, cx - size * 0.2, cy + size * 0.5, cx + size * 0.2, cy + size * 0.5);
-  }
-}
-
-const RANK = [null, "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-
-// pip layouts: [column (-1, 0, 1), row 0..1]
-const PIPS = (() => {
-  const six = [[-1, 0], [1, 0], [-1, .5], [1, .5], [-1, 1], [1, 1]];
-  const eight = [[-1, 0], [1, 0], [-1, 1 / 3], [1, 1 / 3], [-1, 2 / 3], [1, 2 / 3], [-1, 1], [1, 1]];
-  return {
-    2: [[0, 0], [0, 1]], 3: [[0, 0], [0, .5], [0, 1]],
-    4: [[-1, 0], [1, 0], [-1, 1], [1, 1]], 5: [[-1, 0], [1, 0], [-1, 1], [1, 1], [0, .5]],
-    6: six, 7: [...six, [0, .25]], 8: [...six, [0, .25], [0, .75]],
-    9: [...eight, [0, .5]], 10: [...eight, [0, 1 / 6], [0, 5 / 6]],
-  };
-})();
+// Kartenbild kommt aus dem gemeinsamen cards.js (PlayingCards), wie in allen Kartenspielen.
+const RANK = PlayingCards.ranks;
+function refreshDeckButton() { const b = document.getElementById("btn-deck"); if (b) b.textContent = "Karten: " + PlayingCards.current().name; }
+PlayingCards.onChange(refreshDeckButton);
+setTimeout(refreshDeckButton, 0);
 
 // face-up card at (x, y) = top-left; sx squeezes it horizontally for the flip
 function drawCardFace(p, x, y, r, s, sx = 1) {
-  const u = CW / 58;
-  const col = (s === 1 || s === 2) ? [200, 28, 44] : [28, 26, 36];
-  p.push();
-  p.translate(x + CW / 2, y);
-  p.scale(Math.max(0.02, sx), 1);
-  p.stroke(70, 56, 36, 190); p.strokeWeight(Math.max(1, u * 0.9));
-  p.fill(...CREAM);
-  p.rect(-CW / 2, 0, CW, CH, CW * 0.09);
-  if (sx >= 0.3) {
-    // corner index, top-left and (turned around) bottom-right
-    for (let k = 0; k < 2; k++) {
-      p.push();
-      if (k) { p.translate(0, CH); p.rotate(Math.PI); }
-      p.noStroke(); p.fill(...col);
-      p.textFont(SERIF); p.textStyle(p.BOLD); p.textAlign(p.CENTER, p.TOP);
-      p.textSize((r === 10 ? 11.5 : 15) * u);
-      p.text(RANK[r], -CW / 2 + 8 * u, 3.5 * u);
-      drawSuit(p, s, -CW / 2 + 8 * u, 24 * u, 8.5 * u, col);
-      p.pop();
-    }
-    p.textAlign(p.CENTER, p.CENTER);
-    if (r === 1) {
-      drawSuit(p, s, 0, CH / 2, 32 * u, col);
-    } else if (r > 10) {
-      // court card: framed panel with a big letter and a suit at each end
-      p.stroke(...col, 150); p.strokeWeight(Math.max(1, u * 1.2)); p.fill(250, 234, 190);
-      p.rect(-CW * 0.24, CH * 0.14, CW * 0.48, CH * 0.72, 4 * u);
-      p.noStroke(); p.fill(...col);
-      p.textFont(SERIF); p.textStyle(p.BOLD); p.textSize(34 * u);
-      p.text(RANK[r], 0, CH / 2 + 1 * u);
-      drawSuit(p, s, 0, CH * 0.14 + 12 * u, 11 * u, col);
-      p.push(); p.translate(0, CH); p.rotate(Math.PI); drawSuit(p, s, 0, CH * 0.14 + 12 * u, 11 * u, col); p.pop();
-    } else {
-      for (const [cx, ry] of PIPS[r]) {
-        const px = cx * CW * 0.19, py = CH * (0.22 + ry * 0.56);
-        p.push(); p.translate(px, py); if (ry > 0.5) p.rotate(Math.PI);
-        drawSuit(p, s, 0, 0, 10.5 * u, col);
-        p.pop();
-      }
-    }
-  }
-  p.pop();
-}
-
-// lines at ±45° clipped to a rectangle (keeps us out of ctx.clip, see above)
-function latticeLines(p, x0, y0, x1, y1, step) {
-  for (let k = x0 - y1; k <= x1 - y0; k += step) {          // down-right
-    const ax = Math.max(x0, y0 + k), bx = Math.min(x1, y1 + k);
-    if (ax < bx) p.line(ax, ax - k, bx, bx - k);
-  }
-  for (let k = x0 + y0; k <= x1 + y1; k += step) {          // up-right
-    const ax = Math.max(x0, k - y1), bx = Math.min(x1, k - y0);
-    if (ax < bx) p.line(ax, k - ax, bx, k - bx);
-  }
+  const ctx = p.drawingContext;
+  ctx.save();
+  ctx.translate(x + CW / 2, y); ctx.scale(Math.max(0.02, sx), 1);
+  PlayingCards.face(ctx, -CW / 2, 0, CW, CH, r, s);
+  ctx.restore();
 }
 
 function drawCardBack(p, x, y, sx = 1) {
-  const u = CW / 58;
-  p.push();
-  p.translate(x + CW / 2, y);
-  p.scale(Math.max(0.02, sx), 1);
-  p.stroke(70, 56, 36, 190); p.strokeWeight(Math.max(1, u * 0.9));
-  p.fill(...CREAM);
-  p.rect(-CW / 2, 0, CW, CH, CW * 0.09);
-  if (sx >= 0.3) {
-    const m = 5 * u;
-    p.noStroke(); p.fill(168, 22, 44);
-    p.rect(-CW / 2 + m, m, CW - 2 * m, CH - 2 * m, 4 * u);
-    p.stroke(226, 96, 112, 200); p.strokeWeight(Math.max(0.8, u));
-    latticeLines(p, -CW / 2 + m + 1, m + 1, CW / 2 - m - 1, CH - m - 1, 9 * u);
-    // medallion
-    p.stroke(...GOLD); p.strokeWeight(Math.max(1, 1.4 * u)); p.fill(168, 22, 44);
-    p.quad(0, CH / 2 - 17 * u, 12 * u, CH / 2, 0, CH / 2 + 17 * u, -12 * u, CH / 2);
-    p.noStroke(); p.fill(...GOLD);
-    p.circle(0, CH / 2, 6 * u);
-  }
-  p.pop();
+  const ctx = p.drawingContext;
+  ctx.save();
+  ctx.translate(x + CW / 2, y); ctx.scale(Math.max(0.02, sx), 1);
+  PlayingCards.back(ctx, -CW / 2, 0, CW, CH);
+  ctx.restore();
 }
 
 // ---- chips ----
