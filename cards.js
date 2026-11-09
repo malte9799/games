@@ -274,9 +274,9 @@
     if (rank === 1) {
       emblem(ctx, D, suit, cx, y + h / 2, w * 0.56, false);
     } else if (rank <= 10) {
-      const size = w * (rank >= 9 ? 0.2 : 0.23);
+      const size = w * (rank >= 9 ? 0.17 : 0.2);
       for (const [c, ry] of PIPS[rank]) {
-        emblem(ctx, D, suit, cx + c * w * 0.22, y + h * (0.2 + ry * 0.6), size, ry > 0.5);
+        emblem(ctx, D, suit, cx + c * w * 0.18, y + h * (0.19 + ry * 0.62), size, ry > 0.5);
       }
     } else {
       courtPanel(ctx, D, rank, suit, x, y, w, h);
@@ -286,10 +286,10 @@
       ctx.save();
       if (k) { ctx.translate(x + w, y + h); ctx.rotate(Math.PI); } else ctx.translate(x, y);
       ctx.fillStyle = rgb(col);
-      ctx.font = `bold ${(rank === 10 ? 14 : 17) * u}px Georgia, "Times New Roman", serif`;
+      ctx.font = `bold ${(rank === 10 ? 13 : 16) * u}px Georgia, "Times New Roman", serif`;
       ctx.textAlign = "center"; ctx.textBaseline = "top";
-      ctx.fillText(D.ranks[rank], 10 * u, 4 * u);
-      emblem(ctx, D, suit, 10 * u, 30 * u, 11 * u, false);
+      ctx.fillText(D.ranks[rank], 9 * u, 3 * u);
+      emblem(ctx, D, suit, 9 * u, 26 * u, 9.5 * u, false);
       ctx.restore();
     }
     ctx.restore();
