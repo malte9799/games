@@ -19,6 +19,7 @@ const GAMES = [
   { id: "sudoku",      title: "Sudoku",        desc: "9×9 · 6×6 · 4×4",             preview: drawSudoku },
   { id: "netwalk",     title: "Netwalk",       desc: "rotate pipes · power the grid", preview: drawNetwalk },
   { id: "blackjack",   title: "Blackjack",     desc: "hit · stand · beat the dealer", preview: drawBlackjack },
+  { id: "solitaire",   title: "Solitär",       desc: "Klondike · Regeln wählbar",   preview: drawSolitaire },
   { id: "kniffel",     title: "Kniffel · Yahtzee", desc: "roll · hold · write it down", preview: drawKniffel },
   { id: "kritzel",     title: "Kritzel-Revier",    desc: "kritzle das größte Revier",   preview: drawKritzel },
 ];
@@ -578,6 +579,52 @@ function drawBlackjack(p, w, h) {
   chip(150, 270, 24, 100, [36, 36, 44]); chip(150, 261, 24, 50, [200, 32, 46]); chip(150, 252, 24, 10, [40, 100, 214]);
   back(430, 62); back(432, 64);
   p.pop();
+}
+
+function drawSolitaire(p, w, h) {
+  // static Klondike snapshot: stock + waste + foundations on top, a few tableau columns below
+  previewBg(p, w, h);
+  const cw = 48, ch = 68, gap = 8;
+  const ox = (w - (7 * cw + 6 * gap)) / 2;
+  const colX = (i) => ox + i * (cw + gap);
+  const SU = ["♠", "♥", "♦", "♣"], RK = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+  const card = (x, y, r, s) => {
+    p.noStroke(); p.fill(0, 0, 0, 50); p.rect(x + 2, y + 3, cw, ch, 6);
+    p.fill(252, 250, 244); p.rect(x, y, cw, ch, 6);
+    p.fill(s === 1 || s === 2 ? [206, 44, 68] : [30, 30, 44]);
+    p.textAlign(p.LEFT, p.TOP); p.textStyle(p.BOLD); p.textSize(12); p.text(RK[r], x + 5, y + 4);
+    p.textStyle(p.NORMAL); p.textAlign(p.CENTER, p.CENTER); p.textSize(24); p.text(SU[s], x + cw / 2, y + ch / 2 + 3);
+  };
+  const back = (x, y) => {
+    p.noStroke(); p.fill(0, 0, 0, 50); p.rect(x + 2, y + 3, cw, ch, 6);
+    p.fill(...PAL.lilac); p.rect(x, y, cw, ch, 6);
+    p.noFill(); p.stroke(255, 255, 255, 110); p.strokeWeight(1.5); p.rect(x + 5, y + 5, cw - 10, ch - 10, 4); p.noStroke();
+  };
+  const slot = (x, y) => { p.noFill(); p.stroke(...PAL.lineHi); p.strokeWeight(1.2); p.rect(x, y, cw, ch, 6); p.noStroke(); };
+  const top = 26;
+  back(colX(0), top);
+  card(colX(1), top, 7, 1);
+  card(colX(3), top, 1, 0);
+  card(colX(4), top, 2, 1);
+  slot(colX(5), top); slot(colX(6), top);
+  // tableau: "d" = face-down, [rank, suit] = face-up (top of each column last)
+  const T = [
+    ["d", "d", "d", [13, 2]],
+    ["d", "d", [12, 3], [11, 1], [10, 0]],
+    ["d", "d", "d", "d", [6, 2]],
+    ["d", [9, 2], [8, 3]],
+    ["d", "d", [5, 0], [4, 1]],
+    ["d", "d", "d", [3, 3]],
+    ["d", "d", "d", "d", [12, 0], [11, 2]],
+  ];
+  const y0 = top + ch + 26;
+  T.forEach((col, c) => {
+    let y = y0;
+    col.forEach((e) => {
+      if (e === "d") { back(colX(c), y); y += 11; }
+      else { card(colX(c), y, e[0], e[1]); y += 19; }
+    });
+  });
 }
 
 function drawKniffel(p, w, h) {
