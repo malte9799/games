@@ -79,14 +79,66 @@
   try { const i = DECKS.findIndex((d) => d.id === localStorage.getItem(KEY)); if (i >= 0) idx = i; } catch {}
   const listeners = [];
   function current() { return DECKS[idx]; }
-  function cycle() {
-    idx = (idx + 1) % DECKS.length;
+  function select(id) {
+    const i = DECKS.findIndex((d) => d.id === id);
+    if (i < 0 || i === idx) return current();
+    idx = i;
     try { localStorage.setItem(KEY, current().id); } catch {}
     preload(current());
     listeners.forEach((f) => f(current()));
     return current();
   }
+  function cycle() { return select(DECKS[(idx + 1) % DECKS.length].id); }
+
+  // ---- Auswahlmenü: Kacheln mit Vorderseite (Q♥) + Rückseite, geöffnet unter dem Button ----
+  const CSS = `
+.pc-menu{position:fixed;z-index:500;width:min(420px,calc(100vw - 24px));max-height:min(70vh,560px);overflow-y:auto;padding:6px;
+  display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--modal-bg,var(--panel,#222));color:var(--ink,#eee);
+  border:var(--border-w,1px) solid var(--panel-edge,#555);border-radius:var(--r-md,12px);box-shadow:0 16px 40px -12px rgba(0,0,0,.5)}
+.pc-opt{all:unset;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px;cursor:pointer;
+  border-radius:calc(var(--r-sm,8px)*.7);text-align:center;font:inherit;font-size:13px;color:inherit}
+.pc-opt:hover,.pc-opt:focus-visible{background:var(--panel-2,#333)}
+.pc-opt[aria-checked="true"]{outline:2px solid var(--accent,#6cf);outline-offset:-2px}
+.pc-pair{display:flex;gap:6px}
+.pc-pair img{width:56px;height:auto;aspect-ratio:5/7;display:block;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.35);background:#fff}
+@media (max-width:420px){.pc-menu{grid-template-columns:1fr}}`;
+  let menu = null, menuBtn = null;
+  function closeMenu() {
+    if (!menu) return;
+    menu.remove(); menu = null;
+    document.removeEventListener("pointerdown", onOutside, true);
+    document.removeEventListener("keydown", onKey, true);
+    window.removeEventListener("resize", closeMenu);
+  }
+  const onOutside = (e) => { if (menu && !menu.contains(e.target) && !(menuBtn && menuBtn.contains(e.target))) closeMenu(); };
+  const onKey = (e) => { if (e.key === "Escape") { e.stopPropagation(); closeMenu(); } };
+  function openMenu(btn) {
+    if (menu) { const same = menuBtn === btn; closeMenu(); if (same) return; }
+    if (!document.getElementById("pc-style")) {
+      const st = document.createElement("style"); st.id = "pc-style"; st.textContent = CSS; document.head.appendChild(st);
+    }
+    menuBtn = btn;
+    menu = document.createElement("div");
+    menu.className = "pc-menu"; menu.setAttribute("role", "menu");
+    menu.innerHTML = DECKS.map((d) => `<button class="pc-opt" type="button" role="menuitemradio" data-id="${d.id}" aria-checked="${d === current()}">
+      <span class="pc-pair"><img src="${fileOf(d, 12, 1)}" alt=""><img src="${backOf(d)}" alt=""></span><span>${d.name}</span></button>`).join("");
+    menu.addEventListener("click", (e) => {
+      const o = e.target.closest(".pc-opt"); if (!o) return;
+      e.stopPropagation();
+      select(o.dataset.id);
+      menu.querySelectorAll(".pc-opt").forEach((x) => x.setAttribute("aria-checked", String(x === o)));
+    });
+    document.body.appendChild(menu);
+    const r = btn.getBoundingClientRect(), mw = menu.offsetWidth;
+    const top = Math.min(r.bottom + 8, window.innerHeight - 160);
+    menu.style.top = top + "px";
+    menu.style.maxHeight = Math.max(160, window.innerHeight - top - 12) + "px";
+    menu.style.left = Math.max(12, Math.min(r.left, window.innerWidth - mw - 12)) + "px";
+    document.addEventListener("pointerdown", onOutside, true);
+    document.addEventListener("keydown", onKey, true);
+    window.addEventListener("resize", closeMenu);
+  }
   preload(current());
 
-  window.PlayingCards = { decks: DECKS, ranks: RANKS, current, cycle, face, back, preload, onChange: (f) => listeners.push(f) };
+  window.PlayingCards = { decks: DECKS, ranks: RANKS, current, cycle, select, openMenu, face, back, preload, onChange: (f) => listeners.push(f) };
 })();

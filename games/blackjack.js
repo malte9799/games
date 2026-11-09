@@ -17,7 +17,7 @@ initGame({
     { label: "1 deck",           values: [1] },
     { label: "2 decks",          values: [2] },
   ],
-  buttons: [{ id: "btn-deck", label: "Karten", onClick: () => { PlayingCards.cycle(); } }],   // the other controls live on the table itself, see TABLE_BUTTONS
+  buttons: [{ id: "btn-deck", label: "Karten", onClick: () => PlayingCards.openMenu(document.getElementById("btn-deck")) }],   // the other controls live on the table itself, see TABLE_BUTTONS
   sliders: [],
   onPreset: ([n]) => {
     decks = n;

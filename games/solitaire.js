@@ -30,7 +30,7 @@ initGame({
     { id: "btn-new",  label: "Neues Spiel", primary: true, onClick: () => newGame() },
     { id: "btn-undo", label: "Zurück",                     onClick: () => undo() },
     { id: "btn-hint", label: "Tipp",                       onClick: () => showHint() },
-    { id: "btn-deck", label: "Karten",                     onClick: () => cycleDeck() },
+    { id: "btn-deck", label: "Karten",                     onClick: () => PlayingCards.openMenu(document.getElementById("btn-deck")) },
   ],
   sliders: [],
   onPreset: (v) => { setRule(v); newGame(); },
@@ -449,7 +449,6 @@ function refreshStatus() {
 // ---- card designs ----
 // Das Kartenbild kommt aus dem gemeinsamen cards.js (PlayingCards) und gilt für alle
 // Kartenspiele. Die Wahl ist global pro Browser; nur die Optik ändert sich, nicht die Regeln.
-function cycleDeck() { PlayingCards.cycle(); }
 function refreshDeckButton() {
   const b = document.getElementById("btn-deck");
   if (b) b.textContent = "Karten: " + PlayingCards.current().name;
