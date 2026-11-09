@@ -15,7 +15,6 @@
     { id: "standard",   name: "Standard (Goodall)",  dir: "standard",   ten: "T", back: BK("d3_red") },
     { id: "plain",      name: "Schlicht",            dir: "plain",      ten: "T", back: BK("d2_black") },
     { id: "fourcolour", name: "Vier Farben",         dir: "fourcolour", ten: "T", back: BK("d3_green") },
-    { id: "old",        name: "Alter Stil",          dir: "old",        ten: "T" },
     { id: "blue",       name: "Blau",                dir: "blue",       ten: "T", back: BK("d3_blue") },
     { id: "grey",       name: "Grau",                dir: "grey",       ten: "T", back: BK("d2_lightblue") },
     { id: "ghost",      name: "Ghost",               dir: "ghost",      ten: "T", back: BK("d1_black") },
