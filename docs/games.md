@@ -422,3 +422,8 @@ Dann in `hub.js` ein Eintrag in `MP_GAMES`: `{ id: "mein-spiel", title: "Mein Sp
 
 Zustand, den ein Gast nach einem Neuladen braucht, schickt der Host als `"state"`-Nachricht; sie wird pro Tab gemerkt
 und beim Wiedereinstieg eingespielt (siehe „Reload“ oben).
+
+
+## Kart-Rennen (Solo + Mehrspieler)
+
+Eine Engine in `hub-games/kart/` (Three.js low poly, `vendor/three.min.js`): `track.js` (Strecke aus Seed), `physics.js` (Fahrmodell, Drift/Turbo), `world.js` (3D-Welt, Karts, Partikel), `ui.js` (HUD, Menü, Touch), `game.js` (Rennlogik + Netz). Im Hub ist es `hub-games/kart.js` (2–6 Fahrer, Items, Host wählt Strecke); solo läuft dieselbe Engine als Zeitfahren über `games/kart.js`. Jeder Client fährt sein eigenes Kart und sendet seine Lage (~20×/s), Treffer entscheidet der Getroffene.

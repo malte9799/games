@@ -22,6 +22,7 @@ const GAMES = [
   { id: "solitaire",   title: "Solitär",       desc: "Klondike · Regeln wählbar",   preview: drawSolitaire },
   { id: "kniffel",     title: "Kniffel · Yahtzee", desc: "roll · hold · write it down", preview: drawKniffel },
   { id: "kritzel",     title: "Kritzel-Revier",    desc: "kritzle das größte Revier",   preview: drawKritzel },
+  { id: "kart",        title: "Kart-Rennen",       desc: "drift · turbo · Bestzeit",    preview: drawKart },
 ];
 
 // ---- preview renderers ----
@@ -1080,4 +1081,75 @@ function drawPoker(p, w, h) {
   // my hole cards, fanned at the bottom: A♥ A♠
   pokerCard(p, 268, 286, 44, 62, "A", "♥", -0.12);
   pokerCard(p, 332, 286, 44, 62, "A", "♠", 0.12);
+}
+
+// Kart-Rennen (Solo + Hub): Sonnenwiese aus der Fahrersicht – Berge, Straße in Perspektive mit Randsteinen,
+// ein blaues Kart voraus, eigenes rotes Kart von hinten, Item-Box und Boost-Pad. Statisch, einmal gezeichnet.
+function drawKart(p, w, h) {
+  const ctx = p.drawingContext;
+  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.5);
+  sky.addColorStop(0, "#5db6ff"); sky.addColorStop(1, "#cdeaff");
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h * 0.52);
+  p.noStroke();
+  p.fill(255, 255, 255, 230);                                   // Wolken
+  [[90, 60, 1], [420, 44, 0.8], [520, 86, 0.6]].forEach(([x, y, s]) => { p.ellipse(x, y, 90 * s, 28 * s); p.ellipse(x + 26 * s, y - 8 * s, 56 * s, 26 * s); p.ellipse(x - 28 * s, y + 3 * s, 52 * s, 20 * s); });
+  const hy = h * 0.5;
+  p.fill(111, 159, 208); p.triangle(-20, hy, 110, hy - 96, 250, hy); p.triangle(150, hy, 330, hy - 128, 500, hy); p.triangle(400, hy, 520, hy - 80, 660, hy);
+  p.fill(255); p.triangle(330 - 28, hy - 128 + 40, 330, hy - 128, 330 + 28, hy - 128 + 40); p.triangle(110 - 20, hy - 96 + 30, 110, hy - 96, 110 + 20, hy - 96 + 30);
+  p.fill(98, 178, 76); p.rect(0, hy, w, h - hy);                // Gras
+  p.fill(79, 154, 61); p.quad(0, hy, w, hy, w, hy + 20, 0, hy + 14);
+  // Straße: Fluchtpunkt leicht rechts, Linkskurve nach hinten
+  const vx = w * 0.56;
+  const road = (t0, t1, c) => {                                 // t = 0 Horizont, 1 unten
+    const lx = (t) => vx + (w * 0.1 - vx) * t * t * 1.0 - 8 * (1 - t), rx = (t) => vx + (w * 0.97 - vx) * t * t + 8 * (1 - t);
+    const y = (t) => hy + (h - hy) * t * t;
+    p.fill(...c); p.quad(lx(t0), y(t0), rx(t0), y(t0), rx(t1), y(t1), lx(t1), y(t1));
+  };
+  for (let i = 0; i < 14; i++) {
+    const t0 = i / 14, t1 = (i + 1) / 14;
+    road(Math.max(0.02, t0), t1, i % 2 ? [84, 87, 97] : [74, 77, 87]);
+  }
+  // Randsteine
+  for (let i = 0; i < 14; i++) {
+    const t0 = Math.max(0.02, i / 14), t1 = (i + 1) / 14, c = i % 2 ? [226, 59, 59] : [246, 246, 242];
+    const y0 = hy + (h - hy) * t0 * t0, y1 = hy + (h - hy) * t1 * t1;
+    const lx0 = vx + (w * 0.1 - vx) * t0 * t0 - 8 * (1 - t0), lx1 = vx + (w * 0.1 - vx) * t1 * t1 - 8 * (1 - t1);
+    const rx0 = vx + (w * 0.97 - vx) * t0 * t0 + 8 * (1 - t0), rx1 = vx + (w * 0.97 - vx) * t1 * t1 + 8 * (1 - t1);
+    const bw0 = 3 + 22 * t0 * t0, bw1 = 3 + 22 * t1 * t1;
+    p.fill(...c); p.quad(lx0 - bw0, y0, lx0, y0, lx1, y1, lx1 - bw1, y1); p.quad(rx0, y0, rx0 + bw0, y0, rx1 + bw1, y1, rx1, y1);
+  }
+  // Mittelstrich + Boost-Pad
+  p.fill(244, 244, 238);
+  for (let i = 1; i < 14; i += 2) {
+    const t0 = i / 14, t1 = (i + 0.9) / 14, y0 = hy + (h - hy) * t0 * t0, y1 = hy + (h - hy) * t1 * t1, cx0 = vx + (w * 0.53 - vx) * t0 * t0, cx1 = vx + (w * 0.53 - vx) * t1 * t1;
+    p.quad(cx0 - 1 - 6 * t0 * t0, y0, cx0 + 1 + 6 * t0 * t0, y0, cx1 + 1 + 6 * t1 * t1, y1, cx1 - 1 - 6 * t1 * t1, y1);
+  }
+  p.fill(11, 42, 107); p.quad(w * 0.5, h * 0.64, w * 0.63, h * 0.64, w * 0.7, h * 0.76, w * 0.47, h * 0.76);
+  p.fill(255, 183, 3); [0.655, 0.7].forEach((y) => p.triangle(w * 0.565, h * y - 6, w * 0.6, h * y + 8, w * 0.53, h * y + 8));
+  // Gegner (blau) voraus
+  const kart = (cx, cy, s, col, driver) => {
+    p.fill(0, 0, 0, 70); p.ellipse(cx, cy + 22 * s, 96 * s, 16 * s);
+    p.fill(28, 30, 38); p.rect(cx - 52 * s, cy + 2 * s, 18 * s, 26 * s, 4 * s); p.rect(cx + 34 * s, cy + 2 * s, 18 * s, 26 * s, 4 * s);
+    p.fill(...col.map((v) => v * 0.6)); p.rect(cx - 46 * s, cy - 14 * s, 92 * s, 24 * s, 6 * s);
+    p.fill(...col); p.rect(cx - 42 * s, cy - 24 * s, 84 * s, 26 * s, 8 * s);
+    p.fill(244, 244, 240); p.rect(cx - 40 * s, cy - 8 * s, 80 * s, 6 * s, 3 * s);
+    p.fill(...col); p.rect(cx - 56 * s, cy - 40 * s, 112 * s, 9 * s, 3 * s); p.fill(28, 30, 38); p.rect(cx - 30 * s, cy - 33 * s, 6 * s, 14 * s); p.rect(cx + 24 * s, cy - 33 * s, 6 * s, 14 * s);
+    p.fill(241, 197, 154); p.circle(cx, cy - 36 * s, 24 * s);
+    p.fill(...col); p.arc(cx, cy - 39 * s, 30 * s, 28 * s, p.PI, p.TWO_PI);
+    p.fill(28, 30, 38); p.rect(cx - 12 * s, cy - 36 * s, 24 * s, 6 * s, 2 * s);
+    if (driver) { p.fill(255, 150, 20, 220); p.triangle(cx - 22 * s, cy + 6 * s, cx - 12 * s, cy + 6 * s, cx - 17 * s, cy + 34 * s); p.triangle(cx + 12 * s, cy + 6 * s, cx + 22 * s, cy + 6 * s, cx + 17 * s, cy + 34 * s); }
+  };
+  kart(w * 0.46, h * 0.585, 0.34, [47, 125, 246], false);
+  // Item-Boxen
+  [[0.52, 0.56], [0.56, 0.563]].forEach(([x, y], i) => { p.fill(255, 210, 63); p.rect(w * x - 7, h * y - 7, 14, 14, 2); p.fill(255, 255, 255, 220); p.textAlign(p.CENTER, p.CENTER); p.textStyle(p.BOLD); p.textSize(11); p.text("?", w * x, h * y + 1); });
+  // Funken + eigenes Kart
+  p.fill(77, 184, 255);
+  for (let i = 0; i < 12; i++) p.circle(w * 0.36 + (i % 6) * 6 - (i > 5 ? 14 : 0), h * 0.9 - i * 2.5, 4 - i * 0.1);
+  kart(w * 0.4, h * 0.82, 1.35, [226, 56, 61], true);
+  // HUD
+  p.fill(10, 14, 30, 150); p.rect(14, 14, 54, 54, 12); p.rect(w - 74, 14, 60, 60, 12);
+  p.fill(226, 59, 59); p.ellipse(41, 46, 32, 24); p.fill(255); [[34, 42], [47, 40]].forEach(([x, y]) => p.circle(x, y, 7));
+  p.fill(255); p.textAlign(p.LEFT, p.CENTER); p.textStyle(p.BOLDITALIC); p.textSize(48); p.text("2", 20, 100); p.textSize(20); p.text("/4", 50, 108);
+  p.noFill(); p.stroke(255, 255, 255, 230); p.strokeWeight(3.5); p.beginShape(); [[w - 62, 58], [w - 60, 36], [w - 40, 28], [w - 26, 40], [w - 32, 60], [w - 52, 64]].forEach(([x, y]) => p.vertex(x, y)); p.endShape(p.CLOSE);
+  p.noStroke(); p.fill(226, 56, 61); p.circle(w - 32, 52, 8);
 }

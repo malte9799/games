@@ -348,6 +348,8 @@ body.hub-game-open { overflow-x: hidden; }
 
 /* ---- Wortbombe: the table keeps its own look (dark brown, yellow arrow) whatever design is active ---- */
 .hub-wortbombe .hk-body { min-height: 0; }
+.hub-kart .hk-body { height: calc(100dvh - 190px); min-height: 440px; padding: 0; }
+@media (max-width: 640px) { .hub-kart .hk-body { height: calc(100dvh - 170px); min-height: 360px; } }
 .wb { display: flex; flex-direction: column; gap: 14px; }
 .wb-stage { position: relative; width: min(100%, 640px, calc(100dvh - 300px)); min-width: 300px; aspect-ratio: 1; margin: 0 auto; border-radius: var(--r-xl); overflow: hidden;
   background: radial-gradient(ellipse at 50% 50%, #5a4e44 0%, #4d433b 50%, #3e3731 100%); box-shadow: var(--card-shadow); color: #fff; font-family: "Lato", var(--font), system-ui, sans-serif; }
