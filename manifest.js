@@ -23,7 +23,7 @@ const GAMES = [
   { id: "kniffel",     title: "Kniffel · Yahtzee", desc: "roll · hold · write it down", preview: drawKniffel },
   { id: "kritzel",     title: "Kritzel-Revier",    desc: "kritzle das größte Revier",   preview: drawKritzel },
   { id: "kart",        title: "Kart-Rennen",       desc: "drift · turbo · Bestzeit",    preview: drawKart },
-  { id: "battleship", title: "Battleship", desc: "Schiffe versenken gegen den Computer · drei Stufen", preview: drawBattleship },
+  { id: "battleship", title: "Schiffe versenken", desc: "Flotte aufstellen und feuern, gegen den Computer · drei Stufen", preview: drawBattleship },
 ];
 
 // ---- preview renderers ----

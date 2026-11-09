@@ -24,7 +24,7 @@ const MP_GAMES = [
   { id: "kart", title: "Kart-Rennen", desc: "Drift, Turbo und Items – wer fährt als Erster über die Ziellinie?", min: 2, max: 6, preview: (p, w, h) => drawKart(p, w, h), load: () => import("./hub-games/kart.js") },
   { id: "clickrace", title: "Klick-Rennen", desc: "15 Sekunden, wer klickt mehr?", min: 2, max: 6, preview: (p, w, h) => drawClickRace(p, w, h), load: () => import("./hub-games/clickrace.js") },
   { id: "kritzel", title: "Kritzel-Revier", desc: "Echtzeit: kritzle das größte Revier – Flecken blockieren, Sterne geben Turbo", min: 2, max: 4, preview: (p, w, h) => drawKritzel(p, w, h), load: () => import("./hub-games/kritzel.js") },
-  { id: "battleship", title: "Battleship", desc: "Schiffe versenken: Flotte aufstellen, Koordinaten feuern – Duell mit geheimer Flotte", min: 2, max: 2, preview: (p, w, h) => drawBattleship(p, w, h), load: () => import("./hub-games/battleship.js") },
+  { id: "battleship", title: "Schiffe versenken", desc: "Flotte aufstellen, Koordinaten feuern – Duell mit geheimer Flotte", min: 2, max: 2, preview: (p, w, h) => drawBattleship(p, w, h), load: () => import("./hub-games/battleship.js") },
 ];
 window.MP_GAMES = MP_GAMES;                        // multiplayer.js reads the game titles from here
 

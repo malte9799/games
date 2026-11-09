@@ -1100,8 +1100,8 @@ function CSS_TEXT() {
 if (!window.__BATTLESHIP_HUB__ && typeof initGame === "function") {
   let game = null;
   initGame({
-    title: "Battleship",
-    tag: "Schiffe versenken",
+    title: "Schiffe versenken",
+    tag: "Battleship",
     fullscreen: true,
     presets: [],
     buttons: [{ id: "btn-new", label: "Neues Spiel", primary: true, onClick: () => { if (game && game.confirmAbort()) game.startSolo(); } }],

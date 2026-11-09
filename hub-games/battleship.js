@@ -18,7 +18,7 @@ export default {
   min: 2, max: 2,
 
   async mount(ctx) {
-    const kit = shell(ctx, { title: "Battleship" });
+    const kit = shell(ctx, { title: "Schiffe versenken" });
     window.__BATTLESHIP_HUB__ = true;                        // kein Solo-Start beim Laden des Skripts
     if (!window.createBattleship) await load(SRC);
     const game = window.createBattleship({ root: kit.body, net: ctx });
