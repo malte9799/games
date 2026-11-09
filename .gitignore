@@ -2,3 +2,5 @@ node_modules/
 dist/
 .vite/
 tmp/
+.claude/
+.DS_Store
