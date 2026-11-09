@@ -1,7 +1,7 @@
 // Gemeinsames Kartenbild für alle Kartenspiele (Solitär, Blackjack, ...).
 // Alle Blätter sind fertige Dateien unter cards/<deck>/ (Quellen und Lizenzen: cards/LICENSES.md),
 // werden beim ersten Gebrauch geladen und in der gezeichneten Größe zwischengespeichert.
-// SVG-Blätter (Skat, Französisch) lassen sich pro Kartenfarbe umfärben; Bild-Blätter nicht.
+// Das SVG-Blatt (Klassisch) lassen sich pro Kartenfarbe umfärben; Bild-Blätter nicht.
 // Zeichnet auf einem Canvas-2D-Kontext, unabhängig von p5.
 // Suit-Index: 0 = ♠, 1 = ♥, 2 = ♦, 3 = ♣ — die Spiele rechnen immer so.
 // Die Wahl gilt global pro Browser (localStorage "games_card_*").
@@ -21,9 +21,7 @@
   // dir = Ordner unter cards/, ten = Dateiname der Zehn, ext = Dateiendung, own = eigene Rückseite (back.<ext>),
   // defBack = Standard-Rückseite, cols = umfärbbar (nur SVG), pixel = ohne Glättung skalieren
   const DECKS = [
-    { id: "skat",     name: "Skat (Altenburger Stil)",  dir: "skat",     ten: "T",  ext: "svg", defBack: "blue", cols: SVG_COLS },
-    { id: "french",   name: "Französisch (Goodall)",    dir: "standard", ten: "T",  ext: "svg", defBack: "red",  cols: SVG_COLS },
-    { id: "knoll",    name: "Klassisch (Knoll)",        dir: "knoll",    ten: "10", ext: "svg", defBack: "black" },
+    { id: "skat",     name: "Klassisch",  dir: "skat",     ten: "T",  ext: "svg", defBack: "blue", cols: SVG_COLS },
     { id: "medieval", name: "Mittelalter (A. Walker)",  dir: "medieval", ten: "T",  ext: "webp", own: true, defBack: "own" },
     { id: "sharm",    name: "Verschnörkelt (Sharm)",    dir: "sharm",    ten: "T",  ext: "webp", own: true, defBack: "own" },
     { id: "pixel",    name: "Pixel Art (G. Dittmann)",  dir: "pixel",    ten: "T",  ext: "png",  own: true, defBack: "own", pixel: true },

@@ -4,9 +4,7 @@ Alle Blätter sind fremde, von Menschen gestaltete Werke (keine eigenen Zeichnun
 
 | Ordner | Quelle | Lizenz |
 | --- | --- | --- |
-| `standard` | Adrian Kennard (RevK), https://www.me.uk/cards/ — Hofkarten nach Goodall & Son. Mit svgo verkleinert. | CC0 |
-| `skat` | RevK-Generator (https://www.me.uk/cards/makeadeck.cgi), Index in allen vier Ecken | CC0 |
-| `knoll` | Byron Knoll, „vector-playing-cards“, via https://github.com/notpeter/vector-playing-cards. Mit svgo verkleinert. | Public Domain |
+| `skat` („Klassisch“) | RevK-Generator (https://www.me.uk/cards/makeadeck.cgi), Index in allen vier Ecken | CC0 |
 | `medieval` | Aidan Walker, „Playing Cards“, https://opengameart.org/content/playing-cards-5. Aus dem Spritesheet zugeschnitten, als WebP. | CC0 |
 | `sharm` | Sharm, „Playing Cards“, https://opengameart.org/content/playing-cards. Von 3000×4200 auf 250×350 verkleinert, als WebP. | CC-BY 4.0 / 3.0 — **Namensnennung: Sharm** |
 | `pixel` | Glenn Dittmann (Lempf), „Pixel Art Cards“, https://opengameart.org/content/pixel-art-cards. Aus `.aseprite` nach PNG (36×54) umgewandelt. | CC-BY 3.0 — **Namensnennung: Glenn Dittmann** |
