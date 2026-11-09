@@ -5,6 +5,11 @@
 //   · Einstieg: alle Karten offen
 // Karten per Drag & Drop ziehen, oder erst anklicken und dann das Ziel anklicken.
 // Doppelklick legt eine Karte auf das Fundament.
+//
+// Animationen: Karten fliegen beim Ziehen, Legen, Austeilen und Zurückrutschen;
+// aufgedeckte Karten werden umgeschlagen; ein gewonnenes Spiel endet mit einer
+// Kaskade springender Karten. Die Zustandsänderung passiert sofort, die Animation
+// zeigt sie nur — Flights verbergen die Karte am Ziel, bis sie angekommen ist.
 
 const SOL_PRESETS = [
   { label: "Klassisch · 1 Karte · unbegrenzt (Standard)", values: [1, 0, 1, 0] },
@@ -87,7 +92,19 @@ let selected = null;   // src of a clicked card
 let drag = null;       // { src, cards, sx, sy, moved, ox, oy }
 let lastClick = null;  // { src, t } for double-click detection
 let hintMove = null, hintUntil = 0;
-let lastStatus = "";
+let lastStatus = "", lastPointer = false;
+
+// ---- animation state ----
+// flight: a card travelling from (x0,y0) to (x1,y1); it is hidden at its target until it lands
+// flip:   a card turning from its back to its face
+// cascade: bouncing cards after a win
+const FLY_MS = 260, FLIP_MS = 240;
+let flights = [], flips = [], cascade = [], winQueue = [];
+let lastFlip = null;   // set by takeCards when a tableau card was turned face-up
+
+function addFlight(card, x0, y0, x1, y1, delay = 0, dur = FLY_MS, arc = 12) {
+  flights.push({ card, x0, y0, x1, y1, t0: millis() + delay, dur, arc });
+}
 
 function newGame() {
   const deck = [];
@@ -108,6 +125,16 @@ function newGame() {
   fnd = [[], [], [], []];
   passNo = 1; moves = 0; undoStack = []; won = false;
   selected = null; drag = null; lastClick = null; hintMove = null; hintUntil = 0;
+  flips = []; cascade = []; winQueue = []; flights = [];
+  // deal: every card flies from the stock to its place, column by column
+  let n = 0;
+  for (let c = 0; c < 7; c++) {
+    for (let i = 0; i <= c; i++) {
+      const card = tab[c][i];
+      addFlight(card, colX(0), SOL_M, colX(c), colTop(c, i), n * 38, 320, 18);
+      n++;
+    }
+  }
   clearParticles();
   resetHint();
   flashNote("");
@@ -120,6 +147,7 @@ function undo() {
   const s = JSON.parse(undoStack.pop());
   tab = s.tab; fnd = s.fnd; stock = s.stock; waste = s.waste; passNo = s.passNo; moves = s.moves;
   won = false; selected = null; hintMove = null;
+  flights = []; flips = []; cascade = []; winQueue = [];
   flashNote("");
 }
 
@@ -128,19 +156,41 @@ function undo() {
 function canRecycle() { return waste.length > 0 && (RULE.passes === 0 || passNo < RULE.passes); }
 function canDraw() { return stock.length > 0 || canRecycle(); }
 
+// where the waste card at index idx lies (with draw 3 the last three are fanned out)
+function wastePos(idx) {
+  const vis = RULE.draw === 3 ? Math.min(3, waste.length) : 1;
+  const j = Math.max(0, idx - (waste.length - vis));
+  return { x: colX(1) + (RULE.draw === 3 ? j * 7 : 0), y: SOL_M };
+}
+
 function clickStock() {
   if (won) return;
   selected = null; hintMove = null;
   if (stock.length) {
     pushUndo();
+    const drawn = [];
     for (let i = 0; i < RULE.draw && stock.length; i++) {
       const c = stock.pop();
       c.up = true;
       waste.push(c);
+      drawn.push(c);
     }
+    drawn.forEach((card, j) => {
+      const to = wastePos(waste.indexOf(card));
+      addFlight(card, colX(0), SOL_M, to.x, to.y, j * 80, 240, 10);
+    });
   } else if (canRecycle()) {
     pushUndo();
-    while (waste.length) { const c = waste.pop(); c.up = false; stock.push(c); }
+    const from = waste.map((_, w) => wastePos(w));
+    let k = 0;
+    while (waste.length) {
+      const c = waste.pop();
+      c.up = false;
+      stock.push(c);
+      const f = from[waste.length];
+      addFlight(c, f.x, f.y, colX(0), SOL_M, k * 22, 240, 10);
+      k++;
+    }
     passNo++;
   } else {
     flashNote(RULE.passes ? "keine Durchgänge mehr · zurück oder neues Spiel" : "Stapel ist leer");
@@ -180,24 +230,52 @@ function legal(src, dest) {
 
 // removes the cards from their source and returns them; turns the new top card face-up
 function takeCards(src) {
+  lastFlip = null;
   if (src.t === "waste") return [waste.pop()];
   if (src.t === "fnd") return [fnd[src.s].pop()];
   const col = tab[src.c];
   const taken = col.splice(src.i);
-  if (col.length && !col[col.length - 1].up) col[col.length - 1].up = true;
+  if (col.length && !col[col.length - 1].up) {
+    col[col.length - 1].up = true;
+    lastFlip = col[col.length - 1];
+  }
   return taken;
+}
+
+// where a card of the source stack currently sits (k = position within the stack)
+function srcCardPos(src, k) {
+  if (src.t === "waste") return wastePos(waste.length - 1);
+  if (src.t === "fnd") return { x: colX(3 + src.s), y: SOL_M };
+  return { x: colX(src.c), y: colTop(src.c, src.i + k) };
 }
 
 function tryMove(src, dest) {
   if (!legal(src, dest)) return false;
   pushUndo();
-  const cards = takeCards(src);
-  if (dest.t === "fnd") fnd[dest.s].push(cards[0]);
-  else tab[dest.c].push(...cards);
+  const from = getCards(src).map((_, k) => srcCardPos(src, k));
+  const taken = takeCards(src);
+  const flipped = lastFlip;
+  if (dest.t === "fnd") fnd[dest.s].push(taken[0]);
+  else tab[dest.c].push(...taken);
+  // flights to the final positions (computed after the push)
+  taken.forEach((card, k) => {
+    const to = dest.t === "fnd"
+      ? { x: colX(3 + dest.s), y: SOL_M }
+      : { x: colX(dest.c), y: colTop(dest.c, tab[dest.c].length - taken.length + k) };
+    addFlight(card, from[k].x, from[k].y, to.x, to.y, k * 18, FLY_MS, 16);
+  });
+  if (flipped) flips.push({ card: flipped, t0: millis() + FLY_MS * 0.6, dur: FLIP_MS });
   moves++;
   selected = null; hintMove = null;
-  if (fnd.every((f) => f.length === 13)) { won = true; celebrate(3); }
+  if (fnd.every((f) => f.length === 13)) startWin();
   return true;
+}
+
+function startWin() {
+  won = true;
+  celebrate(3);
+  winQueue = [];
+  fnd.forEach((f, s) => f.slice().reverse().forEach((card) => winQueue.push({ card, s })));
 }
 
 function autoFoundation(src) {
@@ -207,7 +285,7 @@ function autoFoundation(src) {
   return tryMove(src, { t: "fnd", s: cards[0].s });
 }
 
-// a legal move that is worth suggesting, or null
+// a legal move worth suggesting, or null
 function findHint() {
   const srcs = [];
   if (waste.length) srcs.push({ t: "waste" });
@@ -278,13 +356,16 @@ function destAt(x, y) {
   return null;
 }
 
-function srcPos(src) {
-  if (src.t === "waste") return { x: colX(1), y: SOL_M };
-  if (src.t === "fnd") return { x: colX(3 + src.s), y: SOL_M };
-  return { x: colX(src.c), y: colTop(src.c, src.i) };
-}
-
 function sameSrc(a, b) { return a.t === b.t && a.c === b.c && a.i === b.i && a.s === b.s; }
+
+// a dragged stack that was dropped on an illegal spot slides back to where it came from
+function sendHome(d) {
+  const bx = mouseX - d.ox, by = mouseY - d.oy;
+  d.cards.forEach((card, k) => {
+    const home = srcCardPos(d.src, k);
+    addFlight(card, bx, by + k * FU, home.x, home.y, 0, 200, 0);
+  });
+}
 
 // ---- mouse / keyboard ----
 
@@ -296,7 +377,7 @@ function mousePressed() {
   const src = srcFromHit(h);
   drag = { src, cards: src ? getCards(src) : [], sx: mouseX, sy: mouseY, moved: false, ox: 0, oy: 0 };
   if (src) {
-    const p = srcPos(src);
+    const p = srcCardPos(src, 0);
     drag.ox = mouseX - p.x;
     drag.oy = mouseY - p.y;
   }
@@ -313,7 +394,11 @@ function mouseReleased() {
   drag = null;
   if (!d || won) return;
   if (d.moved) {
-    if (d.src) { const dest = destAt(mouseX, mouseY); if (dest) tryMove(d.src, dest); }
+    if (d.src) {
+      const dest = destAt(mouseX, mouseY);
+      const ok = !!dest && tryMove(d.src, dest);
+      if (!ok) sendHome(d);
+    }
     return;
   }
   // a click
@@ -342,13 +427,14 @@ function keyPressed() {
 // ---- status ----
 
 function refreshStatus() {
+  const found = fnd.reduce((a, f) => a + f.length, 0);
   let text, state = null;
   if (won) {
     text = "gelöst in " + moves + (moves === 1 ? " Zug" : " Zügen");
     state = "solved";
   } else {
-    text = "Züge " + moves + " · Durchgang " + passNo + (RULE.passes ? "/" + RULE.passes : "");
-    if (!canDraw() && !findHint()) { text = "keine Züge mehr"; state = "dead"; }
+    text = "Züge " + moves + " · Durchgang " + passNo + (RULE.passes ? "/" + RULE.passes : "") + " · " + found + "/52";
+    if (!canDraw() && !findHint()) { text = "keine Züge mehr · " + found + "/52"; state = "dead"; }
   }
   const key = text + "|" + state;
   if (key !== lastStatus) { lastStatus = key; setStatus(text, state); }
@@ -356,57 +442,129 @@ function refreshStatus() {
 
 // ---- drawing ----
 
-// g is the p5 instance or `window` (global mode); both expose the same drawing calls
-function solCard(g, x, y, c, hl) {
+// one card. g = p5 instance or `window` (global mode). o: { hl, sx, back, lift }
+//   hl    highlight colour [r,g,b] (pulses)   sx  horizontal scale (card flip)
+//   back  force the back side                  lift 0..1 shadow strength (flying cards)
+function solCard(g, x, y, c, o = {}) {
+  const lift = o.lift || 0;
+  const back = o.back ?? !c.up;
+  g.push();
+  if (o.sx !== undefined && o.sx !== 1) {
+    g.translate(x + CW / 2, y + CH / 2);
+    g.scale(Math.max(0.04, Math.abs(o.sx)), 1);
+    x = -CW / 2; y = -CH / 2;
+  }
+  // soft two-layer shadow; deeper while lifted
   g.noStroke();
-  g.fill(0, 0, 0, 60);
-  g.rect(x + 2, y + 3, CW, CH, 8);
-  if (!c.up) {
+  g.fill(0, 0, 0, 22 + lift * 34);
+  g.rect(x - 1 + lift * 2, y + 2 + lift * 6, CW + 2, CH + 2, 10);
+  g.fill(0, 0, 0, 30 + lift * 30);
+  g.rect(x + 1, y + 3 + lift * 2, CW, CH, 9);
+
+  if (back) {
     g.fill(...PAL.lilac);
-    g.rect(x, y, CW, CH, 8);
-    g.noFill(); g.stroke(255, 255, 255, 110); g.strokeWeight(2);
-    g.rect(x + 7, y + 7, CW - 14, CH - 14, 5);
+    g.stroke(0, 0, 0, 45); g.strokeWeight(1);
+    g.rect(x, y, CW, CH, 9);
     g.noStroke();
+    g.fill(255, 255, 255, 55);
+    g.rect(x + 6, y + 6, CW - 12, CH - 12, 6);
+    g.fill(255, 255, 255, 120);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 6; j++) {
+      g.circle(x + 14 + i * (CW - 28) / 3, y + 13 + j * (CH - 26) / 5, 3);
+    }
+    g.pop();
     return;
   }
-  g.fill(252, 250, 244);
-  if (hl) { g.stroke(...hl); g.strokeWeight(3); } else { g.stroke(190, 186, 176); g.strokeWeight(1); }
-  g.rect(x, y, CW, CH, 8);
+
+  // face
+  g.fill(253, 251, 246);
+  g.stroke(110, 100, 90, 80); g.strokeWeight(1);
+  g.rect(x, y, CW, CH, 9);
+  g.noFill(); g.stroke(0, 0, 0, 16);
+  g.rect(x + 4, y + 4, CW - 8, CH - 8, 6);
+  if (o.hl) {
+    const a = 165 + 90 * Math.sin(millis() / 170);
+    g.stroke(o.hl[0], o.hl[1], o.hl[2], 60); g.strokeWeight(6);
+    g.rect(x - 3, y - 3, CW + 6, CH + 6, 12);
+    g.stroke(o.hl[0], o.hl[1], o.hl[2], a); g.strokeWeight(3);
+    g.rect(x - 1.5, y - 1.5, CW + 3, CH + 3, 10);
+  }
+  const ink = isRed(c.s) ? [200, 38, 62] : [28, 28, 40];
   g.noStroke();
-  g.fill(...(isRed(c.s) ? [206, 44, 68] : [30, 30, 44]));
+  g.fill(...ink);
   g.textAlign("left", "top");
-  g.textStyle("bold"); g.textSize(17);
-  g.text(RANK[c.r], x + 7, y + 6);
-  g.textStyle("normal"); g.textSize(15);
-  g.text(SUIT[c.s], x + 8, y + 26);
-  g.textAlign("center", "center"); g.textSize(36);
-  g.text(SUIT[c.s], x + CW / 2, y + CH / 2 + 4);
+  g.textStyle("bold"); g.textSize(16); g.text(RANK[c.r], x + 7, y + 5);
+  g.textStyle("normal"); g.textSize(14); g.text(SUIT[c.s], x + 8, y + 22);
+  g.textAlign("right", "bottom");
+  g.textStyle("bold"); g.textSize(16); g.text(RANK[c.r], x + CW - 7, y + CH - 5);
+  g.textStyle("normal"); g.textSize(14); g.text(SUIT[c.s], x + CW - 8, y + CH - 22);
+  g.textAlign("center", "center"); g.textSize(34);
+  g.text(SUIT[c.s], x + CW / 2, y + CH / 2 + 2);
+  g.pop();
 }
 
-function solSlot(g, x, y, glyph) {
-  g.noFill(); g.stroke(...PAL.lineHi); g.strokeWeight(1.5);
-  g.rect(x, y, CW, CH, 8);
+// an empty place: foundation suit, stock recycle sign, or a plain column slot
+function solSlot(g, x, y, glyph, ink) {
+  g.noStroke();
+  g.fill(...PAL.well, 150);
+  g.rect(x, y, CW, CH, 9);
+  g.noFill(); g.stroke(...PAL.lineHi, 170); g.strokeWeight(1.5);
+  g.rect(x, y, CW, CH, 9);
   if (glyph) {
-    g.noStroke(); g.fill(...PAL.lineHi);
+    g.noStroke();
+    g.fill(...(ink || PAL.lineHi), ink ? 130 : 200);
     g.textAlign("center", "center"); g.textSize(34);
     g.text(glyph, x + CW / 2, y + CH / 2);
   }
 }
 
-function draw() {
+// felt-like table: soft lamp glow in the middle
+function solTable() {
   background(...PAL.board);
+  noStroke();
+  for (let k = 9; k >= 1; k--) {
+    fill(...PAL.mint, 4);
+    ellipse(SOL_W / 2, SOL_H * 0.42, SOL_W * (0.45 + k * 0.09), SOL_H * (0.36 + k * 0.08));
+  }
+}
+
+function solBanner() {
+  const bw = 320, bh = 104, bx = SOL_W / 2 - bw / 2, by = SOL_H / 2 - bh / 2 - 30;
+  noStroke();
+  fill(...PAL.board, 225);
+  rect(bx, by, bw, bh, 18);
+  fill(...PAL.mint, 40);
+  rect(bx + 2, by + 2, bw - 4, bh / 2 - 2, 16, 16, 4, 4);
+  textAlign(CENTER, CENTER);
+  fill(...PAL.mint);
+  textStyle(BOLD); textSize(36);
+  text("Gelöst!", SOL_W / 2, by + bh / 2 - 12);
+  textStyle(NORMAL); fill(...PAL.muted); textSize(15);
+  text(moves + (moves === 1 ? " Zug" : " Züge"), SOL_W / 2, by + bh / 2 + 24);
+}
+
+function draw() {
+  solTable();
+  const now = millis();
+  flights = flights.filter((f) => now < f.t0 + f.dur);
+  flips = flips.filter((f) => now < f.t0 + f.dur);
+  const inFlight = new Set(flights.map((f) => f.card));
   const selCards = selected ? getCards(selected) : [];
-  const hintCards = hintMove && millis() < hintUntil ? getCards(hintMove.from) : [];
+  const hintCards = hintMove && now < hintUntil ? getCards(hintMove.from) : [];
   const dragging = drag && drag.moved && drag.src ? drag.cards : [];
-  const hlFor = (card) => {
-    if (hintCards.includes(card)) return PAL.mint;
-    if (selCards.includes(card)) return PAL.sun;
-    return null;
+  const hlFor = (card) => (hintCards.includes(card) ? PAL.mint : selCards.includes(card) ? PAL.sun : null);
+  const shown = (card) => !dragging.includes(card) && !inFlight.has(card);
+  const flipOf = (card) => {
+    const f = flips.find((x) => x.card === card);
+    if (!f) return {};
+    if (now < f.t0) return { back: true };
+    const p = (now - f.t0) / f.dur;
+    return { sx: Math.abs(2 * p - 1), back: p < 0.5 };
   };
-  const shown = (card) => !dragging.includes(card);
+  const drawCard = (x, y, card) => solCard(window, x, y, card, Object.assign({ hl: hlFor(card) }, flipOf(card)));
 
   // stock
-  if (stock.length) solCard(window, colX(0), SOL_M, stock[stock.length - 1], null);
+  if (stock.length) solCard(window, colX(0), SOL_M, stock[stock.length - 1], { back: true });
   else solSlot(window, colX(0), SOL_M, canRecycle() ? "↻" : "×");
 
   // waste (fanned out with draw 3)
@@ -414,15 +572,15 @@ function draw() {
     const n = RULE.draw === 3 ? Math.min(3, waste.length) : 1;
     for (let j = 0; j < n; j++) {
       const card = waste[waste.length - n + j];
-      if (shown(card)) solCard(window, colX(1) + j * 7, SOL_M, card, hlFor(card));
+      if (shown(card)) drawCard(colX(1) + j * 7, SOL_M, card);
     }
   } else solSlot(window, colX(1), SOL_M, "");
 
   // foundations, one pile per suit
   for (let s = 0; s < 4; s++) {
     const f = fnd[s];
-    if (f.length) { const card = f[f.length - 1]; if (shown(card)) solCard(window, colX(3 + s), SOL_M, card, hlFor(card)); }
-    else solSlot(window, colX(3 + s), SOL_M, SUIT[s]);
+    if (f.length) { const card = f[f.length - 1]; if (shown(card)) drawCard(colX(3 + s), SOL_M, card); }
+    else solSlot(window, colX(3 + s), SOL_M, SUIT[s], isRed(s) ? [206, 44, 68] : null);
   }
 
   // tableau
@@ -431,26 +589,67 @@ function draw() {
     if (!col.length) { solSlot(window, x, Y0, ""); continue; }
     let y = Y0;
     for (const card of col) {
-      if (shown(card)) solCard(window, x, y, card, hlFor(card));
+      if (shown(card)) drawCard(x, y, card);
       y += card.up ? FU : FD;
     }
   }
 
-  // hint destination
+  // drop preview while dragging: a legal target gets a mint frame where the card would land
+  if (dragging.length) {
+    const dest = destAt(mouseX, mouseY);
+    if (dest && legal(drag.src, dest)) {
+      const x = dest.t === "fnd" ? colX(3 + dest.s) : colX(dest.c);
+      const y = dest.t === "fnd" ? SOL_M : colTop(dest.c, tab[dest.c].length);
+      noFill(); stroke(...PAL.mint, 230); strokeWeight(3);
+      rect(x - 3, y - 3, CW + 6, CH + 6, 11);
+    }
+  }
+
+  // hint destination (pulsing)
   if (hintCards.length && hintMove) {
     const to = hintMove.to;
-    if (to.t === "fnd") { noFill(); stroke(...PAL.mint); strokeWeight(3); rect(colX(3 + to.s), SOL_M, CW, CH, 8); }
-    else { noFill(); stroke(...PAL.mint); strokeWeight(3); rect(colX(to.c), Y0, CW, CH, 8); }
+    const x = to.t === "fnd" ? colX(3 + to.s) : colX(to.c);
+    const y = to.t === "fnd" ? SOL_M : colTop(to.c, tab[to.c].length);
+    noFill(); stroke(...PAL.mint, 120 + 100 * Math.sin(now / 180)); strokeWeight(3);
+    rect(x - 3, y - 3, CW + 6, CH + 6, 11);
   }
 
-  // card(s) being dragged follow the pointer
+  // flying cards (drawn above the board, under the dragged stack)
+  for (const f of flights) {
+    if (now < f.t0) continue;
+    const p = Math.min(1, (now - f.t0) / f.dur);
+    const e = 1 - Math.pow(1 - p, 3);
+    const x = f.x0 + (f.x1 - f.x0) * e;
+    const y = f.y0 + (f.y1 - f.y0) * e - f.arc * Math.sin(Math.PI * p);
+    solCard(window, x, y, f.card, { lift: Math.sin(Math.PI * p) });
+  }
+
+  // the card(s) being dragged follow the pointer
   if (dragging.length) {
     const bx = mouseX - drag.ox, by = mouseY - drag.oy;
-    dragging.forEach((card, k) => solCard(window, bx, by + k * FU, card, PAL.sun));
+    dragging.forEach((card, k) => solCard(window, bx, by + k * FU, card, { lift: 1, hl: PAL.sun }));
   }
 
-  if (won) drawBoardOverlay(SOL_M, SOL_M, SOL_W - 2 * SOL_M, SOL_H - 2 * SOL_M, "Gelöst!", moves + (moves === 1 ? " Zug" : " Züge"), PAL.mint);
-  drawParticles();
+  // win: cards leave the foundations one by one and bounce around the table
+  if (won) {
+    if (winQueue.length && frameCount % 4 === 0) {
+      const q = winQueue.shift();
+      cascade.push({ card: q.card, x: colX(3 + q.s), y: SOL_M, vx: (Math.random() < 0.5 ? -1 : 1) * (1.5 + Math.random() * 3.5), vy: -2 - Math.random() * 3, life: 0 });
+    }
+    for (const c of cascade) {
+      c.vy += 0.5; c.x += c.vx; c.y += c.vy; c.life++;
+      if (c.y > SOL_H - CH) { c.y = SOL_H - CH; c.vy *= -0.62; c.vx *= 0.97; }
+      solCard(window, c.x, c.y, c.card, { lift: 0.6 });
+    }
+    cascade = cascade.filter((c) => c.x > -CW * 2 && c.x < SOL_W + CW && c.life < 900);
+    solBanner();
+  }
+
+  // pointer cursor over things you can click or drag
+  const hov = !won && !drag && mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height ? hitAt(mouseX, mouseY) : null;
+  const wantPointer = !!hov && hov.t !== "empty" && hov.t !== "down" && !(hov.t === "fnd" && !fnd[hov.s].length);
+  if (wantPointer !== lastPointer) { lastPointer = wantPointer; cursor(wantPointer ? "pointer" : "default"); }
+
   refreshStatus();
 }
 
