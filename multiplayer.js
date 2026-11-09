@@ -479,6 +479,7 @@
     R.seated = new Set(players.map((p) => p.id));           // who may come back to this game after a reload
     emit("status", "playing");
     emit("start", { game, options, players: snapshot().players, isHost: R.hostId === R.selfId, resumed: !!resumed });
+    if (ui.open) ui.hide();                                  // the game begins: close the lobby window (also for the clients)
     ui.render();
   }
 
