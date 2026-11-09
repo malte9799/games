@@ -231,22 +231,22 @@
 .pc-menu{position:fixed;z-index:500;width:min(420px,calc(100vw - 24px));max-height:min(70vh,640px);overflow-y:auto;padding:6px;
   background:var(--modal-bg,var(--panel,#222));color:var(--ink,#eee);font-size:13px;
   border:var(--border-w,1px) solid var(--panel-edge,#555);border-radius:var(--r-md,12px);box-shadow:0 16px 40px -12px rgba(0,0,0,.5)}
-.pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
-.pc-opt{all:unset;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px;cursor:pointer;
+.pc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}
+.pc-opt{all:unset;box-sizing:border-box;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px;cursor:pointer;
   border-radius:calc(var(--r-sm,8px)*.7);text-align:center;font:inherit;color:inherit}
 .pc-opt:hover,.pc-opt:focus-visible{background:var(--panel-2,#333)}
 .pc-opt[aria-checked="true"]{outline:2px solid var(--accent,#6cf);outline-offset:-2px}
-.pc-pair{display:flex;gap:6px}
-.pc-pair canvas{width:56px;height:78px;display:block}
+.pc-pair{display:flex;gap:6px;width:100%;justify-content:center}
+.pc-pair canvas{width:min(56px,40%);min-width:0;flex:0 1 auto;height:auto;aspect-ratio:56/78;display:block}
 .pc-set{margin:6px 4px 2px;padding-top:8px;border-top:1px solid var(--hairline,rgba(128,128,128,.35));display:grid;gap:8px}
-.pc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pc-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .pc-row>b{min-width:66px;font-weight:600}
 .pc-row label{display:flex;align-items:center;gap:4px;font-size:15px}
-.pc-row input[type=color]{width:32px;height:26px;padding:0;border:1px solid var(--panel-edge,#666);border-radius:6px;background:none;cursor:pointer}
+.pc-row input[type=color]{width:40px;height:32px;padding:0;border:1px solid var(--panel-edge,#666);border-radius:6px;background:none;cursor:pointer}
 .pc-row button{all:unset;cursor:pointer;padding:3px 9px;border-radius:999px;border:1px solid var(--panel-edge,#666);font-size:12px}
 .pc-row button:hover,.pc-row button:focus-visible{background:var(--panel-2,#333)}
-.pc-sw{width:24px;height:24px;border-radius:50%!important;padding:0!important;border:2px solid transparent!important}
-.pc-sw[aria-checked="true"]{outline:2px solid var(--accent,#6cf);outline-offset:2px}
+.pc-sw{width:40px!important;height:40px!important;min-width:40px!important;box-sizing:border-box;border-radius:50%!important;padding:0!important;border:3px solid var(--panel-edge,#666)!important}
+.pc-sw[aria-checked="true"]{outline:3px solid var(--accent,#6cf);outline-offset:2px}
 @media (max-width:420px){.pc-grid{grid-template-columns:1fr}}`;
   let menu = null, menuBtn = null;
   function closeMenu() {
