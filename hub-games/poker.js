@@ -215,7 +215,10 @@ const CSS = `
 /* "Karten verstecken": face down, only a faint peek while hovering / touching */
 .pk-hole.hide .pcard .pc-in { transform: rotateY(180deg); }
 .pk-hole.hide .pcard:hover .pc-in, .pk-hole.hide .pcard:active .pc-in { transform: rotateY(0deg); }
-.pk-hole.hide .pcard:hover .pc-f.fr, .pk-hole.hide .pcard:active .pc-f.fr { opacity: .38; filter: blur(.7px) saturate(.6); }
+.pk-holerow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+.pk-eye { justify-self: start; margin-left: 14px; width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 2px solid #c99a4a; background: linear-gradient(#6b4528, #3f2616); color: #f3dba0; cursor: pointer; display: grid; place-items: center; }
+.pk-eye svg { width: 22px; height: 22px; }
+.pk-eye[aria-pressed="true"] { color: #ffd94d; background: linear-gradient(#85592f, #4f301a); }
 .pk-hole.hide .pcard:hover { transform: rotateX(var(--ty)) rotateY(var(--tx)) rotateZ(var(--rz, 0deg)); }
 .pk-hole.fold .pcard { filter: grayscale(1) brightness(.6); }
 .pk-hole .pc-f { box-shadow: 0 8px 20px rgba(0, 0, 0, .45); }
@@ -336,7 +339,7 @@ export default {
       <div class="pk-status" aria-live="polite"></div>
       <p class="pk-note"></p>
       <div class="pk-act"></div>
-      <div class="pk-hole"></div>
+      <div class="pk-holerow"><span></span><div class="pk-hole"></div><button type="button" class="pk-eye"></button></div>
     </div>`;
     const rootEl = root.firstElementChild;
     const $ = (s) => rootEl.querySelector(s);
@@ -852,12 +855,14 @@ export default {
     // hide my cards (playing side by side): face down, only faintly visible while hovering
     let hidden = false;
     try { hidden = localStorage.getItem("pk_hide") === "1"; } catch {}
-    const hideBtn = document.createElement("button");
-    hideBtn.type = "button"; hideBtn.className = "pk-snd"; hideBtn.title = "Eigene Karten verdecken – nur beim Drüberfahren schwach sichtbar";
+    const hideBtn = $(".pk-eye");
+    hideBtn.title = "Eigene Karten verdecken – nur beim Drüberfahren sichtbar";
+    const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/>';
     const applyHide = () => {
       holeEl.classList.toggle("hide", hidden);
-      hideBtn.textContent = hidden ? "Karten: verdeckt" : "Karten: offen";
+      hideBtn.innerHTML = EYE + (hidden ? '<path d="M3 3l18 18"/>' : "") + "</svg>";
       hideBtn.setAttribute("aria-pressed", hidden ? "true" : "false");
+      hideBtn.setAttribute("aria-label", hidden ? "Karten anzeigen" : "Karten verdecken");
     };
     hideBtn.addEventListener("click", () => {
       hidden = !hidden;
@@ -865,7 +870,6 @@ export default {
       applyHide();
     });
     applyHide();
-    headEl.insertBefore(hideBtn, sndBtn);
 
     // ---- host migration / leaving ----
     ctx.onEvent("host", ({ you }) => {
