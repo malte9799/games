@@ -804,6 +804,7 @@
 
   window.Multiplayer = {
     mountDock: () => dock.mount(),
+    avatarHtml: (av, acc, size) => compHtml(av || "", acc || "", size || 48),
     configure, host, join, leave, send, deliver, on, setGame, start, endGame, roomUrl, mountButton, openFromUrl,
     onMessage: (type, fn) => on("message:" + type, fn),
     openUI: (prefill) => ui.show(prefill),

@@ -18,6 +18,7 @@ const MP_GAMES = [
   { id: "kniffel", title: "Kniffel", desc: "Würfeln, halten, aufschreiben – Kniffel, Yahtzee, Yatzy, Generala", min: 2, max: 6, preview: (p, w, h) => drawKniffel(p, w, h), load: () => import("./hub-games/kniffel.js") },
   { id: "maexchen", title: "Mäxchen", desc: "Lügenwürfel: höher ankündigen oder bezweifeln? Bluff-Duell am Filztisch", min: 2, max: 6, preview: (p, w, h) => drawMaexchen(p, w, h), load: () => import("./hub-games/maexchen.js") },
   { id: "maumau", title: "Mau-Mau", desc: "UNO-Regeln: Farbe bekennen, +2, Aussetzen – und rechtzeitig UNO! rufen", min: 2, max: 6, preview: (p, w, h) => drawMaumau(p, w, h), load: () => import("./hub-games/maumau.js") },
+  { id: "wortbombe", title: "Wortbombe", desc: "Tippe ein Wort mit den Buchstaben in der Mitte – bevor die Bombe platzt", min: 2, max: 6, preview: (p, w, h) => drawWortbombe(p, w, h), load: () => import("./hub-games/wortbombe.js") },
   { id: "clickrace", title: "Klick-Rennen", desc: "15 Sekunden, wer klickt mehr?", min: 2, max: 6, preview: (p, w, h) => drawClickRace(p, w, h), load: () => import("./hub-games/clickrace.js") },
   { id: "kritzel", title: "Kritzel-Revier", desc: "Echtzeit: kritzle das größte Revier – Flecken blockieren, Sterne geben Turbo", min: 2, max: 4, preview: (p, w, h) => drawKritzel(p, w, h), load: () => import("./hub-games/kritzel.js") },
 ];
