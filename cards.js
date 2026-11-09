@@ -1,7 +1,7 @@
 // Gemeinsames Kartenbild für alle Kartenspiele (Solitär, Blackjack, ...).
 // Zeichnet auf einem Canvas-2D-Kontext, unabhängig von p5 und von der Kartengröße.
-// Vorbilder: Anglo-amerikanisches Standardblatt (Bicycle-Stil), Vier-Farben-Poker,
-// Deutsches Blatt (Eichel · Grün · Herz · Schellen), Spanisches Blatt (Baraja).
+// Vorbilder: Anglo-amerikanisches Standardblatt (Bicycle-Stil), Vier-Farben-Poker, dunkles
+// Poker-Blatt, Vintage. Immer die vier klassischen Zeichen Pik, Herz, Karo, Kreuz.
 // Farben/Suit-Index: 0 = ♠, 1 = ♥, 2 = ♦, 3 = ♣ — die Spiele rechnen immer so.
 // Die Wahl gilt global pro Browser (localStorage "games_card_deck").
 (function () {
@@ -18,16 +18,12 @@
     { id: "fourcolor", name: "Poker (4 Farben)", kind: "french", ranks: RANKS,
       cols: [BLACK, [214, 36, 46], [30, 100, 214], [22, 140, 66]], paper: [252, 252, 250], edge: [140, 140, 150],
       back: { field: [24, 56, 120], ink: [226, 232, 250], style: "lattice" } },
-    { id: "deutsch", name: "Deutsches Blatt", kind: "german",
-      ranks: ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "U", "O", "K"],
-      cols: [[38, 128, 62], [196, 34, 40], [214, 150, 30], [120, 76, 36]],
-      paper: [248, 241, 220], edge: [120, 88, 48],
-      back: { field: [34, 96, 58], ink: [236, 214, 150], style: "ornament" } },
-    { id: "spanisch", name: "Spanisches Blatt", kind: "spanish",
-      ranks: ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "S", "C", "R"],
-      cols: [[30, 74, 140], [186, 36, 44], [212, 154, 24], [38, 112, 54]],
-      paper: [250, 244, 226], edge: [130, 96, 52],
-      back: { field: [28, 70, 124], ink: [240, 232, 206], style: "arabesque" } },
+    { id: "dark", name: "Dunkel (Poker)", kind: "french", ranks: RANKS,
+      cols: [[232, 234, 244], [255, 96, 108], [255, 96, 108], [232, 234, 244]], paper: [30, 32, 46], edge: [96, 102, 140],
+      back: { field: [52, 58, 104], ink: [170, 180, 236], style: "lattice" } },
+    { id: "vintage", name: "Vintage (Gold)", kind: "french", ranks: RANKS,
+      cols: [[40, 30, 24], [168, 34, 40], [168, 34, 40], [40, 30, 24]], paper: [246, 236, 208], edge: [130, 96, 52],
+      back: { field: [30, 28, 34], ink: [226, 184, 90], style: "arabesque" } },
   ];
 
   // ---- suit emblems, drawn in a unit box (-.5 .. .5), y down ----
