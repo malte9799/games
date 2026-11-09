@@ -46,6 +46,7 @@
   const imgs = new Map();     // key -> { img, ok }
   const scaled = new Map();   // key|w|h -> canvas
   const loadWaiters = [];
+  const lastBack = {};   // deckId -> zuletzt erfolgreich geladene Rückseite
   let waitTick = 0;
   const loaded = () => { if (!waitTick) waitTick = requestAnimationFrame(() => { waitTick = 0; loadWaiters.forEach((f) => f()); }); };
 
@@ -59,10 +60,13 @@
     const key = col ? url + "|" + col : url;
     let e = imgs.get(key);
     if (!e) {
-      e = { img: new Image(), ok: false };
+      e = { img: new Image(), ok: false, err: false };
       e.img.onload = () => { e.ok = true; loaded(); };
+      e.img.onerror = () => { e.err = true; console.warn("Karte nicht ladbar:", key); };
       imgs.set(key, e);
-      if (col) fetch(url).then((r) => r.text()).then((t) => { e.img.src = URL.createObjectURL(new Blob([recolor(t, suit, col)], { type: "image/svg+xml" })); }).catch(() => {});
+      if (col) fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then((t) => { e.img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(recolor(t, suit, col)); })
+        .catch(() => { e.err = true; });
       else e.img.src = url;
     }
     return e;
@@ -91,7 +95,9 @@
   function blit(ctx, e, key, x, y, w, h, pix) {
     if (!e.ok) {                                  // noch nicht geladen: schlichter Platzhalter
       ctx.save(); ctx.fillStyle = "#f4f1ea"; ctx.strokeStyle = "rgba(0,0,0,.25)";
-      ctx.beginPath(); ctx.roundRect(x, y, w, h, w * 0.08); ctx.fill(); ctx.stroke(); ctx.restore();
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, y, w, h, w * 0.08); else ctx.rect(x, y, w, h);
+      ctx.fill(); ctx.stroke(); ctx.restore();
       return;
     }
     const m = ctx.getTransform();
@@ -111,12 +117,17 @@
   function face(ctx, x, y, w, h, rank, suit, o = {}) {
     const D = o.deck || current();
     const url = fileOf(D, rank, suit), col = tintOf(D, suit);
-    blit(ctx, load(url, suit, col), col ? url + "|" + col : url, x, y, w, h, D.pixel);
+    let e = load(url, suit, col), key = col ? url + "|" + col : url;
+    // umgefärbte Karte lädt noch (oder ist fehlgeschlagen): solange die Originalfarbe zeigen statt eines leeren Rechtecks
+    if (col && !e.ok) { const e0 = load(url); if (e0.ok) { e = e0; key = url; } }
+    blit(ctx, e, key, x, y, w, h, D.pixel);
   }
   function back(ctx, x, y, w, h, o = {}) {
     const D = o.deck || current();
-    const url = backUrl(D);
-    blit(ctx, load(url), url, x, y, w, h, D.pixel && backIdOf(D) === "own");
+    let url = backUrl(D), e = load(url);
+    // neue Rückseite lädt noch: bis dahin die zuletzt gezeigte Rückseite dieses Blatts
+    if (e.ok) lastBack[D.id] = url; else if (lastBack[D.id]) { const e0 = load(lastBack[D.id]); if (e0.ok) { e = e0; url = lastBack[D.id]; } }
+    blit(ctx, e, url, x, y, w, h, D.pixel && backIdOf(D) === "own");
   }
 
   // ---- Auswahl ----
