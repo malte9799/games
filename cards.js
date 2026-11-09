@@ -11,16 +11,17 @@
   // dir = Ordner unter cards/, ten = Dateiname der Zehn, back = Rückseite (sonst <dir>/1B.svg)
   const BK = (n) => "cards/backs/" + n + ".svg";
   const DECKS = [
-    { id: "standard",   name: "Standard (Goodall)",  dir: "standard",   ten: "T", back: BK("goodall-red") },
-    { id: "plain",      name: "Schlicht",            dir: "plain",      ten: "T", back: BK("illusion-red") },
-    { id: "fourcolour", name: "Vier Farben",         dir: "fourcolour", ten: "T", back: BK("maze-red") },
+    { id: "skat",       name: "Skat (Altenburger Stil)", dir: "skat",     ten: "T", back: BK("skat") },
+    { id: "standard",   name: "Standard (Goodall)",  dir: "standard",   ten: "T", back: BK("d3_red") },
+    { id: "plain",      name: "Schlicht",            dir: "plain",      ten: "T", back: BK("d2_black") },
+    { id: "fourcolour", name: "Vier Farben",         dir: "fourcolour", ten: "T", back: BK("d3_green") },
     { id: "old",        name: "Alter Stil",          dir: "old",        ten: "T" },
-    { id: "blue",       name: "Blau",                dir: "blue",       ten: "T", back: BK("goodall-blue") },
-    { id: "grey",       name: "Grau",                dir: "grey",       ten: "T", back: BK("illusion-grey") },
-    { id: "ghost",      name: "Ghost",               dir: "ghost",      ten: "T", back: BK("maze-grey") },
-    { id: "symmetric",  name: "Symmetrisch",         dir: "symmetric",  ten: "T", back: BK("illusion-blue") },
-    { id: "super",      name: "Großer Index",        dir: "super",      ten: "T", back: BK("maze-blue") },
-    { id: "knoll",      name: "Klassisch (Knoll)",   dir: "knoll",      ten: "10", back: BK("goodall-green") },
+    { id: "blue",       name: "Blau",                dir: "blue",       ten: "T", back: BK("d3_blue") },
+    { id: "grey",       name: "Grau",                dir: "grey",       ten: "T", back: BK("d2_lightblue") },
+    { id: "ghost",      name: "Ghost",               dir: "ghost",      ten: "T", back: BK("d1_black") },
+    { id: "symmetric",  name: "Symmetrisch",         dir: "symmetric",  ten: "T", back: BK("d2_blue") },
+    { id: "super",      name: "Großer Index",        dir: "super",      ten: "T", back: BK("d2_red") },
+    { id: "knoll",      name: "Klassisch (Knoll)",   dir: "knoll",      ten: "10", back: BK("d3_black") },
   ];
 
   const imgs = new Map();     // url -> { img, ok }

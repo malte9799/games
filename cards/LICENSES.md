@@ -5,4 +5,4 @@
   Mit svgo verkleinert.
 - `knoll`: Byron Knoll, "vector-playing-cards" (Public Domain), via https://github.com/notpeter/vector-playing-cards.
   Mit svgo verkleinert.
-- `backs`: Rückseiten (Goodall, Maze, Illusion) aus demselben Generator, CC0, nachgefärbt.
+- `skat`: RevK-Generator (CC0) mit Index in allen vier Ecken; Rückseite `backs/skat.svg` eigene Zeichnung. `backs/d*.svg`: BdRGames, https://opengameart.org/content/playing-cards-back-vector-svg (CC0).
