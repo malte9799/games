@@ -30,6 +30,7 @@ export default {
         get me() { return ctx.me; },
         get isHost() { return ctx.isHost; },
         get hostId() { return ctx.hostId; },
+        get resumed() { return ctx.resumed; },
         get players() { return ctx.players; },
         end: () => ctx.end(),
         leave: () => window.Multiplayer.leave(),
