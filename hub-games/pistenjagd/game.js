@@ -604,7 +604,7 @@ export async function createPiste(env) {
   }
   function simStep() {
     if (phase !== "race" && phase !== "done") return;
-    const inp = finished ? { steer: 0, tuck: false, brake: me.z > course.L + 25 } : readInput();
+    const inp = finished ? { steer: readInput().steer, tuck: false, push: false, brake: me.z > course.L + 25 } : readInput();
     step(me, inp, DT, course, othersFor(me));
     stats.top = Math.max(stats.top, speedOf(me));
     if (!finished && me.crashT <= 0) pickBoxes(me, myInv, true);

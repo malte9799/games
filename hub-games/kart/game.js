@@ -616,6 +616,7 @@ export async function createKart(env) {
   // ---------- Simulation (fester Schritt) ----------
   function simStep() {
     const inp = readInput();
+    if (finished) inp.gas = 0;                                   // im Ziel geht das Gas aus, Lenken bleibt möglich
     if (phase === "race" || phase === "done") {
       if (rescue) rescueStep(DT); else step(me, inp, DT, track, null);      // keine Kart-Kollisionen: Latenz würde sie unfair machen
       if (itemPress) { itemPress = false; if (!rolling && !rescue) useItem(); }
@@ -712,7 +713,7 @@ export async function createKart(env) {
     world.update(dt, time);
     world.render(phase === "menu" ? 30 : 60);
     if (phase !== "menu") { hudUpdate(); checkDone(performance.now()); }
-    sfx.engine(clamp(Math.hypot(me.vx, me.vz) / MAXV, 0, 1.3), readInputGas(), phase === "race" || phase === "done");
+    sfx.engine(clamp(Math.hypot(me.vx, me.vz) / MAXV, 0, 1.3), finished ? 0 : readInputGas(), phase === "race" || phase === "done");
   }
   const readInputGas = () => (keys.has("gas") || tch.gas || (isTouch && tch.auto) ? 1 : 0);
 
