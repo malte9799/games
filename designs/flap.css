@@ -91,7 +91,7 @@ html[data-theme="flap"] #home .hero { position: relative; text-align: left; max-
 html[data-theme="flap"] #home .site-link { position: absolute; z-index: 5; right: 16px; top: 62px; margin: 0; padding: 4px 6px; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #1a1200; font-weight: 600; background: #ffb42a; border-radius: 4px; }
 html[data-theme="flap"] #home .site-link:hover { background: #ffc455; color: #000; }
 .fl-bar { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: #0a0a0b; border-bottom: 2px solid #000; font: 600 13px/1 var(--font); letter-spacing: 0.22em; color: #ffb42a; text-transform: uppercase; }
-.fl-bar span:nth-child(2) { color: #8a7a4f; }
+.fl-bar > span:nth-child(2) { color: #8a7a4f; }
 .fl-bar .grow { flex: 1; }
 .fl-bar .clock { display: flex; align-items: center; gap: 8px; margin-right: 96px; }
 .fl-bar .clock .flrow { --fs: 17px; }
@@ -141,7 +141,7 @@ html[data-theme="flap"] .controls { background: #19191c; }
 html[data-theme="flap"] .info-title { color: #ffb42a; letter-spacing: 0.16em; }
 html[data-theme="flap"] .preset-row select option { background: #1c1c1f; }
 html[data-theme="flap"] .theme-opt:hover { background: #2a2a2e; }
-@media (max-width: 640px) { .fl-bar .clock { margin-right: 0; } html[data-theme="flap"] #home .site-link { top: auto; bottom: 8px; right: 12px; } .fl-bar span:nth-child(2) { display: none; } }
+@media (max-width: 640px) { .fl-bar .clock { margin-right: 0; } html[data-theme="flap"] #home .site-link { top: auto; bottom: 8px; right: 12px; } .fl-bar > span:nth-child(2) { display: none; } }
 @media (prefers-reduced-motion: reduce) { .fl-bar .colon { animation: none; } }
 
 /* primary button keeps its own colours over the design's generic button look */
