@@ -23,6 +23,7 @@ const GAMES = [
   { id: "kniffel",     title: "Kniffel · Yahtzee", desc: "roll · hold · write it down", preview: drawKniffel },
   { id: "kritzel",     title: "Kritzel-Revier",    desc: "kritzle das größte Revier",   preview: drawKritzel },
   { id: "kart",        title: "Kart-Rennen",       desc: "drift · turbo · Bestzeit",    preview: drawKart },
+  { id: "pistenjagd",  title: "Pistenjagd",        desc: "Ski · Snowboard · Schanzen",  preview: drawPistenjagd },
   { id: "battleship", title: "Schiffe versenken", desc: "Flotte aufstellen und feuern, gegen den Computer · drei Stufen", preview: drawBattleship },
 ];
 
@@ -1250,4 +1251,76 @@ function drawKart(p, w, h) {
   p.fill(255); p.textAlign(p.LEFT, p.CENTER); p.textStyle(p.BOLDITALIC); p.textSize(48); p.text("2", 20, 100); p.textSize(20); p.text("/4", 50, 108);
   p.noFill(); p.stroke(255, 255, 255, 230); p.strokeWeight(3.5); p.beginShape(); [[w - 62, 58], [w - 60, 36], [w - 40, 28], [w - 26, 40], [w - 32, 60], [w - 52, 64]].forEach(([x, y]) => p.vertex(x, y)); p.endShape(p.CLOSE);
   p.noStroke(); p.fill(226, 56, 61); p.circle(w - 32, 52, 8);
+}
+
+// Pistenjagd: Blick hinter dem Fahrer den Hang hinunter – Piste mit Netzen, Tannen, Schanze, Gegner voraus, Pulverschnee
+function drawPistenjagd(p, w, h) {
+  previewBg(p, w, h);
+  p.noStroke();
+  const hy = h * 0.34, vx = w * 0.54;
+  // Himmel und Berge
+  p.fill(...PAL.sky, 60); p.rect(0, 0, w, hy);
+  [[0.08, 150, 120], [0.3, 190, 160], [0.62, 230, 140], [0.86, 170, 150]].forEach(([x, bw, bh]) => {
+    p.fill(141, 159, 189); p.triangle(w * x - bw / 2, hy + 4, w * x + bw / 2, hy + 4, w * x, hy - bh * 0.6);
+    p.fill(246, 249, 255); p.triangle(w * x - bw * 0.15, hy - bh * 0.42, w * x + bw * 0.15, hy - bh * 0.42, w * x, hy - bh * 0.6);
+  });
+  // Hang (Tiefschnee) und Piste (präpariert, mit Rillen) – t = 0 Horizont, 1 unten
+  p.fill(224, 233, 246); p.rect(0, hy, w, h - hy);
+  const y = (t) => hy + (h - hy) * t * t;
+  const curve = (t) => Math.sin(t * 2.6) * 40 * (1 - t);
+  const lx = (t) => vx + curve(t) - (12 + w * 0.5 * t * t), rx = (t) => vx + curve(t) + (12 + w * 0.56 * t * t);
+  for (let i = 0; i < 18; i++) {
+    const t0 = Math.max(0.02, i / 18), t1 = (i + 1) / 18;
+    p.fill(i % 2 ? 244 : 236, i % 2 ? 248 : 242, 254);
+    p.quad(lx(t0), y(t0), rx(t0), y(t0), rx(t1), y(t1), lx(t1), y(t1));
+  }
+  // Fangnetze
+  p.strokeWeight(3); p.stroke(...PAL.rose, 210); p.noFill();
+  for (const side of [lx, rx]) { p.beginShape(); for (let i = 0; i <= 18; i++) { const t = Math.max(0.02, i / 18), x = side(t) + (side === lx ? -1 : 1) * 10 * t; p.vertex(x, y(t) - 14 * t); } p.endShape(); }
+  p.noStroke();
+  // Tannen am Rand und eine auf der Piste
+  const tree = (x, yb, s) => {
+    p.fill(31, 94, 60); p.triangle(x - 20 * s, yb - 6 * s, x + 20 * s, yb - 6 * s, x, yb - 40 * s);
+    p.fill(38, 112, 74); p.triangle(x - 15 * s, yb - 26 * s, x + 15 * s, yb - 26 * s, x, yb - 58 * s);
+    p.fill(244, 248, 254); p.triangle(x - 6 * s, yb - 50 * s, x + 6 * s, yb - 50 * s, x, yb - 58 * s);
+    p.fill(91, 59, 38); p.rect(x - 2.5 * s, yb - 6 * s, 5 * s, 6 * s);
+  };
+  [[0.1, -1], [0.18, 1], [0.27, -1], [0.38, 1], [0.5, -1], [0.62, 1], [0.78, -1], [0.92, 1]].forEach(([t, s]) => {
+    const x = (s < 0 ? lx(t) : rx(t)) + s * (24 + 40 * t);
+    tree(x, y(t), 0.3 + t * 1.1); tree(x + s * (30 + 60 * t), y(t) - 4, 0.25 + t * 0.9);
+  });
+  tree(vx + curve(0.42) - w * 0.1, y(0.42), 0.62);
+  // Schanze mit farbiger Kante und Fähnchen
+  const st = 0.3, sx = vx + curve(st) + w * 0.03, sy = y(st);
+  p.fill(250, 252, 255); p.quad(sx - 26, sy + 10, sx + 26, sy + 10, sx + 22, sy - 4, sx - 22, sy - 4);
+  p.fill(...PAL.sun); p.rect(sx - 23, sy - 6, 46, 4, 2);
+  [-1, 1].forEach((s) => { p.fill(60, 64, 80); p.rect(sx + s * 32 - 1, sy - 22, 2, 26); p.fill(...PAL.sun); p.rect(sx + s * 32, sy - 22, 9, 6); });
+  // Zieltor am Horizont
+  const gy = y(0.07);
+  p.fill(...PAL.rose); p.rect(lx(0.07) - 2, gy - 22, 3, 22); p.rect(rx(0.07) - 1, gy - 22, 3, 22); p.rect(lx(0.07) - 2, gy - 26, rx(0.07) - lx(0.07) + 4, 6, 1);
+  // Fahrer
+  const rider = (x, yb, s, col, board, lean) => {
+    p.push(); p.translate(x, yb); p.rotate(lean);
+    p.fill(36, 50, 74, 50); p.ellipse(0, 2 * s, 46 * s, 9 * s);
+    if (board) { p.fill(250); p.rect(-24 * s, -3 * s, 48 * s, 6 * s, 3 * s); }
+    else { p.fill(250); p.rect(-15 * s, -3 * s, 6 * s, 8 * s, 2 * s); p.rect(9 * s, -3 * s, 6 * s, 8 * s, 2 * s); }
+    p.fill(46, 52, 69); p.rect(-11 * s, -26 * s, 9 * s, 24 * s, 2 * s); p.rect(2 * s, -26 * s, 9 * s, 24 * s, 2 * s);
+    p.fill(...col); p.rect(-14 * s, -48 * s, 28 * s, 26 * s, 5 * s);
+    p.rect(-21 * s, -46 * s, 8 * s, 18 * s, 3 * s); p.rect(13 * s, -46 * s, 8 * s, 18 * s, 3 * s);
+    p.fill(...col.map((v) => v * 0.75)); p.arc(0, -54 * s, 22 * s, 22 * s, p.PI, p.TWO_PI); p.rect(-11 * s, -55 * s, 22 * s, 6 * s, 2 * s);
+    if (!board) { p.stroke(35, 38, 47); p.strokeWeight(2 * s); p.line(-19 * s, -30 * s, -26 * s, 0); p.line(19 * s, -30 * s, 26 * s, 0); p.noStroke(); }
+    p.pop();
+  };
+  rider(vx + curve(0.36) + w * 0.12, y(0.36), 0.42, PAL.sky, true, 0.15);
+  // Pulverschnee hinter dem eigenen Fahrer
+  const mx = w * 0.43, my = h * 0.93;
+  for (let i = 0; i < 26; i++) { const a = i * 2.39, r = 8 + (i * 7) % 46; p.fill(214, 226, 242, 200 - i * 5); p.circle(mx + 30 + Math.cos(a) * r * 1.3, my - 6 - Math.abs(Math.sin(a)) * r * 0.7, 10 - i * 0.25); }
+  rider(mx, my, 1.55, PAL.rose, false, -0.22);
+  // HUD: Zeit und Tempo
+  p.fill(10, 14, 30, 150); p.rect(w / 2 - 62, 12, 124, 34, 10); p.rect(w - 120, h - 52, 106, 40, 10);
+  p.fill(255); p.textAlign(p.CENTER, p.CENTER); p.textStyle(p.BOLD); p.textSize(20); p.text("0:48.31", w / 2, 30);
+  p.textAlign(p.RIGHT, p.CENTER); p.textStyle(p.BOLDITALIC); p.textSize(24); p.text("94", w - 54, h - 32); p.textSize(11); p.text("km/h", w - 22, h - 28);
+  // Fortschritt rechts
+  p.fill(10, 14, 30, 120); p.rect(w - 20, 70, 6, h - 140, 3);
+  p.fill(...PAL.sky); p.circle(w - 17, 70 + (h - 140) * 0.66, 9); p.fill(...PAL.rose); p.circle(w - 17, 70 + (h - 140) * 0.6, 12);
 }
