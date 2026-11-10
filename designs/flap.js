@@ -13,18 +13,43 @@ function _flNorm(s) {
 function _flTile(ch) {
   const t = document.createElement("span");
   t.className = "fl"; t.dataset.c = ch;
-  t.innerHTML = '<span class="t"><i></i></span><span class="b"><i></i></span><span class="ft"><i></i></span><span class="fb"><i></i></span>';
-  t._i = [...t.querySelectorAll("i")]; // t, b, ft, fb
+  t.innerHTML = '<span class="t"><i></i></span><span class="b"><i></i></span>';
+  t._i = [...t.querySelectorAll("i")]; // t, b  (the two moving flaps are added only while the tile is flipping)
   t._i.forEach((i) => { i.textContent = ch; });
   return t;
 }
 
+// the moving flaps exist only while a tile flips — an idle board is 5 nodes per tile instead of 9
+function _flFlaps(tile) {
+  if (!tile._ft) {
+    const ft = document.createElement("span"), fb = document.createElement("span");
+    ft.className = "ft"; fb.className = "fb"; ft.innerHTML = fb.innerHTML = "<i></i>";
+    tile.append(ft, fb); tile._ft = ft; tile._fb = fb;
+  }
+  return [tile._ft, tile._fb];
+}
+function _flDropFlaps(tile) {
+  if (tile._ft) { tile._ft.remove(); tile._fb.remove(); tile._ft = tile._fb = null; }
+}
+
+// Flip with the Web Animations API: no class toggling + forced reflow (`void offsetWidth`) per flip, which made
+// every flip a synchronous layout of the whole page (≈1.5 ms each, ~2 s of blocked main thread for a full board).
 function _flipOnce(tile, next, done) {
-  const [ti, bi, fti, fbi] = tile._i, old = tile.dataset.c;
-  ti.textContent = next; fti.textContent = old; bi.textContent = old; fbi.textContent = next;
-  tile.classList.remove("go"); void tile.offsetWidth; tile.classList.add("go");
+  const [ti, bi] = tile._i, old = tile.dataset.c;
+  const [ft, fb] = _flFlaps(tile);
+  if (tile._anims) tile._anims.forEach((a) => a.cancel());
+  ti.textContent = next; ft.firstChild.textContent = old; bi.textContent = old; fb.firstChild.textContent = next;
+  tile.classList.add("go");
+  tile._anims = [
+    ft.animate([{ transform: "rotateX(0)" }, { transform: "rotateX(-90deg)" }], { duration: 70, easing: "ease-in", fill: "forwards" }),
+    fb.animate([{ transform: "rotateX(90deg)" }, { transform: "rotateX(0)" }], { duration: 70, delay: 70, easing: "ease-out", fill: "both" }),
+  ];
   tile.dataset.c = next;
-  setTimeout(() => { bi.textContent = next; tile.classList.remove("go"); if (done) done(); }, _FL_STEP);
+  setTimeout(() => {
+    bi.textContent = next; tile.classList.remove("go");
+    if (tile._anims) { tile._anims.forEach((a) => a.cancel()); tile._anims = null; }
+    if (done) done();
+  }, _FL_STEP);
 }
 
 // run the tile through (up to `steps`) characters ending on `target`
@@ -37,7 +62,7 @@ function _flSettle(tile, target, steps, delay) {
   const seq = [];
   for (let k = n - 1; k >= 0; k--) seq.push(_FL_SET[(tgt - k + L) % L]);
   let i = 0;
-  const next = () => { if (tile._run !== run || i >= seq.length) return; _flipOnce(tile, seq[i++], next); };
+  const next = () => { if (tile._run !== run) return; if (i >= seq.length) { _flDropFlaps(tile); return; } _flipOnce(tile, seq[i++], next); };
   setTimeout(() => { if (tile._run === run) next(); }, delay);
 }
 
@@ -129,18 +154,17 @@ DESIGN_FX.flap = {
   card(el) {
     const tEl = el.querySelector(".card-title"), dEl = el.querySelector(".card-desc");
     if (!tEl || !dEl) return;
-    // tiles are built only when the card is near the viewport, not all at page load
-    let title = null, desc = null;
-    const build = () => {
-      if (title) return;
-      title = _flRow(tEl, tEl.textContent, {});
-      desc = _flRow(dEl, dEl.textContent, { cls: "amber" });
-    };
-    const go = () => { build(); title.play(9, 55, 80); desc.play(5, 16, 400); };
+    // title tiles are built only when the card is near the viewport. The description stays plain text (a tile per
+    // character made ~1400 extra tiles / 12k nodes on the hub) and just reveals left to right.
+    let title = null;
+    dEl.classList.add("fl-desc");
+    const build = () => { if (!title) title = _flRow(tEl, tEl.textContent, {}); };
+    const go = () => { build(); title.play(9, 55, 80); setTimeout(() => dEl.classList.add("on"), 400); };
     if ("IntersectionObserver" in window) {
       const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); go(); } }, { threshold: 0.25, rootMargin: "200px" });
       io.observe(el);
     } else go();
     el.addEventListener("pointerenter", () => { if (title) title.shuffle(4); });
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) dEl.classList.add("on");
   },
 };
