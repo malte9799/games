@@ -440,6 +440,61 @@ function drawPanzer(p, w, h) {
   p.fill(...PAL.sky); p.rect(w / 2 - 112, 30, 100, 6, 3); p.fill(...PAL.rose); p.rect(w / 2 + 12, 30, 70, 6, 3);
 }
 
+function drawKaboom(p, w, h) {
+  // KABOOM (hub-games/kaboom.js): mid-round snapshot — a fresh bomb, a flame cross, three players, extras
+  previewBg(p, w, h);
+  p.noStroke();
+  const C = 15, R = 11, cs = 28, ox = (w - C * cs) / 2, oy = (h - R * cs) / 2;
+  const rows = [                                          // x = 1…13 of rows 1…9; walls come from the pattern
+    "....CC.C.CC..", ".WCW.WCW.WCW.", "CC.C.C...C.CC", ".WCWCW.W.WCW.", "C.CC.C.....C.",
+    ".W.WCWCW.WCWC", "CC.C..C......", ".WCW.WCWCW.W.", ".CC...CC.C...",
+  ];
+  const wall = (x, y) => x === 0 || y === 0 || x === C - 1 || y === R - 1 || (x % 2 === 0 && y % 2 === 0);
+  const dk = (c, f) => c.map((v) => v * (1 - f)), lt = (c, f) => c.map((v) => v + (255 - v) * f);
+  for (let y = 0; y < R; y++) for (let x = 0; x < C; x++) {
+    const X = ox + x * cs, Y = oy + y * cs;
+    p.fill(...((x + y) % 2 ? PAL.well : PAL.board)); p.rect(X, Y, cs, cs);
+    if (wall(x, y)) {
+      p.fill(...PAL.panelHi); p.rect(X, Y, cs, cs);
+      p.fill(...lt(PAL.panelHi, 0.16)); p.rect(X, Y, cs, 4);
+      p.fill(...PAL.line); p.rect(X, Y + cs - 6, cs, 6);
+    } else if (y >= 1 && y <= 9 && rows[y - 1][x - 1] === "C") {
+      p.fill(...dk(PAL.peach, 0.5)); p.rect(X + 3, Y + 2, cs - 6, cs - 5, 5);
+      p.fill(...PAL.peach); p.rect(X + 5, Y + 4, cs - 10, cs - 9, 3);
+      p.fill(...dk(PAL.peach, 0.35)); p.rect(X + 4, Y + 8, cs - 8, 3); p.rect(X + 4, Y + cs - 11, cs - 8, 3);
+    }
+  }
+  const at = (x, y) => [ox + x * cs + cs / 2, oy + y * cs + cs / 2];
+  // flame cross around (9, 5), range 2
+  const [fx, fy] = at(9, 5);
+  for (const [col, hw] of [[PAL.rose, 12], [PAL.sun, 8], [PAL.sunHi, 4]]) {
+    p.fill(...col);
+    p.rect(fx - 2 * cs - cs / 2 + 4, fy - hw, 5 * cs - 8, hw * 2, hw);
+    p.rect(fx - hw, fy - 2 * cs - cs / 2 + 4, hw * 2, 5 * cs - 8, hw);
+  }
+  // extras
+  const item = (x, y, col) => { const [cx, cy] = at(x, y); p.fill(...PAL.lineHi); p.rect(cx - 12, cy - 12, 24, 24, 4); p.fill(...PAL.panel); p.rect(cx - 10, cy - 10, 20, 20, 3); p.fill(...col); p.circle(cx, cy, 11); };
+  item(7, 3, PAL.rose); item(5, 7, PAL.sky); item(12, 9, PAL.mine);
+  // a fresh bomb next to mint
+  const [bx, by] = at(3, 1);
+  p.fill(...dk(PAL.mine, 0.5)); p.circle(bx, by + 1, 22); p.fill(...PAL.mine); p.circle(bx, by + 1, 18);
+  p.fill(...PAL.mineHi); p.circle(bx - 4, by - 3, 5);
+  p.stroke(...PAL.muted); p.strokeWeight(2); p.line(bx + 4, by - 8, bx + 8, by - 13); p.noStroke();
+  p.fill(...PAL.sunHi); p.circle(bx + 9, by - 14, 5); p.fill(...PAL.sun, 160); p.circle(bx + 9, by - 14, 9);
+  // players
+  const guy = (x, y, col, dir) => {
+    const [cx, cy] = at(x, y);
+    p.fill(0, 0, 0, 50); p.ellipse(cx, cy + 11, 20, 5);
+    p.fill(...dk(col, 0.55)); p.rect(cx - 10, cy - 11, 20, 21, 8);
+    p.fill(...col); p.rect(cx - 8, cy - 9, 16, 17, 6);
+    p.fill(...lt(col, 0.45)); p.rect(cx - 6, cy - 7, 3, 4, 1);
+    p.fill(...lt(col, 0.92)); p.rect(cx - 5 + dir * 2, cy - 3, 4, 5, 1); p.rect(cx + 1 + dir * 2, cy - 3, 4, 5, 1);
+    p.fill(...dk(col, 0.82)); p.rect(cx - 5 + dir * 3, cy, 2, 2); p.rect(cx + 1 + dir * 3, cy, 2, 2);
+    p.fill(...dk(col, 0.55)); p.rect(cx - 1, cy - 16, 2, 5); p.fill(...lt(col, 0.45)); p.circle(cx, cy - 17, 5);
+  };
+  guy(1, 2, PAL.mint, 0); guy(11, 7, PAL.sky, -1); guy(5, 9, PAL.rose, 1);
+}
+
 function drawFlood(p, w, h) {
   previewBg(p, w, h);
   const N = 10, cs = 26, SW = 44;
