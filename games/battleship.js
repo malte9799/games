@@ -6,7 +6,8 @@
 // seinen ctx als `net` durch.
 //
 // Ablauf: Flotte aufstellen (Drag & Drop, R / Rechtsklick / Klick dreht) → abwechselnd feuern → Flotte versenkt.
-// Regeln: 10×10, 5 Schiffe (5-4-3-3-2), Schiffe dürfen sich nicht berühren, es wird immer abwechselnd geschossen.
+// Regeln: 10×10, 5 Schiffe (5-4-3-3-2), Schiffe dürfen sich nicht berühren. Wer trifft (oder versenkt), schießt
+// gleich nochmal – erst bei Wasser wechselt das Recht. Versenkte Schiffe werden angesagt; wer zuerst alle hat, gewinnt.
 //
 // Mehrspieler: Jede Seite hält ihre Flotte geheim. Der Schütze schickt "shot", der Verteidiger antwortet mit
 // "res" (Wasser / Treffer / versenkt + Schiff). Erst wenn die Flotte fällt, gibt der Verlierer sie zur Kontrolle preis.
@@ -504,6 +505,7 @@ window.createBattleship = (env = {}) => {
     dock.innerHTML = `<h3>Deine Flotte</h3><div class="bs-fl">${cards}</div>
       <div class="bs-row"><button type="button" data-a="rot" ${ready ? "disabled" : ""} title="Taste R · Rechtsklick">⟳ Drehen</button><button type="button" data-a="rnd" ${ready ? "disabled" : ""}>🎲 Zufällig</button><button type="button" data-a="clr" ${ready || !S.placed.length ? "disabled" : ""}>Leeren</button></div>
       ${HUB ? "" : `<div class="bs-lv"><span>Gegner</span><div class="bs-seg" role="radiogroup">${Object.entries(LEVELS).map(([k, v]) => `<button type="button" role="radio" aria-checked="${S.level === k}" data-lv="${k}" class="${S.level === k ? "on" : ""}">${v}</button>`).join("")}</div></div>`}
+      <ul class="bs-rules"><li>Treffer oder versenkt: du schießt nochmal</li><li>Wasser: der Gegner ist dran</li><li>Schiffe dürfen sich nicht berühren</li><li>Wer zuerst alle Schiffe versenkt, gewinnt</li></ul>
       <button type="button" class="primary bs-go" data-a="ready" ${!complete() || ready || !live ? "disabled" : ""}>${ready ? "Warte auf " + esc(foeName()) + " …" : HUB ? "Bereit" : "Schlacht beginnen"}</button>
       <p class="bs-note" id="bs-note"></p>`;
     const cnt = view.querySelector("#bs-count"); if (cnt) cnt.textContent = `${S.placed.length} / ${FLEET.length} platziert`;
@@ -609,7 +611,7 @@ window.createBattleship = (env = {}) => {
   function enterBattle(first) {
     root.scrollTop = 0; S.phase = "battle"; S.mine = fresh(S.placed); S.myGrid = grid(); S.foeGrid = grid(); S.foeSunk = []; S.log = []; S.aim = null; S.over = null; S.overOpen = false;
     S.foeShips = HUB ? [] : fresh(randomFleet()); S.ai = HUB ? null : makeAI(S.level);
-    S.turn = first; S.busy = false; S.pending = null; S.inbox = []; S.reveal = []; S.stats = { shots: 0, hits: 0, t0: Date.now(), t1: 0 };
+    S.turn = first; S.chain = false; S.busy = false; S.pending = null; S.inbox = []; S.reveal = []; S.stats = { shots: 0, hits: 0, t0: Date.now(), t1: 0 };
     boardMine.clearMarks(); boardMine.setShips(S.mine); boardMine.ghost(null);
     boardFoe = makeBoard("foe");
     view.innerHTML = `<div class="bs-battle">
@@ -657,10 +659,10 @@ window.createBattleship = (env = {}) => {
       t.innerHTML = `<span class="ic">${w ? "🏆" : "⚓"}</span><div><b>${w ? "Sieg!" : "Niederlage"}</b><small>${esc((S.over && S.over.text) || "")}</small></div><span class="sp"></span>${S.over && S.over.again !== false ? `<button type="button" class="primary" data-a="again">${HUB ? "Revanche" : "Nochmal"}</button>` : ""}`;
     } else if (mine) {
       t.className = "bs-turn me";
-      t.innerHTML = `<span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg></span><div><b>Du bist dran</b><small>Wähle ein Ziel auf dem gegnerischen Feld</small></div>`;
+      t.innerHTML = `<span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg></span><div><b>${S.chain ? "Treffer! Nochmal dran" : "Du bist dran"}</b><small>${S.chain ? "Wer trifft, darf gleich weiterschießen" : "Wähle ein Ziel auf dem gegnerischen Feld"}</small></div>`;
     } else {
       t.className = "bs-turn foe";
-      t.innerHTML = `<span class="ic wait"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 12L19 7"/></svg></span><div><b>${esc(foeName())} zielt<span class="dots"><i>.</i><i>.</i><i>.</i></span></b><small>Dein Feld wird beschossen</small></div>`;
+      t.innerHTML = `<span class="ic wait"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 12L19 7"/></svg></span><div><b>${esc(foeName())} ${S.chain ? "hat getroffen und zielt nochmal" : "zielt"}<span class="dots"><i>.</i><i>.</i><i>.</i></span></b><small>Dein Feld wird beschossen</small></div>`;
     }
   }
   function renderAim() {
@@ -714,7 +716,8 @@ window.createBattleship = (env = {}) => {
   function afterMyShot(res) {
     S.busy = false;
     if (S.foeSunk.length === FLEET.length || (res && res.over)) { finish(true, "Die gegnerische Flotte ist versenkt."); return; }
-    S.turn = "foe"; renderTurn(); renderAim();
+    if (res.r !== "miss") { S.chain = true; renderTurn(); renderAim(); return; }     // Treffer → nochmal dran
+    S.chain = false; S.turn = "foe"; renderTurn(); renderAim();
     if (!HUB) aiTurn(); else drainInbox();
   }
   async function aiTurn() {
@@ -726,7 +729,8 @@ window.createBattleship = (env = {}) => {
     S.ai.feed(x, y, res);
     if (!await playShot("foe", x, y, res, lockP, rd)) return;
     if (S.mine.every((s) => s.sunk)) { finish(false, "Deine Flotte ist versenkt."); return; }
-    S.turn = "me"; renderTurn(); renderAim();
+    if (res.r !== "miss") { S.chain = true; renderTurn(); return aiTurn(); }          // Treffer → Computer schießt nochmal
+    S.chain = false; S.turn = "me"; renderTurn(); renderAim();
   }
 
   function finish(win, text) {
@@ -884,7 +888,8 @@ window.createBattleship = (env = {}) => {
     if (!ok) return;
     S.busy = false;
     if (over) { finish(false, `${foeName()} hat deine Flotte versenkt.`); return; }
-    S.turn = "me"; renderTurn(); renderAim();
+    if (res.r !== "miss") { S.chain = true; renderTurn(); drainInbox(); return; }       // Gegner trifft → er schießt nochmal
+    S.chain = false; S.turn = "me"; renderTurn(); renderAim();
   }
   const drainInbox = () => { const d = S.inbox.shift(); if (d) onShot(d); };
   async function onRes({ x, y, k: r, ship, over, fleet }) {
@@ -1036,6 +1041,7 @@ function CSS_TEXT() {
 .bs-seg button{padding:6px 12px;border-radius:99px;border:0;background:transparent;font-size:13px;box-shadow:none}
 .bs-seg button.on{background:var(--accent);color:var(--onAccent,#14122a)}
 .bs-go{padding:14px;font-size:16px;font-weight:700}
+.bs-rules{margin:0;padding:0 0 0 18px;color:var(--muted);font-size:13px;display:grid;gap:3px}
 .bs-note{margin:0;min-height:1.3em;color:var(--muted);font-size:13px;text-align:center}
 /* Kampf */
 .bs-battle{display:flex;flex-direction:column;gap:14px}
