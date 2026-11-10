@@ -432,7 +432,7 @@ body.hub-game-open { overflow-x: hidden; }
 @media (pointer: coarse) { .pz-pad { display: flex; } }
 
 /* KABOOM (hub-games/kaboom.js): pixel field, player chips above, HTML overlays on top of the canvas */
-.kb { width: 100%; max-width: max(320px, calc((100dvh - 250px) * 15 / 11)); margin: 0 auto; display: grid; gap: 10px; --kb-c0: var(--mint); --kb-c1: var(--sky); --kb-c2: var(--rose); --kb-c3: var(--lilac); }
+.kb { width: 100%; max-width: max(320px, calc((100dvh - 250px) * 15 / 11)); margin: 0 auto; display: grid; gap: 10px; --kb-c0: var(--rose); --kb-c1: var(--sky); --kb-c2: var(--mint); --kb-c3: var(--sun); }
 .kb-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; }
 .kb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .kb-chip { display: flex; align-items: center; gap: 7px; padding: 3px 10px 3px 4px; border-radius: 999px; border: var(--border-w) solid var(--hairline); background: var(--chip-bg); font-size: 13px; transition: opacity .2s, border-color .2s; }
@@ -449,6 +449,7 @@ body.hub-game-open { overflow-x: hidden; }
 .kb-info button { padding: 4px 12px; font-size: 13px; }
 .kb-stage { position: relative; }
 .kb-cv { display: block; width: 100%; aspect-ratio: 15 / 11; image-rendering: pixelated; border-radius: var(--r-md); background: var(--board); box-shadow: var(--wrap-shadow); user-select: none; -webkit-user-select: none; }
+.kb-names { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .kb-ov { position: absolute; inset: 0; display: grid; place-items: center; padding: 14px; pointer-events: none; }
 .kb-ov > * { pointer-events: auto; }
 .kb-card { width: min(420px, 100%); box-sizing: border-box; display: grid; gap: 12px; padding: 18px 20px; text-align: center; color: var(--ink); background: color-mix(in srgb, var(--panel) 94%, transparent); border: var(--border-w) solid var(--panel-edge); border-radius: var(--r-lg); box-shadow: var(--wrap-shadow); }

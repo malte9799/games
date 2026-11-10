@@ -34,7 +34,7 @@ const EMPTY = 0, WALL = 1, CRATE = 2;
 const CRATE_RATE = 0.7, ITEM_RATE = 0.3;
 const FIRE = 1, BOMB = 2, SHOE = 3;              // Extras
 const SPAWNS = [[1, 1], [COLS - 2, ROWS - 2], [COLS - 2, 1], [1, ROWS - 2]];
-const COLKEYS = ["mint", "sky", "rose", "lilac"];
+const COLKEYS = ["rose", "sky", "mint", "sun"];          // rot, blau, grün, gelb – möglichst weit auseinander
 const BOT_NAMES = ["Bot Rudi", "Bot Funki", "Bot Zisch", "Bot Knalli"];
 const DIRS = [[0, 1], [0, -1], [-1, 0], [1, 0]]; // runter, hoch, links, rechts
 
@@ -224,12 +224,14 @@ export default {
       <div class="kb-bar"></div>
       <div class="kb-stage">
         <canvas class="kb-cv" width="${BW}" height="${BH}" aria-label="KABOOM Spielfeld"></canvas>
+        <canvas class="kb-names" aria-hidden="true"></canvas>
         <div class="kb-ov"></div>
       </div>
       <p class="kb-help">Pfeiltasten / WASD laufen · Leertaste Bombe · M Ton an/aus</p>
     </div>`;
     const wrap = root.querySelector(".kb"), bar = root.querySelector(".kb-bar"), ov = root.querySelector(".kb-ov");
     const cv = root.querySelector(".kb-cv"), g = cv.getContext("2d");
+    const nc = root.querySelector(".kb-names"), ng = nc.getContext("2d");      // scharfe Ebene für die Namensschilder
 
     // ================== Zustand (auf jedem Client) ==================
     let phase = "ready", pl = 0, round = 0, seed = 1, target = 3, roundWinner = -2, matchWinner = -1;
@@ -281,13 +283,16 @@ export default {
       let a = h ? s.x : s.y, c = h ? s.y : s.x;
       const free = (ma, mc) => !blocked(h ? ma : mc, h ? mc : ma, si);
       const ra = Math.round(a), rc = Math.round(c), off = c - rc;
+      // beim Rutschen in eine Spur müssen ALLE Felder frei sein, die die Figur längs gerade überlappt
+      const a0 = Math.floor(a + 1e-6), a1 = Math.ceil(a - 1e-6);
+      const laneOk = (l) => free(a0, l) && free(a1, l);
       let moved = false;
       if (Math.abs(off) > 0.001) {
         let lane = null;
-        if (free(ra + d, rc)) lane = rc;
+        if (free(ra + d, rc) && laneOk(rc)) lane = rc;
         else {
           const o = rc + Math.sign(off);
-          if (Math.abs(off) > 0.15 && free(ra + d, o) && free(ra, o)) lane = o;
+          if (Math.abs(off) > 0.15 && free(ra + d, o) && laneOk(o)) lane = o;
         }
         if (lane === null) { s.mov = false; return; }
         const step = Math.min(Math.abs(lane - c), dist);
@@ -304,6 +309,18 @@ export default {
       if (Math.abs(na - a) > 1e-5) moved = true;
       if (h) { s.x = na; s.y = c; } else { s.y = na; s.x = c; }
       s.mov = moved;
+    }
+    // Sicherheitsnetz: steckt eine Figur (z. B. nach einer Korrektur) teilweise in einem Block oder Fass,
+    // wird sie auf das nächste freie der überlappten Felder gesetzt
+    function unstick(s) {
+      const xs = [Math.floor(s.x + 1e-6), Math.ceil(s.x - 1e-6)], ys = [Math.floor(s.y + 1e-6), Math.ceil(s.y - 1e-6)];
+      let stuck = false, best = null, bd = 9;
+      for (const x of xs) for (const y of ys) {
+        if (x < 0 || y < 0 || x >= COLS || y >= ROWS || grid[idx(x, y)] !== EMPTY) { stuck = true; continue; }
+        const d = Math.hypot(s.x - x, s.y - y);
+        if (d < bd) { bd = d; best = [x, y]; }
+      }
+      if (stuck && best) { s.x = s.px = best[0]; s.y = s.py = best[1]; }
     }
     function updatePass() {
       for (const b of bombs) for (const k of b.pass) { const s = seats[k]; if (!s || !s.alive || !overlaps(s, b.x, b.y)) b.pass.delete(k); }
@@ -428,8 +445,11 @@ export default {
       grid = genGrid(seed);
       items.fill(0); hidden.fill(0); flameT.fill(0); flameK.fill(0);
       bombs = []; fx = []; feed = [];
+      // Startecken jede Runde neu verlosen; zu zweit immer diagonal gegenüber (zufällige Diagonale)
+      const corners = act.length === 2 ? (Math.random() < 0.5 ? [SPAWNS[0], SPAWNS[1]] : [SPAWNS[2], SPAWNS[3]]) : SPAWNS.slice();
+      for (let k = corners.length - 1; k > 0; k--) { const j = (Math.random() * (k + 1)) | 0; [corners[k], corners[j]] = [corners[j], corners[k]]; }
       act.forEach((s, k) => {
-        const [x, y] = SPAWNS[k];
+        const [x, y] = corners[k];
         Object.assign(s, { x, y, px: x, py: y, dir: 0, mov: false, alive: true, range: RANGE0, bombs: BOMBS0, shoes: 0, in: -1, want: 0, ai: null, dieT: 0 });
       });
       staticDirty = true;
@@ -464,6 +484,7 @@ export default {
         seats.forEach((s, si) => {
           s.px = s.x; s.py = s.y;
           if (!s.alive || s.gone) { s.mov = false; return; }
+          unstick(s);
           if (s.bot) botTick(s, si, dt);
           moveSeat(s, si, s.in, speedOf(s) * dt, s.bot ? botLimit(s) : Infinity);
         });
@@ -724,7 +745,7 @@ export default {
       if (me && me.alive && playing()) {
         const ex = snap.x[meK] - me.x, ey = snap.y[meK] - me.y, e = Math.hypot(ex, ey);
         if (e > 1.2) { me.x = me.px = snap.x[meK]; me.y = me.py = snap.y[meK]; }
-        else if (idleT > 0.25 && e > 0.01) { me.x += ex * 0.25; me.y += ey * 0.25; }
+        else if (idleT > 0.25 && e > 0.01) { me.x = me.px = snap.x[meK]; me.y = me.py = snap.y[meK]; }   // Host-Positionen sind immer gültig
       }
     });
     ctx.onMessage("b", ({ from, data: d }) => {
@@ -836,6 +857,7 @@ export default {
     function guestStep(dt) {
       const me = meSeat(), meK = meIdx();
       if (playing() && me && me.alive) {
+        unstick(me);
         me.px = me.x; me.py = me.y;
         const d = localDir();
         moveSeat(me, meK, d, speedOf(me) * dt);
@@ -948,8 +970,7 @@ export default {
       icons = {};
       for (const t of [FIRE, BOMB, SHOE]) icons[t] = S.icon[t].toDataURL();
       avatars = S.pl.map((dirs) => canvasOf(14, 14, (c) => c.drawImage(dirs[0][0], -1, -1)).toDataURL());
-      wrap.style.setProperty("--kb-c0", rgb(PAL.mint)); wrap.style.setProperty("--kb-c1", rgb(PAL.sky));
-      wrap.style.setProperty("--kb-c2", rgb(PAL.rose)); wrap.style.setProperty("--kb-c3", rgb(PAL.lilac));
+      COLKEYS.forEach((key, k) => wrap.style.setProperty("--kb-c" + k, rgb(PAL[key])));
       staticDirty = true; uiKey = "";
     }
     const onTheme = () => buildSprites();
@@ -1069,11 +1090,6 @@ export default {
         const img = spr.pl[s.c % 4][s.dir][frame];
         if (s.alive) {
           g.drawImage(img, X, Y - (s.mov && frame ? 1 : 0));
-          if (s === me) {                                      // Pfeil über der eigenen Figur
-            const by = Y - 6 + Math.round(Math.sin(now / 180) * 1.2);
-            g.fillStyle = rgb(PAL.sun);
-            g.fillRect(X + 5, by, 6, 1); g.fillRect(X + 6, by + 1, 4, 1); g.fillRect(X + 7, by + 2, 2, 1);
-          }
         } else if (s.dieT > 0 && ((now / 60) | 0) % 2 === 0) {
           g.globalAlpha = s.dieT;
           g.drawImage(img, X, Y - Math.round((1 - s.dieT) * 8));
@@ -1088,6 +1104,35 @@ export default {
       }
       g.globalAlpha = 1;
       g.setTransform(1, 0, 0, 1, 0, 0);
+      drawNames(list.filter((o) => o.s.alive), me, sh, sv);
+    }
+
+    // Namensschilder über den Figuren, in echter Bildschirmauflösung (nicht im Pixel-Puffer)
+    function drawNames(list, me, sh, sv) {
+      const w = cv.clientWidth, h = cv.clientHeight;
+      if (!w || !h) return;
+      const dpr = Math.min(2, window.devicePixelRatio || 1), W2 = Math.round(w * dpr), H2 = Math.round(h * dpr);
+      if (nc.width !== W2 || nc.height !== H2) { nc.width = W2; nc.height = H2; }
+      ng.setTransform(1, 0, 0, 1, 0, 0);
+      ng.clearRect(0, 0, W2, H2);
+      if (!list.length) return;
+      const k = W2 / BW, fs = Math.round(clamp(w / 62, 9, 13) * dpr), padX = 5 * dpr, ph = fs + 5 * dpr;
+      const font = typeof FONT === "string" ? `"${FONT}", system-ui, sans-serif` : "system-ui, sans-serif";
+      ng.font = `700 ${fs}px ${font}`;
+      ng.textAlign = "center"; ng.textBaseline = "middle";
+      for (const { s, p } of list) {
+        const txt = s.name.length > 12 ? s.name.slice(0, 11) + "…" : s.name;
+        const cx = (p[0] * PX + 8 + sh) * k, bottom = (p[1] * PX - 2 + sv) * k;
+        const tw = ng.measureText(txt).width + padX * 2, x0 = clamp(cx - tw / 2, 2, W2 - tw - 2), y0 = Math.max(2, bottom - ph);
+        const col = PAL[COLKEYS[s.c % 4]];
+        ng.beginPath();
+        if (ng.roundRect) ng.roundRect(x0, y0, tw, ph, ph / 2); else ng.rect(x0, y0, tw, ph);
+        ng.fillStyle = "rgba(0,0,0,.62)"; ng.fill();
+        ng.lineWidth = (s === me ? 2 : 1) * dpr;
+        ng.strokeStyle = s === me ? rgb(PAL.sunHi) : rgb(col, 0.9); ng.stroke();
+        ng.fillStyle = rgb(lite(col, 0.3));
+        ng.fillText(txt, x0 + tw / 2, y0 + ph / 2 + 0.5 * dpr);
+      }
     }
 
     // ================== HTML: Spielerleiste & Einblendungen ==================
