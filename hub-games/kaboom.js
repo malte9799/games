@@ -246,14 +246,32 @@ export default {
     const root = kit.body;
     root.innerHTML = `<div class="kb">
       <div class="kb-bar"></div>
-      <div class="kb-stage">
-        <canvas class="kb-cv" width="${BW}" height="${BH}" aria-label="KABOOM Spielfeld"></canvas>
-        <canvas class="kb-names" aria-hidden="true"></canvas>
-        <div class="kb-ov"></div>
+      <div class="kb-play">
+        <div class="kb-dpad" aria-hidden="true"><span class="kb-d u"></span><span class="kb-d d"></span><span class="kb-d l"></span><span class="kb-d r"></span><span class="kb-knob"></span></div>
+        <div class="kb-stage">
+          <canvas class="kb-cv" width="${BW}" height="${BH}" aria-label="KABOOM Spielfeld"></canvas>
+          <canvas class="kb-names" aria-hidden="true"></canvas>
+          <div class="kb-hud"></div>
+          <div class="kb-ov"></div>
+        </div>
+        <button type="button" class="kb-bombbtn" aria-label="Bombe legen"><span class="kb-bombimg"></span><span>Bombe</span></button>
       </div>
-      <p class="kb-help">Pfeiltasten / WASD laufen · Leertaste Bombe · M Ton an/aus</p>
+      <p class="kb-help"></p>
     </div>`;
     const wrap = root.querySelector(".kb"), bar = root.querySelector(".kb-bar"), ov = root.querySelector(".kb-ov");
+    const hud = root.querySelector(".kb-hud"), help = root.querySelector(".kb-help"), stage = root.querySelector(".kb-stage");
+    const pad = root.querySelector(".kb-dpad"), bombBtn = root.querySelector(".kb-bombbtn");
+    // Touch-Steuerung: auf Geräten mit Fingerbedienung (oder sobald jemand tippt) Steuerkreuz + Bomben-Knopf zeigen
+    let touchUI = false;
+    const setTouch = (on) => {
+      if (on === touchUI) return;
+      touchUI = on; wrap.classList.toggle("touch", on);
+      help.textContent = on ? "Steuerkreuz: Finger halten und schieben · Bombe-Knopf: Bombe legen" : "Pfeiltasten / WASD laufen · Leertaste Bombe · M Ton an/aus";
+    };
+    help.textContent = "Pfeiltasten / WASD laufen · Leertaste Bombe · M Ton an/aus";
+    try { if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) setTouch(true); } catch (e) { /* alte Browser */ }
+    const onAnyPointer = (e) => { if (e.pointerType === "touch") setTouch(true); };
+    root.addEventListener("pointerdown", onAnyPointer, true);
     const cv = root.querySelector(".kb-cv"), g = cv.getContext("2d");
     const nc = root.querySelector(".kb-names"), ng = nc.getContext("2d");      // scharfe Ebene für die Namensschilder
 
@@ -897,7 +915,8 @@ export default {
     // ================== Eingabe ==================
     const held = [];                                          // gedrückte Richtungen, die letzte gewinnt
     const KEYDIR = { ArrowDown: 0, s: 0, ArrowUp: 1, w: 1, ArrowLeft: 2, a: 2, ArrowRight: 3, d: 3 };
-    const localDir = () => (held.length ? held[held.length - 1] : -1);
+    let touchDir = -1, padId = null;                          // Richtung vom Touch-Steuerkreuz
+    const localDir = () => (touchDir >= 0 ? touchDir : held.length ? held[held.length - 1] : -1);
     const visible = () => cv.offsetParent !== null;
     const typing = (e) => { const n = e.target && e.target.tagName; return n === "INPUT" || n === "TEXTAREA" || n === "SELECT" || (e.target && e.target.isContentEditable); };
     function dropBomb() {
@@ -929,7 +948,34 @@ export default {
     const downKeys = new Set();
     const trackDown = (e) => downKeys.add(e.key.length === 1 ? e.key.toLowerCase() : e.key);
     const trackUp = (e) => downKeys.delete(e.key.length === 1 ? e.key.toLowerCase() : e.key);
-    function onBlur() { held.length = 0; downKeys.clear(); }
+    function onBlur() { held.length = 0; downKeys.clear(); touchDir = -1; padId = null; pad.dataset.dir = ""; }
+
+    // Steuerkreuz: Finger aufsetzen und schieben – die Richtung folgt dem Finger (wie ein Joystick),
+    // ohne dass man für jede Richtung neu tippen muss. Kleiner toter Bereich in der Mitte = stehen bleiben.
+    function padDir(e) {
+      const r = pad.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+      if (Math.hypot(dx, dy) < r.width * 0.13) return -1;
+      return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 3 : 2) : (dy > 0 ? 0 : 1);
+    }
+    const setPad = (d) => { if (d !== touchDir) { touchDir = d; pad.dataset.dir = d < 0 ? "" : String(d); } };
+    pad.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); sfx.unlock(); setTouch(true);
+      padId = e.pointerId;
+      try { pad.setPointerCapture(e.pointerId); } catch (x) { /* egal */ }
+      setPad(padDir(e));
+    });
+    pad.addEventListener("pointermove", (e) => { if (e.pointerId === padId) setPad(padDir(e)); });
+    const padEnd = (e) => { if (e.pointerId === padId) { padId = null; setPad(-1); } };
+    pad.addEventListener("pointerup", padEnd);
+    pad.addEventListener("pointercancel", padEnd);
+    pad.addEventListener("contextmenu", (e) => e.preventDefault());
+    bombBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); sfx.unlock(); setTouch(true);
+      dropBomb();
+      bombBtn.classList.add("hit"); setTimeout(() => bombBtn.classList.remove("hit"), 120);
+    });
+    bombBtn.addEventListener("click", (e) => e.preventDefault());       // Tastatur-Klick (Enter) nicht doppelt
+    bombBtn.addEventListener("contextmenu", (e) => e.preventDefault());
     window.addEventListener("keydown", trackDown, true);
     window.addEventListener("keyup", trackUp, true);
     window.addEventListener("keydown", onKeyDown);
@@ -1054,6 +1100,7 @@ export default {
       // kleine Bilder fürs HTML (Spielerleiste, Bereit-Bildschirm)
       icons = {};
       for (const t of [FIRE, BOMB, SHOE]) icons[t] = S.icon[t].toDataURL();
+      bombBtn.querySelector(".kb-bombimg").style.backgroundImage = `url(${S.bomb.toDataURL()})`;
       avatars = S.pl.map((dirs) => canvasOf(14, 14, (c) => c.drawImage(dirs[0][0], -1, -1)).toDataURL());
       COLKEYS.forEach((key, k) => wrap.style.setProperty("--kb-c" + k, rgb(PAL[key])));
       staticDirty = true; uiKey = "";
@@ -1189,7 +1236,7 @@ export default {
       }
       g.globalAlpha = 1;
       g.setTransform(1, 0, 0, 1, 0, 0);
-      drawNames(list.filter((o) => o.s.alive), me, sh, sv);
+      drawNames(phase === "match" ? [] : list.filter((o) => o.s.alive), me, sh, sv);
     }
 
     // Namensschilder über den Figuren, in echter Bildschirmauflösung (nicht im Pixel-Puffer)
@@ -1224,7 +1271,7 @@ export default {
     }
 
     // ================== HTML: Spielerleiste & Einblendungen ==================
-    let uiKey = "", ovKey = "";
+    let uiKey = "", ovKey = "", hudKey = "";
     const name = (s) => esc(s.name);
     function chip(s, k) {
       const me = s === meSeat();
@@ -1237,13 +1284,15 @@ export default {
       </div>`;
     }
     function renderBar() {
+      // Rundenuhr gut sichtbar oben auf dem Spielfeld
       let clock = "";
       if (phase === "run" || phase === "end" || phase === "count") {
         const t = Math.ceil(roundT);
         clock = roundT <= 0 ? `<span class="kb-clock sd">Plötzlicher Tod!</span>`
           : `<span class="kb-clock${t <= 15 ? " warn" : ""}" title="Danach schrumpft das Feld">⏱ ${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}</span>`;
       }
-      const info = phase === "ready" ? "" : `${clock}<span>Runde ${round}</span><span>${target ? `bis ${target} Siege` : "endlos"}</span>`;
+      if (clock !== hudKey) { hudKey = clock; hud.innerHTML = clock; }
+      const info = phase === "ready" ? "" : `<span>Runde ${round}</span><span>${target ? `bis ${target} Siege` : "endlos"}</span>`;
       const html = `<div class="kb-chips">${seats.map(chip).join("")}</div>
         <div class="kb-info">${info}<button type="button" data-act="mute" aria-pressed="${mute}">${mute ? "Ton aus" : "Ton an"}</button></div>`;
       if (html !== uiKey) { uiKey = html; bar.innerHTML = html; }
@@ -1270,7 +1319,7 @@ export default {
         <div class="kb-row kb-seg"><span class="kb-note">Match:</span>${seg}</div>
         ${seats.some((s) => s.bot) ? `<div class="kb-row kb-seg"><span class="kb-note">Bots:</span>${lvl}</div>` : ""}
         ${foot}
-        <p class="kb-note">Pfeiltasten / WASD laufen · Leertaste Bombe · M Ton<br>Nach ${Math.floor(ROUND_TIME / 60)}:${String(ROUND_TIME % 60).padStart(2, "0")} schrumpft das Feld von außen.</p></div>`;
+        <p class="kb-note">${touchUI ? "Steuerkreuz laufen · Bombe-Knopf legen" : "Pfeiltasten / WASD laufen · Leertaste Bombe · M Ton"}<br>Nach ${Math.floor(ROUND_TIME / 60)}:${String(ROUND_TIME % 60).padStart(2, "0")} schrumpft das Feld von außen.</p></div>`;
     }
     function standings() {
       return `<ul class="kb-list">${seats.filter((s) => !s.gone).map((s) => ({ s, k: seats.indexOf(s) })).sort((a, b) => b.s.wins - a.s.wins)
@@ -1301,7 +1350,10 @@ export default {
           : sdStart && now - sdStart < 2200 ? `<div class="kb-big kb-sd">PLÖTZLICHER TOD!<br><small>Das Feld schrumpft</small></div>` : "";
         html = `<div class="kb-feeds">${fd}</div>${los}${msg ? `<div class="kb-banner">${msg}</div>` : ""}`;
       }
-      if (html !== ovKey) { ovKey = html; ov.innerHTML = html; }
+      if (html !== ovKey) {
+        ovKey = html; ov.innerHTML = html;
+        stage.classList.toggle("cards", (phase === "ready" || phase === "match") && (isHost() || gotState));
+      }
     }
     root.addEventListener("click", (e) => {
       const b = e.target.closest("[data-act]");
