@@ -176,3 +176,11 @@ html[data-theme="kinetic"] ::selection { background: #ff3b1f; color: #fff; }
 /* primary button keeps its own colours over the design's generic button look */
 html[data-theme="kinetic"] button.primary { background: var(--primary-bg); color: var(--primary-fg); border-color: var(--primary-border); }
 html[data-theme="kinetic"] button.primary:hover { background: var(--primary-hover); color: var(--primary-fg); border-color: var(--primary-border); }
+
+/* Hovering widens the title (wdth 62 → 150), so it no longer fit next to the description and the flex row wrapped —
+   the row jumped taller. On wide screens the row never wraps now: the description shrinks (ellipsis) instead. */
+@media (min-width: 641px) {
+  html[data-theme="kinetic"] #home .card-text { flex-wrap: nowrap; }
+  html[data-theme="kinetic"] #home .card-title { flex: 0 0 auto; }
+  html[data-theme="kinetic"] #home .card-desc { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
