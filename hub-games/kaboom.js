@@ -52,6 +52,30 @@ const STATE_MS = 1500, INTERP_MS = 100, INPUT_MS = 250;
 const PHASES = ["ready", "count", "run", "end", "over", "match"];
 const TARGETS = [3, 5, 0];                       // Siege bis zum Matchgewinn, 0 = endlos
 
+// Rundenzeit: danach „Plötzlicher Tod“ – von außen fallen spiralförmig Blöcke ins Feld
+const ROUND_TIME = 120, SD_STEP = 0.3;
+const SPIRAL = (() => {                          // Innenfelder von außen nach innen
+  const out = [], idx = (x, y) => y * COLS + x;
+  let x0 = 1, y0 = 1, x1 = COLS - 2, y1 = ROWS - 2;
+  while (x0 <= x1 && y0 <= y1) {
+    for (let x = x0; x <= x1; x++) out.push(idx(x, y0));
+    for (let y = y0 + 1; y <= y1; y++) out.push(idx(x1, y));
+    if (y1 > y0) for (let x = x1 - 1; x >= x0; x--) out.push(idx(x, y1));
+    if (x1 > x0) for (let y = y1 - 1; y > y0; y--) out.push(idx(x0, y));
+    x0++; y0++; x1--; y1--;
+  }
+  return out;
+})();
+
+// Bot-Stärke (Host wählt auf dem Bereit-Bildschirm). think = Reaktionszeit in s, skip = Chance, eine gute
+// Bomben-Gelegenheit auszulassen, slip = Chance, bei Gefahr ein falsches Fluchtfeld zu wählen, chain = sieht
+// Kettenreaktionen, foe = wie stark Gegner als Ziel zählen, wander = Chance auf planloses Herumlaufen
+const BOT_LEVELS = [
+  { name: "Leicht", think: [0.45, 0.7], skip: 0.45, slip: 0.22, chain: false, foe: 0, wander: 0.3, items: 3 },
+  { name: "Mittel", think: [0.28, 0.42], skip: 0.2, slip: 0.07, chain: true, foe: 1, wander: 0.12, items: 6 },
+  { name: "Schwer", think: [0.12, 0.2], skip: 0, slip: 0, chain: true, foe: 3, wander: 0, items: 9 },
+];
+
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, lo, hi, d = 0) => { v = +v; return Number.isFinite(v) ? clamp(v, lo, hi) : d; };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -235,6 +259,8 @@ export default {
 
     // ================== Zustand (auf jedem Client) ==================
     let phase = "ready", pl = 0, round = 0, seed = 1, target = 3, roundWinner = -2, matchWinner = -1;
+    let botLevel = 1;                                                    // Index in BOT_LEVELS
+    let roundT = ROUND_TIME, sdCount = 0, sdAcc = 0, sdStart = 0;      // Rundenuhr und Plötzlicher Tod
     let grid = new Uint8Array(N);
     const items = new Uint8Array(N), hidden = new Uint8Array(N);       // hidden: Extra unter einer brennenden Fass-Stelle
     const flameT = new Float32Array(N), flameK = new Uint8Array(N);
@@ -431,6 +457,37 @@ export default {
       });
     }
 
+    // ================== Plötzlicher Tod ==================
+    // Nach ROUND_TIME fällt alle SD_STEP Sekunden ein Block (Spirale von außen nach innen). Er zerdrückt,
+    // was darunter liegt; Spieler darunter scheiden aus (das entscheidet der Host). Gäste folgen dem Zähler.
+    function dropBlock(i, host) {
+      if (grid[i] === WALL) return;
+      grid[i] = WALL; items[i] = 0; hidden[i] = 0; flameT[i] = 0; flameK[i] = 0;
+      bombs = bombs.filter((b) => idx(b.x, b.y) !== i);
+      burst((i % COLS) * PX + 8, ((i / COLS) | 0) * PX + 12, 6, PAL.panelHi, 45, 0.45);
+      shake = Math.max(shake, 1.5); staticDirty = true;
+      sfx.thud();
+      if (host) seats.forEach((s, si) => {
+        if (s.alive && idx(Math.round(s.x), Math.round(s.y)) === i) { ctx.send("d", [si]); applyDeath(si); }
+      });
+    }
+    function advanceSD(n, host) {
+      n = Math.min(n, SPIRAL.length);
+      while (sdCount < n) dropBlock(SPIRAL[sdCount++], host);
+    }
+    function hostSuddenDeath(dt) {
+      roundT = Math.max(0, roundT - dt);
+      if (roundT > 0 || sdCount >= SPIRAL.length) return;
+      if (!sdStart) { sdStart = performance.now(); sfx.alarm(); }
+      sdAcc += dt;
+      while (sdAcc >= SD_STEP && sdCount < SPIRAL.length) {
+        sdAcc -= SD_STEP;
+        let n = sdCount;
+        while (n < SPIRAL.length && grid[SPIRAL[n]] === WALL) n++;   // feste Pfeiler kosten keine Zeit
+        advanceSD(n + 1, true);
+      }
+    }
+
     // ================== Runden (nur Host) ==================
     function newMatch() {
       seats.forEach((s) => { s.wins = 0; });
@@ -445,6 +502,7 @@ export default {
       grid = genGrid(seed);
       items.fill(0); hidden.fill(0); flameT.fill(0); flameK.fill(0);
       bombs = []; fx = []; feed = [];
+      roundT = ROUND_TIME; sdCount = 0; sdAcc = 0; sdStart = 0;
       // Startecken jede Runde neu verlosen; zu zweit immer diagonal gegenüber (zufällige Diagonale)
       const corners = act.length === 2 ? (Math.random() < 0.5 ? [SPAWNS[0], SPAWNS[1]] : [SPAWNS[2], SPAWNS[3]]) : SPAWNS.slice();
       for (let k = corners.length - 1; k > 0; k--) { const j = (Math.random() * (k + 1)) | 0; [corners[k], corners[j]] = [corners[j], corners[k]]; }
@@ -496,6 +554,7 @@ export default {
           ctx.send("x", d); applyBlast(d);
         }
         tickFlames(dt);
+        hostSuddenDeath(dt);
         hostChecks();
         if (phase === "run" && alive().length <= 1) setPhase("end", END_DELAY);
         else if (phase === "end") { pl -= dt; if (pl <= 0) finishRound(); }
@@ -523,12 +582,21 @@ export default {
     }
     // Für jedes Feld: in wie vielen Sekunden brennt es (1e9 = sicher); Kettenreaktionen eingerechnet
     function dangerMap(extra) {
+      const lv = BOT_LEVELS[botLevel];
       const T = new Float32Array(N).fill(1e9);
       for (let i = 0; i < N; i++) if (flameT[i] > 0) T[i] = 0;
+      if (roundT <= 0) {                                     // die nächsten fallenden Blöcke meiden
+        let t = SD_STEP - sdAcc;
+        for (let j = sdCount; j < Math.min(SPIRAL.length, sdCount + 14); j++) {
+          if (grid[SPIRAL[j]] === WALL) continue;
+          T[SPIRAL[j]] = Math.min(T[SPIRAL[j]], Math.max(0, t));
+          t += SD_STEP;
+        }
+      }
       const list = bombs.map((b) => ({ x: b.x, y: b.y, r: b.r, t: b.t }));
       if (extra) list.push(extra);
       const cells = list.map((b) => blastCells(b.x, b.y, b.r));
-      for (let pass = 0; pass < 3; pass++) {
+      for (let pass = 0; pass < (lv.chain ? 3 : 0); pass++) {
         list.forEach((a, k) => {
           for (const i of cells[k]) for (const b of list) if (b !== a && idx(b.x, b.y) === i && b.t > a.t) b.t = a.t;
         });
@@ -564,7 +632,7 @@ export default {
       let v = 0;
       for (const i of blastCells(x, y, range)) {
         if (grid[i] === CRATE) v += 1;
-        seats.forEach((o, k) => { if (k !== si && o.alive && idx(Math.round(o.x), Math.round(o.y)) === i) v += 2; });
+        seats.forEach((o, k) => { if (k !== si && o.alive && idx(Math.round(o.x), Math.round(o.y)) === i) v += 2 * BOT_LEVELS[botLevel].foe; });
       }
       return v;
     }
@@ -574,23 +642,28 @@ export default {
       return r.order.some((i) => T[i] >= 1e8 && r.dist[i] * stepT < FUSE - 0.6);
     }
     function botThink(s, si) {
-      const ai = s.ai;
+      const ai = s.ai, lv = BOT_LEVELS[botLevel];
       const x = Math.round(s.x), y = Math.round(s.y), here = idx(x, y), stepT = 1 / speedOf(s);
       const T = dangerMap();
       if (T[here] < 1e8) {                                   // in Gefahr: zum nächsten sicheren Feld
         const r = bfs(x, y, T, stepT, false);
         let best = r.order.find((i) => T[i] >= 1e8);
         if (best == null) best = r.order.reduce((m, i) => (T[i] > T[m] ? i : m), here);
+        if (Math.random() < lv.slip && r.order.length > 1) best = r.order[1 + ((Math.random() * Math.min(5, r.order.length - 1)) | 0)];   // Fehlgriff
         ai.path = pathTo(r, best);
         return;
       }
       const r = bfs(x, y, T, stepT, true);
+      if (Math.random() < lv.wander) {                       // planlos ein paar Felder laufen
+        const opts = r.order.filter((i) => r.dist[i] > 0 && r.dist[i] < 4);
+        if (opts.length) { ai.path = pathTo(r, opts[(Math.random() * opts.length) | 0]); return; }
+      }
       for (const i of r.order) {                             // Extra in der Nähe einsammeln
-        if (r.dist[i] > 7) break;
+        if (r.dist[i] > lv.items) break;
         if (items[i]) { ai.path = pathTo(r, i); return; }
       }
       const mine = bombs.filter((b) => b.o === si).length;
-      if (mine < s.bombs && Math.random() > 0.08 && bombValue(x, y, s.range, si) > 0 && canEscape(x, y, s, stepT)) {
+      if (mine < s.bombs && Math.random() >= lv.skip && bombValue(x, y, s.range, si) > 0 && canEscape(x, y, s, stepT)) {
         s.want = 1; ai.path = []; ai.think = 0.12;
         return;
       }
@@ -605,7 +678,7 @@ export default {
       }
       if (best >= 0 && best !== here) { ai.path = pathTo(r, best); return; }
       const foes = seats.filter((o, k) => k !== si && o.alive);     // sonst: Richtung Gegner
-      if (foes.length && r.order.length > 1) {
+      if (lv.foe > 0 && foes.length && r.order.length > 1) {
         const f = foes[(Math.random() * foes.length) | 0];
         const tgt = r.order.reduce((m, i) => {
           const dm = Math.abs((m % COLS) - f.x) + Math.abs(((m / COLS) | 0) - f.y), di = Math.abs((i % COLS) - f.x) + Math.abs(((i / COLS) | 0) - f.y);
@@ -623,7 +696,8 @@ export default {
       const centred = Math.abs(s.x - cx) < 0.12 && Math.abs(s.y - cy) < 0.12;
       if (ai.think <= 0 && (centred || !ai.path.length || ai.stuck > 0.4)) {
         botThink(s, si);
-        ai.think = 0.18 + Math.random() * 0.14;              // Reaktionszeit (mittlere Stärke)
+        const th = BOT_LEVELS[botLevel].think;
+        ai.think = th[0] + Math.random() * (th[1] - th[0]);  // Reaktionszeit je nach Stärke
         ai.stuck = 0;
       }
       while (ai.path.length) {
@@ -651,6 +725,7 @@ export default {
       for (let i = 0; i < N; i++) if (flameT[i] > 0) fl.push(i, flameK[i], Math.round(flameT[i] * 100));
       return {
         ph: PHASES.indexOf(phase), pl: Math.round(pl * 100), rd: round, sd: seed, tg: target, wn: roundWinner, mw: matchWinner,
+        bl: botLevel, tm: Math.round(roundT * 10), dc: sdCount,
         g: grid.join(""), it: items.join(""), hd: hidden.join(""), fl,
         bm: bombs.map((b) => { let m = 0; for (const k of b.pass) m |= 1 << k; return [b.id, b.x, b.y, b.o, b.r, Math.round(b.t * 100), m]; }),
         s: seats.map((s) => [s.id, s.name, s.bot ? 1 : 0, Math.round(s.x * 100), Math.round(s.y * 100), s.dir, s.alive ? 1 : 0, s.gone ? 1 : 0, s.wins, s.range, s.bombs, s.shoes, s.ready ? 1 : 0]),
@@ -660,7 +735,7 @@ export default {
     function sendTick() {
       const p = [];
       for (const s of seats) p.push(Math.round(s.x * 100), Math.round(s.y * 100), s.dir, s.mov ? 1 : 0, s.alive ? 1 : 0);
-      ctx.send("t", { n: ++tickNo, ph: PHASES.indexOf(phase), pl: Math.round(pl * 100), p });
+      ctx.send("t", { n: ++tickNo, ph: PHASES.indexOf(phase), pl: Math.round(pl * 100), tm: Math.round(roundT * 10), dc: sdCount, p });
     }
     const fromHost = (from) => from === ctx.hostId && !isHost();
     const digits = (str, max) => {
@@ -721,6 +796,10 @@ export default {
       }
       round = num(d.rd, 0, 9999, 0) | 0; seed = num(d.sd, 0, 4294967295, 1) >>> 0;
       target = TARGETS.includes(+d.tg) ? +d.tg : 3;
+      botLevel = num(d.bl, 0, BOT_LEVELS.length - 1, 1) | 0;
+      roundT = num(d.tm, 0, ROUND_TIME * 10, ROUND_TIME * 10) / 10;
+      if (gr) sdCount = num(d.dc, 0, SPIRAL.length, 0) | 0;      // das Feld enthält die gefallenen Blöcke schon
+      if (roundT > 0) sdStart = 0;
       const wn = num(d.wn, -2, 3, -2) | 0, mw = num(d.mw, -1, 3, -1) | 0;
       setPhase(PHASES[num(d.ph, 0, 5, 0) | 0], num(d.pl, 0, 10000, 0) / 100, wn, mw);
       if (newRoundNow) snaps = [];
@@ -741,6 +820,10 @@ export default {
       snaps.push(snap);
       if (snaps.length > 12) snaps.shift();
       setPhase(PHASES[num(d.ph, 0, 5, 0) | 0], num(d.pl, 0, 10000, 0) / 100);
+      roundT = num(d.tm, 0, ROUND_TIME * 10, roundT * 10) / 10;
+      if (roundT <= 0 && !sdStart && playing()) { sdStart = performance.now(); sfx.alarm(); }
+      const dc = num(d.dc, 0, SPIRAL.length, sdCount) | 0;
+      if (dc > sdCount) advanceSD(dc, false);
       const me = seats[meK];                                 // eigene Figur: sanft auf den Host-Stand ziehen
       if (me && me.alive && playing()) {
         const ex = snap.x[meK] - me.x, ey = snap.y[meK] - me.y, e = Math.hypot(ex, ey);
@@ -865,7 +948,7 @@ export default {
         inputAcc += dt * 1000;
         if (d !== lastSent || inputAcc >= INPUT_MS) { inputAcc = 0; lastSent = d; ctx.send("in", { d }, ctx.hostId); }
       } else if (me) { me.px = me.x; me.py = me.y; idleT = 1; }
-      if (playing()) { updatePass(); for (const b of bombs) b.t = Math.max(0, b.t - dt); }
+      if (playing()) { updatePass(); for (const b of bombs) b.t = Math.max(0, b.t - dt); roundT = Math.max(0, roundT - dt); }
       tickFlames(dt);
       pl = Math.max(0, pl - dt);
     }
@@ -904,6 +987,8 @@ export default {
       beep(hi) { this.tone(hi ? 880 : 520, hi ? 880 : 520, hi ? 0.22 : 0.1, "square", 0.06); },
       go() { this.beep(true); },
       win() { [523, 659, 784, 659, 1047].forEach((f, k) => this.tone(f, f, 0.14, "triangle", 0.09, k * 0.11)); },
+      thud() { this.tone(95, 45, 0.16, "square", 0.05); },
+      alarm() { [880, 660, 880, 660].forEach((f, k) => this.tone(f, f, 0.16, "square", 0.06, k * 0.2)); },
     };
     function toggleMute() {
       mute = !mute; saveMute(mute);
@@ -1085,7 +1170,7 @@ export default {
       const list = seats.map((s, k) => ({ s, k, p: seatPos(s, k, alpha, now) })).filter((o) => !o.s.gone && (o.s.alive || o.s.dieT > 0) && phase !== "ready");
       list.sort((a, b) => a.p[1] - b.p[1]);
       for (const { s, p } of list) {
-        const X = Math.round(p[0] * PX), Y = Math.round(p[1] * PX) - 3;
+        const X = Math.round(p[0] * PX), Y = Math.round(p[1] * PX);    // Sprite füllt das Feld: Figur steht mittig
         const frame = s.mov ? ((s.walk * 8) | 0) % 2 : 0;
         const img = spr.pl[s.c % 4][s.dir][frame];
         if (s.alive) {
@@ -1113,6 +1198,9 @@ export default {
       if (!w || !h) return;
       const dpr = Math.min(2, window.devicePixelRatio || 1), W2 = Math.round(w * dpr), H2 = Math.round(h * dpr);
       if (nc.width !== W2 || nc.height !== H2) { nc.width = W2; nc.height = H2; }
+      // Ebene exakt auf das Spielfeld legen (nicht auf den ganzen Rahmen drumherum)
+      const st = nc.style, L = cv.offsetLeft + "px", T = cv.offsetTop + "px";
+      if (st.left !== L || st.top !== T || st.width !== w + "px" || st.height !== h + "px") { st.left = L; st.top = T; st.width = w + "px"; st.height = h + "px"; }
       ng.setTransform(1, 0, 0, 1, 0, 0);
       ng.clearRect(0, 0, W2, H2);
       if (!list.length) return;
@@ -1122,7 +1210,7 @@ export default {
       ng.textAlign = "center"; ng.textBaseline = "middle";
       for (const { s, p } of list) {
         const txt = s.name.length > 12 ? s.name.slice(0, 11) + "…" : s.name;
-        const cx = (p[0] * PX + 8 + sh) * k, bottom = (p[1] * PX - 2 + sv) * k;
+        const cx = (p[0] * PX + 8 + sh) * k, bottom = (p[1] * PX + 1 + sv) * k - 2 * dpr;   // knapp über dem Antennenkopf
         const tw = ng.measureText(txt).width + padX * 2, x0 = clamp(cx - tw / 2, 2, W2 - tw - 2), y0 = Math.max(2, bottom - ph);
         const col = PAL[COLKEYS[s.c % 4]];
         ng.beginPath();
@@ -1149,7 +1237,13 @@ export default {
       </div>`;
     }
     function renderBar() {
-      const info = phase === "ready" ? "" : `<span>Runde ${round}</span><span>${target ? `bis ${target} Siege` : "endlos"}</span>`;
+      let clock = "";
+      if (phase === "run" || phase === "end" || phase === "count") {
+        const t = Math.ceil(roundT);
+        clock = roundT <= 0 ? `<span class="kb-clock sd">Plötzlicher Tod!</span>`
+          : `<span class="kb-clock${t <= 15 ? " warn" : ""}" title="Danach schrumpft das Feld">⏱ ${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}</span>`;
+      }
+      const info = phase === "ready" ? "" : `${clock}<span>Runde ${round}</span><span>${target ? `bis ${target} Siege` : "endlos"}</span>`;
       const html = `<div class="kb-chips">${seats.map(chip).join("")}</div>
         <div class="kb-info">${info}<button type="button" data-act="mute" aria-pressed="${mute}">${mute ? "Ton aus" : "Ton an"}</button></div>`;
       if (html !== uiKey) { uiKey = html; bar.innerHTML = html; }
@@ -1163,6 +1257,7 @@ export default {
         return `<li style="--c:var(--kb-c${k})"><img class="kb-ava" src="${avatars[k] || ""}" alt=""><span class="kb-name">${name(s)}${s === me ? " <i>du</i>" : ""}</span>${tag}</li>`;
       }).join("");
       const seg = TARGETS.map((v) => `<button type="button" data-act="tgt" data-v="${v}" class="${v === target ? "on" : ""}"${host ? "" : " disabled"}>${v ? v + " Siege" : "Endlos"}</button>`).join("");
+      const lvl = BOT_LEVELS.map((l, k) => `<button type="button" data-act="blv" data-v="${k}" class="${k === botLevel ? "on" : ""}"${host ? "" : " disabled"}>${l.name}</button>`).join("");
       let foot;
       if (host) {
         const why = seats.length < 2 ? "Mindestens 2 Spieler – füge einen Bot hinzu." : !canStart() ? "Warte, bis alle bereit sind." : "";
@@ -1173,8 +1268,9 @@ export default {
       return `<div class="kb-card"><h3 class="kb-title">KABOOM</h3><p class="kb-sub">Yes Rico, KABOOM</p>
         <ul class="kb-list">${rows}</ul>
         <div class="kb-row kb-seg"><span class="kb-note">Match:</span>${seg}</div>
+        ${seats.some((s) => s.bot) ? `<div class="kb-row kb-seg"><span class="kb-note">Bots:</span>${lvl}</div>` : ""}
         ${foot}
-        <p class="kb-note">Pfeiltasten / WASD laufen · Leertaste Bombe · M Ton</p></div>`;
+        <p class="kb-note">Pfeiltasten / WASD laufen · Leertaste Bombe · M Ton<br>Nach ${Math.floor(ROUND_TIME / 60)}:${String(ROUND_TIME % 60).padStart(2, "0")} schrumpft das Feld von außen.</p></div>`;
     }
     function standings() {
       return `<ul class="kb-list">${seats.filter((s) => !s.gone).map((s) => ({ s, k: seats.indexOf(s) })).sort((a, b) => b.s.wins - a.s.wins)
@@ -1200,7 +1296,9 @@ export default {
       } else if (playing()) {
         const msg = me && !me.alive && !me.gone ? "Du bist raus – schau zu, wer gewinnt." : "";
         const fd = feed.map((f) => `<div class="kb-feed" style="--c:var(--kb-c${f.c})">${esc(f.txt)}</div>`).join("");
-        const los = phase === "run" && performance.now() - runStart < 700 ? `<div class="kb-big">LOS!</div>` : "";
+        const now = performance.now();
+        const los = phase === "run" && now - runStart < 700 ? `<div class="kb-big">LOS!</div>`
+          : sdStart && now - sdStart < 2200 ? `<div class="kb-big kb-sd">PLÖTZLICHER TOD!<br><small>Das Feld schrumpft</small></div>` : "";
         html = `<div class="kb-feeds">${fd}</div>${los}${msg ? `<div class="kb-banner">${msg}</div>` : ""}`;
       }
       if (html !== ovKey) { ovKey = html; ov.innerHTML = html; }
@@ -1216,6 +1314,7 @@ export default {
       else if (act === "addbot") addBot();
       else if (act === "rmbot") removeBot(+b.dataset.i);
       else if (act === "tgt" && phase === "ready") { const v = +b.dataset.v; if (TARGETS.includes(v)) { target = v; sendState(); } }
+      else if (act === "blv" && phase === "ready") { const v = +b.dataset.v; if (BOT_LEVELS[v]) { botLevel = v; sendState(); } }
       else if (act === "start" && phase === "ready" && canStart()) newMatch();
       else if (act === "again" && phase === "match") newMatch();
       else if (act === "toready" && phase === "match") toReady();
