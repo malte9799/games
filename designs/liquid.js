@@ -7,14 +7,12 @@ DESIGN_FX.liquid = {
     fx.setAttribute("aria-hidden", "true");
     fx.innerHTML = `
       <svg width="0" height="0" style="position:absolute"><defs>
-        <filter id="liq-goo" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="26" result="b"/>
+        <filter id="liq-goo" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="22" result="b"/>
           <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 26 -11"/>
         </filter>
         <filter id="liq-ripple" x="-5%" y="-10%" width="110%" height="120%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="2" seed="4" result="t">
-            <animate attributeName="baseFrequency" dur="11s" values="0.012 0.03;0.022 0.012;0.012 0.03" repeatCount="indefinite"/>
-          </feTurbulence>
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="1" seed="4" result="t"/>
           <feDisplacementMap in="SourceGraphic" in2="t" scale="9" xChannelSelector="R" yChannelSelector="G"/>
         </filter>
       </defs></svg>
@@ -22,29 +20,24 @@ DESIGN_FX.liquid = {
     document.body.prepend(fx);
 
     const ptr = fx.querySelector("b");
-    let tx = innerWidth * 0.5, ty = innerHeight * 0.4, x = tx, y = ty, raf = 0;
-    const move = (e) => { tx = e.clientX; ty = e.clientY; };
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const tick = () => {
-      x += (tx - x) * 0.07; y += (ty - y) * 0.07;
-      const v = Math.min(1.7, 1 + Math.hypot(tx - x, ty - y) / 260);
-      ptr.style.transform = `translate(${x}px, ${y}px) scale(${v.toFixed(3)})`;
-      raf = requestAnimationFrame(tick);
-    };
-    if (!reduce) { addEventListener("pointermove", move, { passive: true }); tick(); }
-    else ptr.style.display = "none";
+    const P = window.Perf;
+    let tx = innerWidth * 0.5, ty = innerHeight * 0.4, x = tx, y = ty;
+    const move = (e) => { tx = e.clientX; ty = e.clientY; };
 
-    // background blobs: pairs drift together, fuse into a peanut shape, and part again
+    // background blobs: pairs drift together, fuse into a peanut shape, and part again.
+    // One loop (30 fps — the goo filter re-blurs the whole screen on every change) drives the blobs AND the
+    // pointer blob; it pauses when the tab is hidden or the page has been idle, and is off in lite mode.
     const blobs = [...fx.querySelectorAll(".liq-goo i")];
-    let sized = [], blobRaf = 0;
+    let sized = [];
     const measure = () => { sized = blobs.map((el) => ({ el, r: parseFloat(getComputedStyle(el).width) / 2 })); };
     measure();
+    blobs.forEach((el) => { el.style.animation = "none"; el.style.left = "0px"; el.style.top = "0px"; });
     const t0 = performance.now();
-    const place = (el, x, y, r) => { el.style.transform = `translate(${(x - r).toFixed(1)}px, ${(y - r).toFixed(1)}px)`; };
-    const blobTick = (now) => {
-      blobRaf = requestAnimationFrame(blobTick);
+    const place = (el, px, py, r) => { el.style.transform = `translate(${(px - r).toFixed(1)}px, ${(py - r).toFixed(1)}px)`; };
+    const pairs = [[0, 1], [2, 3]];
+    const draw = (now) => {
       const t = now - t0, W = innerWidth, H = innerHeight;
-      const pairs = [[0, 1], [2, 3]];
       pairs.forEach(([a, b], k) => {
         const A = sized[a], B = sized[b];
         if (!A || !B) return;
@@ -55,20 +48,36 @@ DESIGN_FX.liquid = {
         const sep = 0.5 + 0.5 * Math.sin(t * 0.00028 + k * 2.4);   // 0 = fused, 1 = apart
         const D = reach * (0.55 + 0.9 * sep);                       // < reach overlaps → neck
         const ux = Math.cos(ang) * D / 2, uy = Math.sin(ang) * D / 2;
-        A.el.style.animation = "none"; B.el.style.animation = "none";
-        A.el.style.left = B.el.style.left = "0px"; A.el.style.top = B.el.style.top = "0px";
         place(A.el, cx + ux, cy + uy, A.r);
         place(B.el, cx - ux, cy - uy, B.r);
       });
       const L = sized[4];
-      if (L) {
-        L.el.style.animation = "none"; L.el.style.left = L.el.style.top = "0px";
-        place(L.el, W * (0.5 + 0.4 * Math.sin(t * 0.00003 + 4)), H * (0.5 + 0.32 * Math.cos(t * 0.00004 + 1)), L.r);
-      }
+      if (L) place(L.el, W * (0.5 + 0.4 * Math.sin(t * 0.00003 + 4)), H * (0.5 + 0.32 * Math.cos(t * 0.00004 + 1)), L.r);
+      // pointer blob
+      x += (tx - x) * 0.12; y += (ty - y) * 0.12;
+      const v = Math.min(1.7, 1 + Math.hypot(tx - x, ty - y) / 260);
+      ptr.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${v.toFixed(3)})`;
     };
-    if (!reduce) { addEventListener("resize", measure, { passive: true }); blobRaf = requestAnimationFrame(blobTick); }
+    const onResize = () => { measure(); if (!loop) draw(performance.now()); };
+    let loop = null, offPerf = null;
+    const sync = () => {
+      const on = !reduce && !(P && P.lite);
+      if (on && !loop) { loop = P ? P.loop(draw, { fps: 30, idle: true }) : null; if (loop) loop.start(); }
+      else if (!on && loop) { loop.stop(); loop = null; }
+    };
+    if (reduce) ptr.style.display = "none";
+    else addEventListener("pointermove", move, { passive: true });
+    addEventListener("resize", onResize, { passive: true });
+    draw(performance.now());
+    sync();
+    if (P) offPerf = P.onChange(sync);
 
-    return () => { cancelAnimationFrame(raf); cancelAnimationFrame(blobRaf); removeEventListener("pointermove", move); removeEventListener("resize", measure); fx.remove(); };
+    return () => {
+      if (loop) loop.stop();
+      if (offPerf) offPerf();
+      removeEventListener("pointermove", move); removeEventListener("resize", onResize);
+      fx.remove();
+    };
   },
 
   // gloss that follows the pointer across each card

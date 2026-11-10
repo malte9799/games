@@ -34,8 +34,9 @@ DESIGN_FX.kinetic = {
     const move = (e) => { px = e.clientX; py = e.clientY; };
     addEventListener("pointermove", move, { passive: true });
 
-    const frame = (now) => {
-      const t = (now - t0) / 1000;
+    // battery: 30 fps (every letter re-lays-out on each frame), paused while hidden / idle; frame-rate independent speed
+    const frame = (now, dt) => {
+      const t = (now - t0) / 1000, k = (dt || 1 / 30) * 60;
       // scroll velocity, smoothed
       const dy = scrollY - lastY; lastY = scrollY;
       vel += (dy - vel) * 0.12;
@@ -57,15 +58,16 @@ DESIGN_FX.kinetic = {
       rows.forEach((r, i) => {
         const w = r.firstElementChild.offsetWidth || 1;
         const dir = i === 0 ? -1 : 1;
-        off[i] += (reduce ? 0 : dir * 1.1) + vel * (i === 0 ? -0.9 : 0.9);
+        off[i] += ((reduce ? 0 : dir * 1.1) + vel * (i === 0 ? -0.9 : 0.9)) * k;
         off[i] = ((off[i] % w) + w) % w;
         r.style.transform = `translateX(${(i === 0 ? -off[i] : off[i] - w).toFixed(1)}px)`;
       });
-      raf = requestAnimationFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
+    const loop = window.Perf ? Perf.loop(frame, { fps: 30, idle: true }) : null;
+    if (loop) loop.start(); else { const f = (now) => { frame(now, 1 / 60); raf = requestAnimationFrame(f); }; raf = requestAnimationFrame(f); }
 
     return () => {
+      if (loop) loop.stop();
       cancelAnimationFrame(raf);
       removeEventListener("pointermove", move);
       root.style.removeProperty("--kvel");

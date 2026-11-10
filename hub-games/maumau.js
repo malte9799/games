@@ -171,7 +171,7 @@ const CSS = `
 
 /* colour choice overlay */
 .mm-colors { position: absolute; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center; gap: 2.4cqw;
-  background: rgba(46, 16, 6, .62); backdrop-filter: blur(3px); }
+  background: rgba(46, 16, 6, .62);}
 .mm-colors[hidden] { display: none; }
 .mm-cb { width: 7.4cqw; height: 7.4cqw; min-width: 44px; min-height: 44px; padding: 0; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 10px rgba(0, 0, 0, .45); transition: transform .15s var(--ease, ease); }
 .mm-cb:hover { transform: scale(1.15) rotate(-6deg); }
@@ -181,7 +181,7 @@ const CSS = `
 
 /* setup / over overlay */
 .mm-setup { position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2cqw;
-  background: rgba(46, 16, 6, .35); backdrop-filter: blur(2px); text-align: center; padding: 2cqw; }
+  background: rgba(46, 16, 6, .35);text-align: center; padding: 2cqw; }
 .mm-setup[hidden] { display: none; }
 .mm-setup p { margin: 0; font: 600 clamp(14px, 2.3cqw, 18px) var(--font); color: #fff7ea; text-shadow: 0 1px 3px rgba(60, 16, 4, .6); }
 .mm-setup p b { font-weight: 800; }

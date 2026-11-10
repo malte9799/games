@@ -634,9 +634,12 @@ export async function createPiste(env) {
   }
 
   // ---------- Frame ----------
+  const frameLim = window.Perf ? Perf.limiter() : () => true;
   function frame(now) {
     if (destroyed) return;
     raf = requestAnimationFrame(frame);
+    // battery: 60 fps cap while racing (also on 120 Hz screens), 30 fps in the menu, nothing while the tab is hidden
+    if (document.hidden || !frameLim(now, phase === "menu" ? 30 : 60)) return;
     tick(now);
   }
   function tick(now) {
@@ -679,7 +682,7 @@ export async function createPiste(env) {
 
     camera(dt);
     world.update(dt, time);
-    world.render();
+    world.render(phase === "menu" ? 30 : 60);
     if (phase !== "menu") { hudUpdate(); checkDone(performance.now()); }
   }
 

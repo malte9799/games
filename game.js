@@ -122,8 +122,8 @@ function _buildShell() {
             right: 0;
             z-index: 10;
             background: var(--bar-bg);
-            backdrop-filter: blur(14px) saturate(140%);
-            -webkit-backdrop-filter: blur(14px) saturate(140%);
+           
+           
             border-bottom: var(--border-w) solid var(--hairline);
             padding: 10px 18px 12px;
             display: flex;

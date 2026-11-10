@@ -121,7 +121,7 @@ html[data-theme="cutout"] #home .card:hover { rotate: 0deg; }
 html[data-theme="cutout"] #home .card::before {
   /* strip of tape */
   content: ""; position: absolute; top: -13px; left: 50%; width: 84px; height: 26px; margin-left: -42px; z-index: 4;
-  background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(1px);
+  background: rgba(255, 255, 255, 0.55);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
   rotate: calc(var(--tilt) * -2.2);
   clip-path: polygon(0 0, 100% 0, 97% 25%, 100% 50%, 97% 75%, 100% 100%, 0 100%, 3% 75%, 0 50%, 3% 25%);
