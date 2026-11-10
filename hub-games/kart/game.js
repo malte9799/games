@@ -710,7 +710,7 @@ export async function createKart(env) {
     camera(dt);
     if (phase !== "menu") lakituPose(time); else lkMe && lkMe.hide();
     world.update(dt, time);
-    world.render();
+    world.render(phase === "menu" ? 30 : 60);
     if (phase !== "menu") { hudUpdate(); checkDone(performance.now()); }
     sfx.engine(clamp(Math.hypot(me.vx, me.vz) / MAXV, 0, 1.3), readInputGas(), phase === "race" || phase === "done");
   }

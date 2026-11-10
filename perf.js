@@ -20,12 +20,13 @@
     hidden: document.hidden,
     idle: false,
     lite: false,
+    weak: false,   // weak hardware (few cores / little RAM): starts at a lower resolution
     onChange(cb) { listeners.add(cb); return () => listeners.delete(cb); },
     // true while the page is worth animating (visible; and, with {idle:true}, recently used)
     live(opts) { return !P.hidden && !(opts && opts.idle && P.idle); },
     pixelRatio(max) {
       const dpr = window.devicePixelRatio || 1;
-      return Math.min(dpr, P.lite ? Math.min(max, 1.25) : max);
+      return Math.min(dpr, P.weak ? Math.min(max, 1.25) : max);   // full resolution unless the device is weak; Perf.adaptive lowers it on lag
     },
     limiter() {
       // Cadence-based: keeps the cap exact on 60/120/144 Hz screens (a plain "now - last >= gap" check aliases to 48 fps on 144 Hz).
@@ -41,6 +42,37 @@
         next = now > next + gap ? now + gap : next + gap;
         return true;
       };
+    },
+    // Adaptive resolution: renders at full pixel ratio (`max`) and only steps down (by 0.25, to `min`) when the measured
+    // frame rate stays well below the target; steps back up after ~4 s of headroom (a level that just failed is not
+    // retried for 30 s). Call the returned function once per RENDERED frame, before renderer.render(): adapt(now, targetFps).
+    adaptive(renderer, opts) {
+      opts = opts || {};
+      const max = opts.max, min = Math.min(opts.min || 0.75, max), STEP = 0.25;
+      let cur = max, last = 0, win = 0, sum = 0, good = 0, ban = null;
+      const apply = (r) => {
+        cur = r; renderer.setPixelRatio(r);
+        const el = renderer.domElement;
+        renderer.setSize(el.clientWidth || el.width / r, el.clientHeight || el.height / r, false);
+        if (opts.onChange) opts.onChange(r);
+      };
+      const fn = function (now, fps) {
+        const dt = now - last; last = now;
+        if (dt <= 0 || dt > 250) { win = 0; sum = 0; return; }       // first frame / tab switch / idle sleep: ignore
+        if (P.lite || !document.hasFocus()) fps = Math.min(fps, 30);
+        const gap = 1000 / fps;
+        sum += dt; win++;
+        if (win < 40) return;
+        const avg = sum / win; win = 0; sum = 0;
+        if (avg > gap * 1.4) {
+          good = 0;
+          if (cur - STEP >= min - 1e-6) { ban = { lvl: cur, until: now + 30000 }; apply(cur - STEP); }
+        } else if (avg < gap * 1.15) {
+          if (++good >= 6 && cur + STEP <= max + 1e-6 && !(ban && cur + STEP >= ban.lvl - 1e-6 && now < ban.until)) { good = 0; apply(cur + STEP); }
+        } else good = 0;
+      };
+      fn.ratio = () => cur;
+      return fn;
     },
     // Managed loop: fn(now, dt) with dt in seconds. Returns { stop(), start() }.
     loop(fn, opts) {
@@ -93,8 +125,8 @@
   // lite mode: reduced motion, weak device, or battery saver
   let lowBattery = false;
   const calcLite = () => {
-    const weak = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) || (navigator.deviceMemory && navigator.deviceMemory <= 2);
-    const lite = reduceMq.matches || !!weak || lowBattery;
+    P.weak = !!((navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || (navigator.deviceMemory && navigator.deviceMemory <= 4));
+    const lite = reduceMq.matches || P.weak || lowBattery;
     if (lite !== P.lite) { P.lite = lite; emit(); }
   };
   if (reduceMq.addEventListener) reduceMq.addEventListener("change", calcLite);

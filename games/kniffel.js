@@ -388,7 +388,7 @@ const PIPS = {
 
 let renderer, scene, camera, world, glEl, clock = 0, lastTs = 0, dirty = 3;
 // battery: when nothing moves the loop sleeps (120 ms timer instead of 60 rAF wakeups) and wakes on any input / markDirty()
-let idleN = 0, idleTimer = 0;
+let idleN = 0, idleTimer = 0, adapt = null;
 const frameLim = window.Perf ? Perf.limiter() : () => true;
 function wakeUp() { if (idleTimer) markDirty(); }
 function markDirty() { dirty = 3; idleN = 0; if (idleTimer) { clearTimeout(idleTimer); idleTimer = 0; if (!destroyed) raf = requestAnimationFrame(loop); } }
@@ -670,8 +670,10 @@ function init3D() {
   const T = THREE;
   UPV = new T.Vector3(0, 1, 0);
   glEl = document.getElementById("kn-gl");
-  renderer = new T.WebGLRenderer({ canvas: glEl, antialias: (window.devicePixelRatio || 1) < 1.5, powerPreference: "default" });
-  renderer.setPixelRatio(window.Perf ? Perf.pixelRatio(1.5) : Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer = new T.WebGLRenderer({ canvas: glEl, antialias: (window.devicePixelRatio || 1) < 2, powerPreference: "default" });
+  const maxRatio = window.Perf ? Perf.pixelRatio(2) : Math.min(window.devicePixelRatio || 1, 2);
+  renderer.setPixelRatio(maxRatio);
+  adapt = window.Perf ? Perf.adaptive(renderer, { max: maxRatio, min: 0.75 }) : null;
   renderer.outputEncoding = T.sRGBEncoding;
   renderer.toneMapping = T.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
@@ -1122,7 +1124,7 @@ function loop(ts) {
     } else active = true;
   }
   if (active) dirty = 3;
-  if (dirty > 0) { dirty--; renderer.render(scene, camera); idleN = 0; }
+  if (dirty > 0) { dirty--; if (adapt) adapt(ts, 60); renderer.render(scene, camera); idleN = 0; }
   else if (++idleN > 20) {                      // nothing moving: sleep until input / markDirty()
     cancelAnimationFrame(raf); raf = 0; lastTs = 0;
     idleTimer = setTimeout(() => { idleTimer = 0; if (!destroyed) raf = requestAnimationFrame(loop); }, 120);

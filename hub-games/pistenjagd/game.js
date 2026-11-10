@@ -682,7 +682,7 @@ export async function createPiste(env) {
 
     camera(dt);
     world.update(dt, time);
-    world.render();
+    world.render(phase === "menu" ? 30 : 60);
     if (phase !== "menu") { hudUpdate(); checkDone(performance.now()); }
   }
 

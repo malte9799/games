@@ -638,8 +638,12 @@ function makeShell(T) {
 export function createWorld(T, host, track, themeKey, opts = {}) {
   const th = THEMES[themeKey] || THEMES.wiese;
   const coarse = matchMedia("(pointer: coarse)").matches;
-  const renderer = new T.WebGLRenderer({ antialias: !coarse && (window.devicePixelRatio || 1) < 1.5, powerPreference: "default" });
-  renderer.setPixelRatio(window.Perf ? Perf.pixelRatio(coarse ? 1.25 : 1.5) : Math.min(window.devicePixelRatio || 1, coarse ? 1.25 : 1.5));
+  const dpr = window.devicePixelRatio || 1;
+  // full resolution by default (capped at 2); Perf.adaptive lowers it only while the frame rate actually suffers
+  const maxRatio = window.Perf ? Perf.pixelRatio(2) : Math.min(dpr, 2);
+  const renderer = new T.WebGLRenderer({ antialias: !coarse && dpr < 2, powerPreference: "default" });
+  renderer.setPixelRatio(maxRatio);
+  const adapt = window.Perf ? Perf.adaptive(renderer, { max: maxRatio, min: 0.75 }) : null;
   renderer.setClearColor(th.sky);
   renderer.domElement.className = "kt-canvas";
   host.appendChild(renderer.domElement);
@@ -709,7 +713,7 @@ export function createWorld(T, host, track, themeKey, opts = {}) {
     clearItems() { for (const id of [...dyn.keys()]) this.removeItem(id); },
     makeKart: (color, name, o) => makeKartModel(T, color, name, o),
     makeLakitu: () => { const l = makeLakitu(T); scene.add(l.root); return l; },
-    render() { renderer.render(scene, camera); },
+    render(fps) { if (adapt) adapt(performance.now(), fps || 60); renderer.render(scene, camera); },
     dispose() {
       renderer.dispose();
       scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { for (const m of [].concat(o.material)) { if (m.map) m.map.dispose(); m.dispose(); } } });
