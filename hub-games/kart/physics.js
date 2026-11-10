@@ -19,7 +19,7 @@ export function newKart(x, z, yaw) {
     along: 0, lat: 0,                    // Geschwindigkeit längs / quer zum Kart (aus vx, vz)
     steer: 0,                            // geglätteter Lenkausschlag −1..1 (rechts +)
     drift: 0, driftT: 0, driftLvl: 0,    // Drift-Richtung (−1 links, +1 rechts), Dauer, Stufe 0..3
-    boostT: 0, starT: 0, spinT: 0, spinDir: 1, spinVis: 0,
+    boostT: 0, slideT: 0, starT: 0, spinT: 0, spinDir: 1, spinVis: 0,
     offroad: false, hop: 0, hopV: 0, grip: 1,
     prog: 0, lap: 0, lastS: 0, idx: -1, d: 0, s: 0,
     wheel: 0, bump: 0, inv: 0,
@@ -32,7 +32,7 @@ export function hit(k, kind) {
   if (k.starT > 0 || k.inv > 0 || k.spinT > 0) return false;
   k.spinT = 1.35; k.spinDir = Math.random() < 0.5 ? -1 : 1; k.spinVis = 0;
   k.drift = 0; k.driftT = 0; k.driftLvl = 0;
-  k.boostT = 0;
+  k.boostT = 0; k.slideT = 0;
   k.hopV = 6.5;
   k.events.push("hit");
   return true;
@@ -65,6 +65,7 @@ export function step(k, inp, dt, track, others) {
   if (k.drift && (!inp.drift || k.along < 9 || spinning)) {
     if (k.driftLvl > 0 && !spinning) { boost(k, DRIFT_BOOST[k.driftLvl - 1]); k.events.push("miniturbo"); }
     k.drift = 0; k.driftT = 0; k.driftLvl = 0;
+    k.slideT = 0.7;      // Ausfahren: Seitenhalt kommt nur langsam zurück, Kart behält die Driftrichtung
   }
   if (k.drift) {
     k.driftT += dt;
@@ -93,7 +94,8 @@ export function step(k, inp, dt, track, others) {
 
   // Seitenhalt: normal fest, im Drift rutscht es, im Gras mittel
   const gripTarget = k.drift ? 2.2 : off ? 5 : spinning ? 1.2 : 11;
-  k.grip = approach(k.grip, gripTarget, dt * 12);
+  k.grip = approach(k.grip, gripTarget, dt * (k.slideT > 0 && !k.drift ? 2.2 : 12));
+  if (k.slideT > 0) k.slideT = Math.max(0, k.slideT - dt);
   const lat = k.lat * Math.exp(-k.grip * dt);
 
   // Lenkung
