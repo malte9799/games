@@ -279,8 +279,8 @@ button.hint-confirm:hover { background: color-mix(in srgb, var(--toggle) 22%, va
   align-items: center;
   justify-content: center;
   padding: 20px;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+ 
+ 
   animation: info-fade 0.2s ease;
 }
 .info-modal {
@@ -347,3 +347,10 @@ button.hint-confirm:hover { background: color-mix(in srgb, var(--toggle) 22%, va
 @media (prefers-reduced-motion: reduce) {
   .info-backdrop, .info-modal { animation: none; }
 }
+
+/* ---- battery (see perf.js) ----
+   Decorative infinite loops stop while the tab is hidden or after ~45 s without input. One-shot state animations are never
+   paused (JS may wait for their animationend). */
+html.perf-hidden .px-sprite, html.perf-hidden .y2k-fx *, html.perf-hidden .nb-marq div, html.perf-hidden .nb-badge, html.perf-hidden .bh-comp *, html.perf-hidden .cut-scene *,
+html.perf-idle .px-sprite, html.perf-idle .y2k-fx *, html.perf-idle .nb-marq div, html.perf-idle .nb-badge, html.perf-idle .nb-badge span,
+html.perf-idle .bh-comp *, html.perf-idle .cut-scene *, html.perf-idle .asc-prompt .cur { animation-play-state: paused !important; }

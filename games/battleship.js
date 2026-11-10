@@ -960,39 +960,39 @@ function CSS_TEXT() {
 .bs-lab text{fill:var(--muted);font:700 15px var(--font);text-anchor:middle;dominant-baseline:middle}
 .bs-grid{fill:none;stroke:#fff;stroke-opacity:.16;stroke-width:1}
 .bs-edge{fill:none;stroke:#05182b;stroke-opacity:.55;stroke-width:3}
-.bs-waves{animation:bs-drift 16s linear infinite}.bs-waves.w2{animation-duration:23s;animation-direction:reverse;opacity:.7;transform:translate(0,25px)}
+.bs-waves{animation:bs-drift 16s steps(100) infinite}.bs-waves.w2{animation-duration:23s;animation-direction:reverse;opacity:.7;transform:translate(0,25px)}
 @keyframes bs-drift{from{transform:translate(0,0)}to{transform:translate(-100px,0)}}
 .bs-waves.w2{animation-name:bs-drift2}@keyframes bs-drift2{from{transform:translate(-100px,25px)}to{transform:translate(0,25px)}}
-.bs-sweep{animation:bs-spin 7s linear infinite}
+.bs-sweep{animation:bs-spin 7s steps(84) infinite}
 .bs-rings circle{fill:none;stroke:#8affc8;stroke-opacity:.12;stroke-width:1.2}
 @keyframes bs-spin{to{transform:rotate(360deg)}}
 .bs-pad{fill:transparent}.bs-board.foe .bs-pad{cursor:not-allowed}.bs-board.foe.armed .bs-pad{cursor:crosshair}
 .bs-board.foe:not(.armed) .bs-ret{opacity:.35}
 /* Schiffe */
-.bs-ship .bs-bob{animation:bs-bob 4.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.bs-ship .bs-bob{animation:bs-bob 4.4s steps(6) infinite;transform-box:fill-box;transform-origin:center}
 @keyframes bs-bob{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(0,1.4px) rotate(.5deg)}}
-.bs-wake{animation:bs-wake 3.2s ease-in-out infinite}@keyframes bs-wake{0%,100%{opacity:.85}50%{opacity:.45}}
-.bs-radar line{animation:bs-spin 2.6s linear infinite}
+.bs-wake{animation:bs-wake 3.2s steps(8) infinite}@keyframes bs-wake{0%,100%{opacity:.85}50%{opacity:.45}}
+.bs-radar line{animation:bs-spin 2.6s steps(32) infinite}
 .bs-char{fill:#0a0c10;opacity:0;transition:opacity 1.2s}
 .bs-ship.sunk .bs-char{opacity:.62}.bs-ship.sunk .bs-wake,.bs-ship.sunk .bs-radar line{animation:none;opacity:0}
 .bs-ship.sunk .bs-bob{animation:bs-sink 1.6s ease-in forwards}
 @keyframes bs-sink{0%{transform:translate(0,0) rotate(0) scale(1)}60%{transform:translate(0,3px) rotate(2.5deg) scale(.985)}100%{transform:translate(0,4px) rotate(2deg) scale(.97)}}
 .bs-ship.survivor{opacity:.72}.bs-ship.survivor .bs-bob{animation:none}.bs-ship.survivor .bs-wake{display:none}
 .bs-ship.reveal{animation:bs-reveal .9s ease-out both}@keyframes bs-reveal{from{opacity:0}to{opacity:1}}
-.bs-ship.pop .bs-bob{animation:bs-pop .5s cubic-bezier(.3,1.5,.5,1) both,bs-bob 4.4s ease-in-out .5s infinite}
+.bs-ship.pop .bs-bob{animation:bs-pop .5s cubic-bezier(.3,1.5,.5,1) both,bs-bob 4.4s steps(6) .5s infinite}
 @keyframes bs-pop{0%{transform:scale(.84) translateY(-5px);opacity:.3}100%{transform:scale(1);opacity:1}}
 .bs-ship.ghost .bs-bob,.bs-ship.ghost .bs-wake,.bs-ship.ghost .bs-radar line{animation:none}
 .bs-board.dragging .bs-ship .bs-bob{animation:none}
 /* Markierungen */
-.bs-miss .r{fill:none;stroke:#e9f7ff;stroke-width:2;stroke-opacity:.8;transform-box:fill-box;transform-origin:center;animation:bs-ring 3.4s ease-out infinite}
+.bs-miss .r{fill:none;stroke:#e9f7ff;stroke-width:2;stroke-opacity:.8;transform-box:fill-box;transform-origin:center;animation:bs-ring 3.4s steps(34) 2 forwards}
 .bs-miss .d{fill:#e9f7ff;fill-opacity:.9}
 @keyframes bs-ring{0%{transform:scale(.45);opacity:.9}100%{transform:scale(1.5);opacity:0}}
 .bs-safe{fill:#fff;fill-opacity:.32}
 .bs-in{animation:bs-in .35s ease-out both}@keyframes bs-in{from{opacity:0}to{opacity:1}}
-.bs-flame{transform-box:fill-box;transform-origin:50% 100%;animation:bs-flick .7s ease-in-out infinite}
+.bs-flame{transform-box:fill-box;transform-origin:50% 100%;animation:bs-flick .7s steps(4) infinite}
 .bs-flame.f2{animation-duration:.5s;animation-delay:-.2s}
 @keyframes bs-flick{0%,100%{transform:scale(1,1) skewX(0)}30%{transform:scale(.9,1.14) skewX(4deg)}65%{transform:scale(1.06,.9) skewX(-4deg)}}
-.bs-smoke{fill:#2c3037;opacity:0;transform-box:fill-box;transform-origin:center;animation:bs-smoke 2.8s ease-out infinite}
+.bs-smoke{fill:#2c3037;opacity:0;transform-box:fill-box;transform-origin:center;animation:bs-smoke 2.8s steps(28) infinite}
 .bs-smoke.s2{animation-delay:.9s}.bs-smoke.s3{animation-delay:1.8s}
 @keyframes bs-smoke{0%{transform:translate(0,-4px) scale(.5);opacity:0}15%{opacity:.5}100%{transform:translate(5px,-34px) scale(2.4);opacity:0}}
 .bs-fire.out .bs-flame{animation:none;transform:scale(.55);opacity:.7}.bs-fire.out circle:first-child{opacity:.5}
@@ -1000,13 +1000,16 @@ function CSS_TEXT() {
 /* Fadenkreuz & Vorschau */
 .bs-rl{fill:#fff;fill-opacity:.07;pointer-events:none}
 .bs-rt{transition:transform .09s ease-out;pointer-events:none}
-.bs-rt .ring{fill:rgba(255,84,112,.12);stroke:#ff5470;stroke-width:2;stroke-dasharray:6 5;transform-box:fill-box;transform-origin:center;animation:bs-spin 5s linear infinite}
+.bs-rt .ring{fill:rgba(255,84,112,.12);stroke:#ff5470;stroke-width:2;stroke-dasharray:6 5;transform-box:fill-box;transform-origin:center;animation:bs-spin 5s steps(60) infinite}
 .bs-rt .br{fill:none;stroke:#ff5470;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .bs-rt .cr{fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round}
 .bs-ret.bad .br,.bs-ret.bad .ring{stroke:#8a93a6}.bs-ret.bad .ring{fill:rgba(130,140,160,.2);animation:none}.bs-ret.bad .cr{stroke:#8a93a6}
 .bs-ghost>rect{fill:rgba(116,226,178,.4);stroke:#74e2b2;stroke-width:2;pointer-events:none}
 .bs-ghost.bad>rect{fill:rgba(255,110,140,.4);stroke:#ff6e8c}
 .bs-ghost{pointer-events:none}
+/* battery: the board is a big SVG that repaints on every animation tick — stepped timings above keep that to ~10 fps; stop it entirely when hidden / idle */
+html.perf-hidden .bs *,html.perf-idle .bs-waves,html.perf-idle .bs-sweep,html.perf-idle .bs-bob,html.perf-idle .bs-wake,html.perf-idle .bs-radar line,html.perf-idle .bs-flame,html.perf-idle .bs-smoke,html.perf-idle .bs-rt .ring{animation-play-state:paused!important}
+html.perf-lite .bs-waves,html.perf-lite .bs-sweep,html.perf-lite .bs-wake,html.perf-lite .bs-radar line,html.perf-lite .bs-smoke,html.perf-lite .bs-rt .ring{animation:none}
 .bs-float{position:fixed;z-index:9999;pointer-events:none;filter:drop-shadow(0 10px 12px rgba(0,0,0,.45));transition:opacity .12s}
 .bs-float svg{display:block;overflow:visible}
 .bs-board.shake{animation:bs-shake .42s}

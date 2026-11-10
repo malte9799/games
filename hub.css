@@ -239,8 +239,8 @@ body.hub-game-open { overflow-x: hidden; }
   flex: none;
   border-radius: 50%;
   background: var(--chip-bg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+ 
+ 
   border: 1px solid var(--hairline);
   display: flex;
   align-items: center;

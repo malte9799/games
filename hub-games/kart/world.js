@@ -638,8 +638,8 @@ function makeShell(T) {
 export function createWorld(T, host, track, themeKey, opts = {}) {
   const th = THEMES[themeKey] || THEMES.wiese;
   const coarse = matchMedia("(pointer: coarse)").matches;
-  const renderer = new T.WebGLRenderer({ antialias: !coarse, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, coarse ? 1.5 : 2));
+  const renderer = new T.WebGLRenderer({ antialias: !coarse && (window.devicePixelRatio || 1) < 1.5, powerPreference: "default" });
+  renderer.setPixelRatio(window.Perf ? Perf.pixelRatio(coarse ? 1.25 : 1.5) : Math.min(window.devicePixelRatio || 1, coarse ? 1.25 : 1.5));
   renderer.setClearColor(th.sky);
   renderer.domElement.className = "kt-canvas";
   host.appendChild(renderer.domElement);

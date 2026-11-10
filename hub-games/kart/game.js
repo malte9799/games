@@ -651,9 +651,12 @@ export async function createKart(env) {
 
   // ---------- Frame ----------
   const camPos = new T.Vector3(), camLook = new T.Vector3();
+  const frameLim = window.Perf ? Perf.limiter() : () => true;
   function frame(now) {
     if (destroyed) return;
     raf = requestAnimationFrame(frame);
+    // battery: 60 fps cap while racing (also on 120 Hz screens), 30 fps in the menu, nothing while the tab is hidden
+    if (document.hidden || !frameLim(now, phase === "menu" ? 30 : 60)) return;
     tick(now);
   }
   function tick(now) {
