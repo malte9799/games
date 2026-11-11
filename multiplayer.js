@@ -78,7 +78,13 @@
   const cleanColor = (c) => (COLORS.includes(c) ? c : "");
   const cleanPlayers = (a) => (Array.isArray(a) ? a.slice(0, 12).map((p) => ({ id: String(p.id), name: cleanName(p.name), avatar: cleanAvatar(p.avatar), accessory: cleanAccessory(p.accessory), color: cleanColor(p.color) })) : []);
 
-  const myColor = () => (COLORS.includes(store.get("mp_color")) ? store.get("mp_color") : "");
+  const myColor = () => {
+    const s = store.get(COLOR_KEY);
+    if (COLORS.includes(s)) return s;
+    const r = COLORS[Math.floor(Math.random() * COLORS.length)];
+    store.set(COLOR_KEY, r);
+    return r;
+  };
   const myAvatar = () => {
     const s = store.get(AVATAR_KEY);
     if (AVATAR_FILES.includes(s)) return s;
@@ -97,7 +103,8 @@
   const compHtml = (av, acc, size, color) => {
     const key = (av || "") + "|" + size + "|" + (color || "");
     if (COMP_CACHE.has(key)) return COMP_CACHE.get(key);
-    const bg = color ? "background:" + color + ";" : "";
+    const c = color && COLORS.includes(color) ? color : (COLORS[0] || "");
+    const bg = c ? "background:" + c + ";" : "";
     const html = av
       ? `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;border-radius:50%;${bg}">
       <img src="/avatar/${esc(av)}" style="width:100%;height:100%;object-fit:contain;display:block;" alt="" />
