@@ -26,6 +26,7 @@ const GAMES = [
   { id: "pistenjagd",  title: "Pistenjagd",        desc: "Ski · Snowboard · Schanzen",  preview: drawPistenjagd },
   { id: "battleship", title: "Schiffe versenken", desc: "Flotte aufstellen und feuern, gegen den Computer · drei Stufen", preview: drawBattleship },
   { id: "schach",     title: "Schach",             desc: "Matt · Rochade · en passant", preview: drawSchach },
+  { id: "dame",       title: "Dame",               desc: "Drei Varianten · Schlagzwang · Dame", preview: drawDame },
 ];
 
 // ---- preview renderers ----
@@ -1349,6 +1350,44 @@ function drawSchach(p, w, h) {
     legal: [{ to: 35 }, { to: 28 }, { to: 30 }, { to: 31 }],
     last: { from: 6, to: 21 },                     // …Nf6
     check: null,
+  });
+  p.noStroke();
+  p.fill(...PAL.muted);
+  p.textAlign(p.CENTER, p.CENTER);
+  p.textSize(11);
+  p.text("Weiß am Zug", w / 2, (h + size) / 2 + 14);
+}
+
+// Dame: a German mid-game, white c3 selected with a capture ring on e5.
+function drawDame(p, w, h) {
+  previewBg(p, w, h);
+  if (!window.DameView) return;
+  const n = 8;
+  const board = new Array(64).fill(null);
+  const at = (r, c) => r * 8 + c;
+
+  // white men plus a Dame on b1
+  for (const c of [0, 2, 4]) board[at(5, c)] = "w";
+  for (const c of [1, 3, 5, 7]) board[at(6, c)] = "w";
+  for (const c of [0, 4, 6]) board[at(7, c)] = "w";
+  board[at(7, 2)] = "W";
+  // black men and a Dame on a8
+  for (const c of [1, 3, 5, 7]) board[at(2, c)] = "b";
+  for (const c of [0, 2, 6]) board[at(3, c)] = "b";
+  board[at(4, 3)] = "b";
+  board[at(4, 5)] = "b";
+  board[at(0, 1)] = "B";
+
+  const size = 300;
+  DameView.drawBoard(p, {
+    x: (w - size) / 2,
+    y: (h - size) / 2,
+    size,
+    flipped: false,
+    pos: { variant: "german", n, board, turn: "w", half: 0 },
+    selected: at(5, 2),
+    legal: [{ to: at(3, 4), capture: true }],
+    last: { path: [at(2, 7), at(3, 6)] },
   });
   p.noStroke();
   p.fill(...PAL.muted);
