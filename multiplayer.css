@@ -167,7 +167,7 @@ button.mp-launch.mp-live::after { content: ""; width: 7px; height: 7px; margin-l
 
 /* the generic button rules of the page would round these into squares: pin the circles down */
 #mp-ui .mp-me-big { border-radius: 50%; width: 128px; height: 128px; min-width: 0; padding: 0; }
-#mp-prof { width: min(320px, 30vw); }
+#mp-prof { width: min(400px, 40vw); }
 #mp-prof .mp-avs { gap: 6px; }
 #mp-prof .mp-av-pick, #mp-prof .mp-col-pick { flex: none; border-radius: 50%; width: 34px; height: 34px; min-width: 0; padding: 0; font-size: 18px; box-shadow: none; overflow: visible; }
 #mp-prof .mp-av-grid .mp-av-pick { width: 72px; height: 72px; border-radius: 10px; }
