@@ -681,7 +681,7 @@
       } else {
         const isHost = S.isHost, playing = R.status === "playing", enough = canStart(), tooMany = cfg.gameMax != null && R.players.length > cfg.gameMax;
         const keepPname = (this.el.querySelector("#mp-pname") || {}).value;
-        const list = S.players.map((p) => `<li class="${p.you ? "me" : ""}"><span class="mp-pl-av">${compHtml(p.avatar || "", p.accessory || "", 30)}${p.host ? CROWN : ""}</span><span class="mp-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}${p.host ? `<em>${t("host")}</em>` : ""}</span>${isHost && !p.you ? `<button type="button" class="mp-kick" data-act="kick" data-id="${esc(p.id)}" title="${t("kick")}" aria-label="${t("kick")}: ${esc(p.name)}">✕</button>` : ""}</li>`).join("");
+        const list = S.players.map((p) => `<li class="${p.you ? "me" : ""}">${compHtml(p.avatar || "", p.accessory || "", 30)}${p.host ? CROWN : ""}<span class="mp-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}${p.host ? `<em>${t("host")}</em>` : ""}</span>${isHost && !p.you ? `<button type="button" class="mp-kick" data-act="kick" data-id="${esc(p.id)}" title="${t("kick")}" aria-label="${t("kick")}: ${esc(p.name)}">✕</button>` : ""}</li>`).join("");
         let act;
         if (playing) act = `<p class="mp-hint">${t("inGame")}</p>${isHost ? `<button class="mp-primary mp-wide" data-act="end">${t("back")}</button>` : ""}`;
         else if (isHost && !cfg.lobbyStart) act = `<button class="mp-primary mp-wide" data-act="pick">${t("pick")}</button>`;
@@ -790,7 +790,7 @@
     render() {
       if (!this.el) return;
       const S = R && R.status !== "connecting" ? snapshot() : null;
-      this.list.innerHTML = S ? S.players.map((p) => `<li class="${p.you ? "me" : ""}${p.host ? " host" : ""}"><span class="mp-pl-av">${compHtml(p.avatar || "", p.accessory || "", 28)}${p.host ? CROWN : ""}</span><span class="mp-dock-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}</span></li>`).join("") : "";
+      this.list.innerHTML = S ? S.players.map((p) => `<li class="${p.you ? "me" : ""}${p.host ? " host" : ""}">${compHtml(p.avatar || "", p.accessory || "", 28)}${p.host ? CROWN : ""}<span class="mp-dock-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}</span></li>`).join("") : "";
     },
   };
 

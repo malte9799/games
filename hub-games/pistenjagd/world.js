@@ -568,8 +568,12 @@ function makeSnowball(T) {
 export function createWorld(T, host, c) {
   const coarse = matchMedia("(pointer: coarse)").matches;
   const pal = palette();
-  const renderer = new T.WebGLRenderer({ antialias: !coarse, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, coarse ? 1.5 : 2));
+  const dpr = window.devicePixelRatio || 1;
+  // full resolution by default (capped at 2); Perf.adaptive lowers it only while the frame rate actually suffers
+  const maxRatio = window.Perf ? Perf.pixelRatio(2) : Math.min(dpr, 2);
+  const renderer = new T.WebGLRenderer({ antialias: !coarse && dpr < 2, powerPreference: "default" });
+  renderer.setPixelRatio(maxRatio);
+  const adapt = window.Perf ? Perf.adaptive(renderer, { max: maxRatio, min: 0.75 }) : null;
   renderer.domElement.className = "pj-canvas";
   host.appendChild(renderer.domElement);
 
@@ -645,7 +649,7 @@ export function createWorld(T, host, c) {
       for (const o of dyn.values()) if (o.mesh.userData.spin) o.mesh.rotation.x += dt * 9;
       particles.update(dt); snow.update(dt, camera.position, t);
     },
-    render() { renderer.render(scene, camera); },
+    render(fps) { if (adapt) adapt(performance.now(), fps || 60); renderer.render(scene, camera); },
     dispose() {
       renderer.dispose();
       scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { for (const m of [].concat(o.material)) { if (m.map) m.map.dispose(); m.dispose(); } } });

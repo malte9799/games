@@ -68,6 +68,7 @@ html[data-theme="flap"] #home, html[data-theme="flap"] #app { position: relative
   font: 600 var(--fs)/1 "Oswald", "Barlow Condensed", sans-serif; color: var(--c); text-transform: uppercase; letter-spacing: 0;
   background: #1d1d20; border-radius: calc(var(--fs) * 0.1);
   box-shadow: 0 1px 0 #000, 0 calc(var(--fs) * 0.06) 0 #000, inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  contain: layout style;   /* a flipping tile never relayouts the page */
 }
 .fl > span { position: absolute; left: 0; right: 0; height: 50%; overflow: hidden; background: #1d1d20; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 .fl .t, .fl .ft { top: 0; border-radius: calc(var(--fs) * 0.1) calc(var(--fs) * 0.1) 0 0; background: linear-gradient(#34343a, #232327); }
@@ -80,10 +81,7 @@ html[data-theme="flap"] #home, html[data-theme="flap"] #app { position: relative
 .fl .ft { transform-origin: 50% 100%; }
 .fl .fb { transform-origin: 50% 0; }
 .fl.go .ft, .fl.go .fb { visibility: visible; }
-.fl.go .ft { animation: fl-top 70ms ease-in forwards; }
-.fl.go .fb { animation: fl-bot 70ms ease-out 70ms both; }
-@keyframes fl-top { to { transform: rotateX(-90deg); } }
-@keyframes fl-bot { from { transform: rotateX(90deg); } to { transform: rotateX(0); } }
+/* the flip itself runs through element.animate() (flap.js) */
 .flrow.amber { --c: #ffb42a; }
 .flrow.amber .fl { background: #1a1710; }
 .flrow.dim { --c: #b3a98b; }
@@ -93,7 +91,7 @@ html[data-theme="flap"] #home .hero { position: relative; text-align: left; max-
 html[data-theme="flap"] #home .site-link { position: absolute; z-index: 5; right: 16px; top: 62px; margin: 0; padding: 4px 6px; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #1a1200; font-weight: 600; background: #ffb42a; border-radius: 4px; }
 html[data-theme="flap"] #home .site-link:hover { background: #ffc455; color: #000; }
 .fl-bar { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: #0a0a0b; border-bottom: 2px solid #000; font: 600 13px/1 var(--font); letter-spacing: 0.22em; color: #ffb42a; text-transform: uppercase; }
-.fl-bar span:nth-child(2) { color: #8a7a4f; }
+.fl-bar > span:nth-child(2) { color: #8a7a4f; }
 .fl-bar .grow { flex: 1; }
 .fl-bar .clock { display: flex; align-items: center; gap: 8px; margin-right: 96px; }
 .fl-bar .clock .flrow { --fs: 17px; }
@@ -143,9 +141,15 @@ html[data-theme="flap"] .controls { background: #19191c; }
 html[data-theme="flap"] .info-title { color: #ffb42a; letter-spacing: 0.16em; }
 html[data-theme="flap"] .preset-row select option { background: #1c1c1f; }
 html[data-theme="flap"] .theme-opt:hover { background: #2a2a2e; }
-@media (max-width: 640px) { .fl-bar .clock { margin-right: 0; } html[data-theme="flap"] #home .site-link { top: auto; bottom: 8px; right: 12px; } .fl-bar span:nth-child(2) { display: none; } }
-@media (prefers-reduced-motion: reduce) { .fl.go .ft, .fl.go .fb, .fl-bar .colon { animation: none; } }
+@media (max-width: 640px) { .fl-bar .clock { margin-right: 0; } html[data-theme="flap"] #home .site-link { top: auto; bottom: 8px; right: 12px; } .fl-bar > span:nth-child(2) { display: none; } }
+@media (prefers-reduced-motion: reduce) { .fl-bar .colon { animation: none; } }
 
 /* primary button keeps its own colours over the design's generic button look */
 html[data-theme="flap"] button.primary { background: var(--primary-bg); color: var(--primary-fg); border-color: var(--primary-border); }
 html[data-theme="flap"] button.primary:hover { background: var(--primary-hover); color: var(--primary-fg); border-color: var(--primary-border); }
+
+/* card descriptions: amber board text, revealed in steps (cheap clip animation instead of one flip tile per letter) */
+html[data-theme="flap"] #home .card-desc.fl-desc { color: #ffb42a; text-transform: uppercase; letter-spacing: 0.12em; font: 600 11px/1.5 "Oswald", "Barlow Condensed", sans-serif; opacity: 0; }
+html[data-theme="flap"] #home .card-desc.fl-desc.on { opacity: 1; animation: fl-reveal 0.7s steps(24) both; }
+@keyframes fl-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+html.perf-idle[data-theme="flap"] .fl-bar .colon, html.perf-hidden[data-theme="flap"] .fl-bar .colon, html.perf-idle[data-theme="flap"] #home .card::after, html.perf-hidden[data-theme="flap"] #home .card::after { animation-play-state: paused !important; }

@@ -616,6 +616,7 @@ export async function createKart(env) {
   // ---------- Simulation (fester Schritt) ----------
   function simStep() {
     const inp = readInput();
+    if (finished) inp.gas = 0;                                   // im Ziel geht das Gas aus, Lenken bleibt möglich
     if (phase === "race" || phase === "done") {
       if (rescue) rescueStep(DT); else step(me, inp, DT, track, null);      // keine Kart-Kollisionen: Latenz würde sie unfair machen
       if (itemPress) { itemPress = false; if (!rolling && !rescue) useItem(); }
@@ -651,9 +652,12 @@ export async function createKart(env) {
 
   // ---------- Frame ----------
   const camPos = new T.Vector3(), camLook = new T.Vector3();
+  const frameLim = window.Perf ? Perf.limiter() : () => true;
   function frame(now) {
     if (destroyed) return;
     raf = requestAnimationFrame(frame);
+    // battery: 60 fps cap while racing (also on 120 Hz screens), 30 fps in the menu, nothing while the tab is hidden
+    if (document.hidden || !frameLim(now, phase === "menu" ? 30 : 60)) return;
     tick(now);
   }
   function tick(now) {
@@ -707,9 +711,9 @@ export async function createKart(env) {
     camera(dt);
     if (phase !== "menu") lakituPose(time); else lkMe && lkMe.hide();
     world.update(dt, time);
-    world.render();
+    world.render(phase === "menu" ? 30 : 60);
     if (phase !== "menu") { hudUpdate(); checkDone(performance.now()); }
-    sfx.engine(clamp(Math.hypot(me.vx, me.vz) / MAXV, 0, 1.3), readInputGas(), phase === "race" || phase === "done");
+    sfx.engine(clamp(Math.hypot(me.vx, me.vz) / MAXV, 0, 1.3), finished ? 0 : readInputGas(), phase === "race" || phase === "done");
   }
   const readInputGas = () => (keys.has("gas") || tch.gas || (isTouch && tch.auto) ? 1 : 0);
 
