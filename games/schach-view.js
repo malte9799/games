@@ -16,6 +16,11 @@
 
 (function () {
   const FILES = "abcdefgh";
+  const CAPTURE_VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+  const CAPTURE_GLYPH = {
+    w: { p: "♙\uFE0E", n: "♘\uFE0E", b: "♗\uFE0E", r: "♖\uFE0E", q: "♕\uFE0E" },
+    b: { p: "♟\uFE0E", n: "♞\uFE0E", b: "♝\uFE0E", r: "♜\uFE0E", q: "♛\uFE0E" },
+  };
   const PIECES = {
     p: [
       "M50 17 C43 17 39 23 39 29 C39 33 41 36 44 38 C37 42 34 51 33 64 L67 64 C66 51 63 42 56 38 C59 36 61 33 61 29 C61 23 57 17 50 17 Z",
@@ -397,6 +402,36 @@
     }
   }
 
+  // ---- captured pieces ----
+
+  function captureValue(pieces) {
+    return (pieces || []).reduce((sum, kind) => sum + (CAPTURE_VALUE[kind] || 0), 0);
+  }
+
+  function captureGlyphs(owner, pieces) {
+    const color = owner === "w" ? "b" : "w";
+    return (pieces || [])
+      .slice()
+      .sort((a, b) => (CAPTURE_VALUE[b] || 0) - (CAPTURE_VALUE[a] || 0))
+      .map((kind) => CAPTURE_GLYPH[color][kind] || "")
+      .join("");
+  }
+
+  // owner is the side that did the capturing, so its trophies have the other colour.
+  function capturedHtml(owner, caps) {
+    const pieces = (caps && caps[owner]) || [];
+    const glyphs = captureGlyphs(owner, pieces);
+    const value = captureValue(pieces);
+    return `<span class="glyphs" title="Geschlagene Figuren">${glyphs || "–"}</span><span class="sum" title="Summe der geschlagenen Figuren" aria-label="Wert der geschlagenen Figuren: ${value}">${value ? "+" + value : "0"}</span>`;
+  }
+
+  function capturedRows(caps) {
+    return [["w", "Weiß"], ["b", "Schwarz"]].map(([owner, label]) => `<div class="schach-capture-row">
+      <span class="who"><i class="dot ${owner}"></i>${label}</span>
+      ${capturedHtml(owner, caps)}
+    </div>`).join("");
+  }
+
   // ---- DOM helpers (theme variables, no hard-coded colours) ----
 
   function injectStyle() {
@@ -433,13 +468,25 @@
 .schach-status .dot { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: var(--dim); vertical-align: 1px; }
 .schach-status.live .dot { background: var(--mint); box-shadow: 0 0 0 4px color-mix(in srgb, var(--mint) 18%, transparent); }
 .schach-status.over .dot { background: var(--rose); }
-.schach-player { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--r-sm); font-size: 13px; color: var(--muted); }
-.schach-player.active { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--ink); }
-.schach-player.gone span:not(.tag-me) { text-decoration: line-through; opacity: .6; }
+.schach-player { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--r-sm); background: var(--chip-bg); font-size: 13px; color: var(--muted); }
+.schach-player.active { background: color-mix(in srgb, var(--accent) 16%, var(--chip-bg)); color: var(--ink); }
+.schach-player.gone .schach-player-top span:not(.tag-me) { text-decoration: line-through; opacity: .6; }
 .schach-player .dot { flex: none; width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--hairline); }
 .schach-player .dot.w { background: var(--ink); }
 .schach-player .dot.b { background: var(--muted); }
-.schach-player .piece { width: 18px; text-align: center; font-size: 16px; }
+.schach-player-main { flex: 1; min-width: 0; }
+.schach-player-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.schach-player-captured { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 3px; font-size: 15px; line-height: 1; color: var(--muted); }
+.schach-player-captured .glyphs { color: var(--ink); letter-spacing: 1px; white-space: nowrap; overflow: hidden; }
+.schach-player-captured .sum { flex: none; font-size: 11px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.schach-captures-body { display: flex; flex-direction: column; gap: 2px; padding: 5px 8px; }
+.schach-capture-row { display: flex; align-items: center; gap: 8px; padding: 2px 4px; font-size: 13px; color: var(--muted); }
+.schach-capture-row .who { display: inline-flex; align-items: center; gap: 6px; min-width: 66px; color: var(--ink); }
+.schach-capture-row .dot { flex: none; width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--hairline); }
+.schach-capture-row .dot.w { background: var(--ink); }
+.schach-capture-row .dot.b { background: var(--muted); }
+.schach-capture-row .glyphs { flex: 1; min-width: 0; color: var(--ink); letter-spacing: 1px; font-size: 15px; line-height: 1; white-space: nowrap; overflow: hidden; }
+.schach-capture-row .sum { flex: none; font-size: 11px; color: var(--accent); font-variant-numeric: tabular-nums; }
 .schach-player .tag-me { margin-left: auto; font-size: 11px; color: var(--accent); }
 .schach-spectators { font-size: 12px; color: var(--muted); }
 .schach-side .row { margin: 0; }
@@ -558,6 +605,11 @@
 
   window.SchachView = {
     PIECES,
+    CAPTURE_VALUE,
+    captureValue,
+    captureGlyphs,
+    capturedHtml,
+    capturedRows,
     drawPiece,
     drawBoard,
     drawCoords,

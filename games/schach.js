@@ -57,6 +57,8 @@ let result = null;
 let thinking = false;
 let flipped = humanColor === "b";
 let moveBody = null;
+let capBody = null;
+let captured = { w: [], b: [] };
 let resultEl = null;
 
 const engineReady = import("./schach-engine.js")
@@ -87,6 +89,7 @@ function setup() {
   cnv.parent("canvas-wrap");
   frameRate(60);
   SchachView.injectStyle();
+  buildCaptures();
   buildMoveList();
   syncPreset();
   updateSoundButton();
@@ -121,6 +124,7 @@ function startNew() {
   pos = E.parseFen(E.START_FEN);
   sans = [];
   keys = [E.positionKey(pos)];
+  captured = { w: [], b: [] };
   lastMove = null;
   result = null;
   thinking = false;
@@ -131,6 +135,7 @@ function startNew() {
   board.setPosition(pos, { last: null });
   updateFlipButton();
   renderMoveList();
+  renderCaptures();
   updateStatus();
   maybeAiMove();
 }
@@ -146,6 +151,7 @@ function applyMove(move) {
   const san = E.moveToSan(pos, move);
   const capture = !!move.captured;
   const next = E.makeMove(pos, move);
+  if (move.captured) captured[mover].push(move.captured.toLowerCase());
 
   sans.push(san);
   pos = next;
@@ -167,6 +173,7 @@ function applyMove(move) {
   }
 
   renderMoveList();
+  renderCaptures();
   updateStatus();
   updateFlipButton();
 
@@ -227,6 +234,22 @@ function showResultOverlay() {
 
 function removeResult() {
   if (resultEl) { resultEl.remove(); resultEl = null; }
+}
+
+function buildCaptures() {
+  if (document.getElementById("schach-captures")) return;
+  const side = document.querySelector(".stage-side");
+  if (!side) return;
+  const wrap = document.createElement("div");
+  wrap.className = "schach-moves schach-captures";
+  wrap.id = "schach-captures";
+  wrap.innerHTML = `<div class="schach-moves-head"><span>Geschlagen</span><span>Wert</span></div><div class="schach-captures-body" id="schach-captures-body"></div>`;
+  side.appendChild(wrap);
+  capBody = wrap.querySelector("#schach-captures-body");
+}
+
+function renderCaptures() {
+  if (capBody) capBody.innerHTML = SchachView.capturedRows(captured);
 }
 
 function buildMoveList() {

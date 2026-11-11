@@ -31,6 +31,17 @@ function clean(d, ids) {
     ? { from: d.last.from, to: d.last.to } : null;
   const r = d.result && typeof d.result === "object" ? d.result : null;
   const reason = r && ["checkmate", "stalemate", "fifty", "repetition", "material", "resign", "leave"].includes(r.reason) ? r.reason : null;
+  const CAP_KINDS = ["p", "n", "b", "r", "q"];
+  const capsIn = d.caps && typeof d.caps === "object" ? d.caps : {};
+  const caps = {};
+  for (const side of ["w", "b"]) {
+    caps[side] = Array.isArray(capsIn[side])
+      ? capsIn[side]
+          .filter((x) => typeof x === "string" && CAP_KINDS.includes(x.toLowerCase()))
+          .slice(0, 16)
+          .map((x) => x.toLowerCase())
+      : [];
+  }
   return {
     rev: Number.isInteger(d.rev) && d.rev >= 0 ? d.rev : 0,
     round: Number.isInteger(d.round) && d.round >= 1 ? d.round : 1,
@@ -38,6 +49,7 @@ function clean(d, ids) {
     fen: E.toFen(pos),
     sans: Array.isArray(d.sans) ? d.sans.filter((s) => typeof s === "string").slice(0, 600).map((s) => s.slice(0, 12)) : [],
     last,
+    caps,
     phase: d.phase === "over" ? "over" : "play",
     result: r && r.over !== false && (reason || r.winner === "w" || r.winner === "b")
       ? { over: true, winner: r.winner === "w" || r.winner === "b" ? r.winner : null, reason, by: seat(r.by) }
@@ -115,6 +127,7 @@ export default {
         fen: E.START_FEN,
         sans: [],
         last: null,
+        caps: { w: [], b: [] },
         phase: "play",
         result: null,
         check: false,
@@ -158,8 +171,14 @@ export default {
       if (seatId(cur.turn) !== from) return;
       const move = E.uciToMove(cur, String(uci || ""));
       if (!move) return;
+      const mover = cur.turn;
       const san = E.moveToSan(cur, move);
       const cap = !!move.captured;
+      if (cap) {
+        if (!st.caps || typeof st.caps !== "object") st.caps = { w: [], b: [] };
+        if (!Array.isArray(st.caps[mover])) st.caps[mover] = [];
+        st.caps[mover].push(move.captured.toLowerCase());
+      }
       const next = E.makeMove(cur, move);
       keys.push(E.positionKey(next));
       st.sans.push(san);
@@ -182,6 +201,7 @@ export default {
       st.fen = E.START_FEN;
       st.sans = [];
       st.last = null;
+      st.caps = { w: [], b: [] };
       st.phase = "play";
       st.result = null;
       st.check = false;
@@ -229,8 +249,10 @@ export default {
         const gone = id && st.gone.includes(id);
         return `<div class="schach-player${active ? " active" : ""}${gone ? " gone" : ""}">
           <i class="dot ${color}"></i>
-          <span>${id ? nm(id) : "frei"}</span>
-          <span class="tag-me">${COLOR[k]}</span>
+          <div class="schach-player-main">
+            <div class="schach-player-top"><span>${id ? nm(id) : "frei"}</span><span class="tag-me">${COLOR[k]}</span></div>
+            <div class="schach-player-captured">${V.capturedHtml(color, st.caps)}</div>
+          </div>
         </div>`;
       }).join("");
     }
