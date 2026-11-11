@@ -26,6 +26,7 @@ const MP_GAMES = [
   { id: "pistenjagd", title: "Pistenjagd", desc: "Ski oder Snowboard bergab: Schanzen-Tricks, Kakao-Turbo, Schneebälle und Eisplatten – freie Plätze füllen Bots", min: 1, max: 6, preview: (p, w, h) => drawPistenjagd(p, w, h), load: () => import("./hub-games/pistenjagd.js") },
   { id: "clickrace", title: "Klick-Rennen", desc: "15 Sekunden, wer klickt mehr?", min: 2, max: 6, preview: (p, w, h) => drawClickRace(p, w, h), load: () => import("./hub-games/clickrace.js") },
   { id: "kritzel", title: "Kritzel-Revier", desc: "Echtzeit: kritzle das größte Revier – Flecken blockieren, Sterne geben Turbo", min: 2, max: 4, preview: (p, w, h) => drawKritzel(p, w, h), load: () => import("./hub-games/kritzel.js") },
+  { id: "montagsmaler", title: "Montagsmaler", desc: "Begriffe wählen, zeichnen und live im Chat raten – Skribbl-Klassiker", min: 2, max: 8, preview: (p, w, h) => drawMontagsmaler(p, w, h), load: () => import("./hub-games/montagsmaler.js") },
   { id: "battleship", title: "Schiffe versenken", desc: "Flotte aufstellen, Koordinaten feuern – Duell mit geheimer Flotte", min: 2, max: 2, preview: (p, w, h) => drawBattleship(p, w, h), load: () => import("./hub-games/battleship.js") },
 ];
 window.MP_GAMES = MP_GAMES;                        // multiplayer.js reads the game titles from here

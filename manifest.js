@@ -24,6 +24,7 @@ const GAMES = [
   { id: "kritzel",     title: "Kritzel-Revier",    desc: "kritzle das größte Revier",   preview: drawKritzel },
   { id: "kart",        title: "Kart-Rennen",       desc: "drift · turbo · Bestzeit",    preview: drawKart },
   { id: "pistenjagd",  title: "Pistenjagd",        desc: "Ski · Snowboard · Schanzen",  preview: drawPistenjagd },
+  { id: "montagsmaler", title: "Montagsmaler",     desc: "zeichnen · raten · Punkte jagen", preview: drawMontagsmaler },
   { id: "battleship", title: "Schiffe versenken", desc: "Flotte aufstellen und feuern, gegen den Computer · drei Stufen", preview: drawBattleship },
 ];
 
@@ -1324,3 +1325,89 @@ function drawPistenjagd(p, w, h) {
   p.fill(10, 14, 30, 120); p.rect(w - 20, 70, 6, h - 140, 3);
   p.fill(...PAL.sky); p.circle(w - 17, 70 + (h - 140) * 0.66, 9); p.fill(...PAL.rose); p.circle(w - 17, 70 + (h - 140) * 0.6, 12);
 }
+
+// Montagsmaler: Zeichenfläche mit skizzierter Sonne, Stift, Farbtupfer & Chatfenster
+function drawMontagsmaler(p, w, h) {
+  previewBg(p, w, h);
+  p.noStroke();
+
+  // Zeichenblock links/mittig
+  const cvX = 40, cvY = 45, cvW = 340, cvH = 265;
+  p.fill(0, 0, 0, 30); p.rect(cvX + 6, cvY + 6, cvW, cvH, 12);
+  p.fill(255); p.rect(cvX, cvY, cvW, cvH, 12);
+
+  // Zeichnung: Cartoon-Sonne & kleiner Hügel
+  p.fill(76, 175, 80); // Hügel
+  p.arc(cvX + cvW * 0.5, cvY + cvH, cvW * 0.85, 90, p.PI, p.TWO_PI);
+
+  const sx = cvX + cvW * 0.5, sy = cvY + cvH * 0.42, sr = 42;
+  // Sonnenstrahlen
+  p.stroke(255, 179, 0); p.strokeWeight(5); p.strokeCap(p.ROUND);
+  for (let a = 0; a < p.TWO_PI; a += p.PI / 6) {
+    p.line(sx + Math.cos(a) * (sr + 8), sy + Math.sin(a) * (sr + 8), sx + Math.cos(a) * (sr + 22), sy + Math.sin(a) * (sr + 22));
+  }
+  p.noStroke();
+  p.fill(255, 214, 0); p.circle(sx, sy, sr * 2);
+  // Sonnen-Gesicht
+  p.fill(60, 40, 20);
+  p.circle(sx - 14, sy - 8, 6); p.circle(sx + 14, sy - 8, 6);
+  p.noFill(); p.stroke(60, 40, 20); p.strokeWeight(3.5);
+  p.arc(sx, sy + 4, 26, 18, 0, p.PI);
+  p.noStroke();
+
+  // Farbtupfer-Palette unten auf dem Block
+  const cols = [[229, 57, 53], [251, 140, 0], [253, 216, 53], [67, 160, 71], [30, 136, 229], [142, 36, 170], [26, 26, 26]];
+  cols.forEach((col, idx) => {
+    p.fill(...col);
+    p.circle(cvX + 28 + idx * 24, cvY + cvH - 22, 14);
+  });
+
+  // Stift / Pinsel der an der Sonne zeichnet
+  const px = sx + 32, py = sy + 32;
+  p.push(); p.translate(px, py); p.rotate(0.65);
+  p.fill(245, 124, 0); p.rect(0, -6, 54, 12, 3);
+  p.fill(255, 204, 128); p.triangle(0, -6, 0, 6, -14, 0);
+  p.fill(255, 179, 0); p.triangle(-9, -2.5, -9, 2.5, -14, 0);
+  p.pop();
+
+  // Top Bar: Timer & Wort-Rätsel
+  p.fill(0, 0, 0, 70); p.rect(cvX, 12, cvW, 26, 6);
+  p.fill(...PAL.sun); p.textAlign(p.LEFT, p.CENTER); p.textStyle(p.BOLD); p.textSize(12.5);
+  p.text("⏱️ 0:42", cvX + 10, 25);
+  p.fill(255); p.textAlign(p.CENTER, p.CENTER); p.textSize(14); p.text("S  O  N  N  E", cvX + cvW * 0.55, 25);
+
+  // Chat-Panel rechts
+  const chatX = 405, chatY = 45, chatW = 160, chatH = 265;
+  p.fill(...PAL.panel); p.rect(chatX, chatY, chatW, chatH, 12);
+  p.fill(0, 0, 0, 25); p.rect(chatX, chatY, chatW, 30, 12, 12, 0, 0);
+  p.fill(...PAL.ink); p.textAlign(p.LEFT, p.CENTER); p.textStyle(p.BOLD); p.textSize(11);
+  p.text("Live-Chat", chatX + 12, chatY + 15);
+
+  // Chat Nachrichten
+  const msgs = [
+    { name: "Mia", txt: "Haus?", ok: false },
+    { name: "Tom", txt: "Blume?", ok: false },
+    { name: "Ben", txt: "Lampe?", ok: false },
+    { name: "Lena", txt: "Sonne! 🎉", ok: true },
+  ];
+  msgs.forEach((m, i) => {
+    const my = chatY + 48 + i * 40;
+    if (m.ok) {
+      p.fill(...PAL.mint, 35); p.rect(chatX + 8, my - 4, chatW - 16, 32, 6);
+      p.stroke(...PAL.mint, 80); p.strokeWeight(1); p.noFill(); p.rect(chatX + 8, my - 4, chatW - 16, 32, 6); p.noStroke();
+      p.fill(...PAL.mint); p.textStyle(p.BOLD); p.textSize(11);
+      p.text(m.name + " hat's!", chatX + 14, my + 11);
+    } else {
+      p.fill(...PAL.muted); p.textStyle(p.BOLD); p.textSize(10.5);
+      p.text(m.name + ":", chatX + 12, my + 4);
+      p.fill(...PAL.ink); p.textStyle(p.NORMAL); p.textSize(11);
+      p.text(m.txt, chatX + 12, my + 18);
+    }
+  });
+
+  // Chat Eingabefeld unten
+  p.fill(...PAL.board); p.rect(chatX + 8, chatY + chatH - 34, chatW - 16, 26, 6);
+  p.fill(...PAL.dim); p.textStyle(p.NORMAL); p.textSize(10);
+  p.text("Raten...", chatX + 16, chatY + chatH - 21);
+}
+
