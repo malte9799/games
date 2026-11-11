@@ -25,6 +25,7 @@ const GAMES = [
   { id: "kart",        title: "Kart-Rennen",       desc: "drift · turbo · Bestzeit",    preview: drawKart },
   { id: "pistenjagd",  title: "Pistenjagd",        desc: "Ski · Snowboard · Schanzen",  preview: drawPistenjagd },
   { id: "montagsmaler", title: "Montagsmaler",     desc: "zeichnen · raten · Punkte jagen", preview: drawMontagsmaler },
+  { id: "superknack",  title: "Superknack",        desc: "klopf · tausch · überlebe",    preview: drawSuperknack },
   { id: "battleship", title: "Schiffe versenken", desc: "Flotte aufstellen und feuern, gegen den Computer · drei Stufen", preview: drawBattleship },
   { id: "schach",     title: "Schach",             desc: "Matt · Rochade · en passant", preview: drawSchach },
   { id: "dame",       title: "Dame",               desc: "Drei Varianten · Schlagzwang · Dame", preview: drawDame },
@@ -1254,6 +1255,94 @@ function drawKart(p, w, h) {
   p.fill(255); p.textAlign(p.LEFT, p.CENTER); p.textStyle(p.BOLDITALIC); p.textSize(48); p.text("2", 20, 100); p.textSize(20); p.text("/4", 50, 108);
   p.noFill(); p.stroke(255, 255, 255, 230); p.strokeWeight(3.5); p.beginShape(); [[w - 62, 58], [w - 60, 36], [w - 40, 28], [w - 26, 40], [w - 32, 60], [w - 52, 64]].forEach(([x, y]) => p.vertex(x, y)); p.endShape(p.CLOSE);
   p.noStroke(); p.fill(226, 56, 61); p.circle(w - 32, 52, 8);
+}
+
+// Superknack: wooden table, three hand cards fanned bottom, discard pile centre, AI backs top, life bubbles
+function drawSuperknack(p, w, h) {
+  previewBg(p, w, h);
+  p.noStroke();
+  const cw = 54, ch = 76, cr = 7;
+  const RED = [200, 32, 40], BLK = [42, 42, 52];
+
+  function previewCard(cx, cy, rank, suit, red, rot) {
+    p.push(); p.translate(cx, cy); if (rot) p.rotate(rot);
+    p.fill(0, 0, 0, 36); p.rect(-cw / 2 + 2, -ch / 2 + 4, cw, ch, cr);
+    p.fill(252, 249, 246); p.stroke(190, 186, 176); p.strokeWeight(1);
+    p.rect(-cw / 2, -ch / 2, cw, ch, cr); p.noStroke();
+    const col = red ? RED : BLK;
+    p.fill(...col); p.textStyle(p.BOLD);
+    p.textAlign(p.LEFT, p.TOP); p.textSize(rank === "10" ? 10 : 12);
+    p.text(rank, -cw / 2 + 5, -ch / 2 + 4);
+    p.textSize(10); p.text(suit, -cw / 2 + 5, -ch / 2 + 17);
+    p.textAlign(p.CENTER, p.CENTER); p.textSize(26);
+    p.fill(...col, 210); p.text(suit, 0, ch * 0.07);
+    p.pop();
+  }
+
+  function backCard(cx, cy, rot) {
+    p.push(); p.translate(cx, cy); if (rot) p.rotate(rot);
+    p.fill(0, 0, 0, 36); p.rect(-cw / 2 + 2, -ch / 2 + 4, cw, ch, cr);
+    p.fill(...PAL.lilac.map(v => v * 0.6));
+    p.stroke(...PAL.line); p.strokeWeight(1);
+    p.rect(-cw / 2, -ch / 2, cw, ch, cr); p.noStroke();
+    p.fill(...PAL.lilac.map(v => v * 0.8), 120);
+    for (let k = 1; k < 4; k++) p.rect(-cw / 2 + k * 3.5, -ch / 2 + k * 3.5, cw - k * 7, ch - k * 7, cr - 1);
+    p.pop();
+  }
+
+  // AI opponent backs top
+  backCard(w / 2 - 60, 68, -0.1);
+  backCard(w / 2,      62, 0);
+  backCard(w / 2 + 60, 68, 0.1);
+  // AI chip
+  p.fill(...PAL.panel); p.rect(w / 2 - 38, 112, 76, 20, 10);
+  p.fill(...PAL.muted); p.textAlign(p.CENTER, p.CENTER); p.textStyle(p.BOLD); p.textSize(11);
+  p.text("KI 1", w / 2, 122);
+  // Life bubbles AI
+  for (let k = 0; k < 3; k++) {
+    p.fill(...(k < 2 ? PAL.rose : PAL.line));
+    p.circle(w / 2 - 17 + k * 17, 136, 11);
+  }
+
+  // Centre: deck + discard
+  const dx = w / 2 - cw - 10, disx = w / 2 + 10, cy2 = h / 2;
+  // deck stack
+  for (let k = 2; k >= 0; k--) {
+    p.fill(...PAL.lilac.map(v => v * 0.55 + 20));
+    p.stroke(...PAL.line); p.strokeWeight(1);
+    p.rect(dx + k * 1.5, cy2 - ch / 2 - k * 1.5, cw, ch, cr);
+  }
+  p.noStroke(); p.fill(...PAL.muted); p.textSize(10); p.textAlign(p.CENTER, p.CENTER);
+  p.text("16", dx + cw / 2, cy2);
+  // discard pile — Queen of Hearts
+  previewCard(disx + cw / 2, cy2, "Q", "♥", true, 0.03);
+  // pile behind
+  p.fill(0, 0, 0, 30); p.noStroke(); p.rect(disx + 2, cy2 - ch / 2 + 2, cw, ch, cr);
+
+  // Human hand bottom — A♥ K♠ 9♦ (selected = A♥)
+  const hy = h - 60;
+  // selection glow
+  p.fill(...PAL.lilac, 55);
+  p.rect(w / 2 - cw - 10 - 4, hy - ch / 2 - 8, cw + 8, ch + 8, cr + 4);
+  previewCard(w / 2 - cw - 10 + cw / 2, hy, "A", "♥", true, -0.04);
+  previewCard(w / 2 + cw / 2, hy, "K", "♠", false, 0.0);
+  previewCard(w / 2 + cw + 10 + cw / 2, hy, "9", "♦", true, 0.05);
+
+  // Human chip + lives
+  p.fill(...PAL.lilac); p.rect(w / 2 - 24, hy - ch / 2 - 32, 48, 20, 10);
+  p.fill(255); p.textAlign(p.CENTER, p.CENTER); p.textStyle(p.BOLD); p.textSize(11);
+  p.text("Du", w / 2, hy - ch / 2 - 22);
+  for (let k = 0; k < 3; k++) { p.fill(...PAL.rose); p.circle(w / 2 - 17 + k * 17, hy - ch / 2 - 42, 11); }
+
+  // Knock indicator
+  p.fill(...PAL.rose, 220); p.textSize(14); p.textAlign(p.CENTER, p.CENTER); p.textStyle(p.BOLD);
+  p.text("🤜 Du hast geklopft!", w / 2, h / 2 + ch / 2 + 18);
+
+  // labels
+  p.fill(...PAL.muted); p.textSize(9); p.textStyle(p.NORMAL);
+  p.textAlign(p.CENTER, p.TOP);
+  p.text("Stapel", dx + cw / 2, cy2 + ch / 2 + 4);
+  p.text("Ablage", disx + cw / 2, cy2 + ch / 2 + 4);
 }
 
 // Pistenjagd: Blick hinter dem Fahrer den Hang hinunter – Piste mit Netzen, Tannen, Schanze, Gegner voraus, Pulverschnee

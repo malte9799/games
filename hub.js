@@ -28,6 +28,7 @@ const MP_GAMES = [
   { id: "kritzel", title: "Kritzel-Revier", desc: "Echtzeit: kritzle das größte Revier – Flecken blockieren, Sterne geben Turbo", min: 2, max: 4, preview: (p, w, h) => drawKritzel(p, w, h), load: () => import("./hub-games/kritzel.js") },
   { id: "montagsmaler", title: "Montagsmaler", desc: "Begriffe wählen, zeichnen und live im Chat raten – Skribbl-Klassiker", min: 2, max: 8, preview: (p, w, h) => drawMontagsmaler(p, w, h), load: () => import("./hub-games/montagsmaler.js") },
   { id: "battleship", title: "Schiffe versenken", desc: "Flotte aufstellen, Koordinaten feuern – Duell mit geheimer Flotte", min: 2, max: 2, preview: (p, w, h) => drawBattleship(p, w, h), load: () => import("./hub-games/battleship.js") },
+  { id: "superknack", title: "Superknack", desc: "31 in einer Farbe – klopfen, tauschen, überleben", min: 2, max: 6, preview: (p, w, h) => drawSuperknack(p, w, h), load: () => import("./hub-games/superknack.js") },
   { id: "schach", title: "Schach", desc: "Zwei Spieler am Brett, der Rest schaut zu – mit Revanche und Farbtausch", min: 2, max: 6, preview: (p, w, h) => drawSchach(p, w, h), load: () => import("./hub-games/schach.js") },
   { id: "dame", title: "Dame", desc: "Zwei Spieler, drei Varianten – Schlagzwang, Mehrfachschlag und Revanche", min: 2, max: 2, preview: (p, w, h) => drawDame(p, w, h), load: () => import("./hub-games/dame.js") },
 ];
