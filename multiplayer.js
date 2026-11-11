@@ -681,7 +681,7 @@
       } else {
         const isHost = S.isHost, playing = R.status === "playing", enough = canStart(), tooMany = cfg.gameMax != null && R.players.length > cfg.gameMax;
         const keepPname = (this.el.querySelector("#mp-pname") || {}).value;
-        const list = S.players.map((p) => `<li class="${p.you ? "me" : ""}">${compHtml(p.avatar || "", p.accessory || "", 30)}<span class="mp-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}${p.host ? `<em>${t("host")}</em>` : ""}</span>${isHost && !p.you ? `<button type="button" class="mp-kick" data-act="kick" data-id="${esc(p.id)}" title="${t("kick")}" aria-label="${t("kick")}: ${esc(p.name)}">✕</button>` : ""}</li>`).join("");
+        const list = S.players.map((p) => `<li class="${p.you ? "me" : ""}">${compHtml(p.avatar || "", p.accessory || "", 30)}${p.host ? CROWN : ""}<span class="mp-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}${p.host ? `<em>${t("host")}</em>` : ""}</span>${isHost && !p.you ? `<button type="button" class="mp-kick" data-act="kick" data-id="${esc(p.id)}" title="${t("kick")}" aria-label="${t("kick")}: ${esc(p.name)}">✕</button>` : ""}</li>`).join("");
         let act;
         if (playing) act = `<p class="mp-hint">${t("inGame")}</p>${isHost ? `<button class="mp-primary mp-wide" data-act="end">${t("back")}</button>` : ""}`;
         else if (isHost && !cfg.lobbyStart) act = `<button class="mp-primary mp-wide" data-act="pick">${t("pick")}</button>`;
@@ -770,8 +770,8 @@
     try { const g = (window.MP_GAMES || (typeof GAMES !== "undefined" ? GAMES : [])).find((x) => x.id === id); return g ? g.title : id; } catch { return id; }
   };
 
-  // the dock in the top left corner: the Mehrspieler button and, once you are in a room, the players below it
-  // (avatar + name, a crown on the host). Clicking the button opens the lobby window (code, QR code, join).
+  // the dock in the top left corner: the lobby button and, once you are in a room, the players below it
+  // (avatar + name). While the room is in the lobby state, the host crown sits on the button itself.
   const CROWN = `<svg class="mp-crown" viewBox="0 0 24 24" aria-label="${"Host"}"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="currentColor"/></svg>`;
   const hue = (id) => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
   const dock = {
