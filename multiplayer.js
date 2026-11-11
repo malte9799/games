@@ -651,8 +651,8 @@
 
     render(prefill) {
       if (R) { this.linkJoin = false; keep.set({ code: R.code, name: R.name, token: R.token, at: Date.now() }); }
-      dock.render();
       for (const b of this.buttons) { b.classList.toggle("mp-live", !!R && R.status !== "connecting"); b.textContent = R ? t("lobbyBtn") : t("button"); }   // in a room the button says Lobby
+      dock.render();   // after the label loop: it re-adds the host crown the textContent reset just wiped
       if (!this.el || !this.open) return;
       const box = this.el.querySelector(".mp-box");
       const keepCode = prefill || (this.el.querySelector("#mp-code") || {}).value || (lastError ? this.lastCode : "") || "";
@@ -791,8 +791,7 @@
       if (!this.el) return;
       const S = R && R.status !== "connecting" ? snapshot() : null;
       const lobby = !!(S && S.status === "lobby");
-      if (this.btn && this.crowned !== lobby) {   // move the host crown onto the lobby button (and back off it)
-        this.crowned = lobby;
+      if (this.btn && !!this.btn.querySelector(".mp-crown") !== lobby) {   // host crown lives on the lobby button; re-add after any label reset
         this.btn.innerHTML = esc(this.btn.textContent) + (lobby ? CROWN : "");
       }
       this.list.innerHTML = S ? S.players.map((p) => `<li class="${p.you ? "me" : ""}${p.host ? " host" : ""}">${compHtml(p.avatar || "", p.accessory || "", 28)}<span class="mp-dock-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}</span></li>`).join("") : "";
