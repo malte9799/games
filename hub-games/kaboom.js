@@ -1395,8 +1395,10 @@ export default {
       if (steps >= 45) acc = 0;
     }
     let lastFrame = 0;
+    const fl = window.Perf ? Perf.limiter() : () => true;
     function frame() {
       if (dead) return;
+      if (document.hidden || !fl(performance.now(), 60)) { raf = requestAnimationFrame(frame); return; }
       lastFrame = performance.now();
       try {
         simulate();

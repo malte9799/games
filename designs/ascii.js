@@ -94,7 +94,7 @@ DESIGN_FX.ascii = {
       let ov = null, raf = 0, last = 0, cache = [];
       const loop = (now) => {
         raf = requestAnimationFrame(loop);
-        if (now - last < 66) return;
+        if (document.hidden || now - last < (window.Perf && Perf.lite ? 150 : 100)) return;
         last = now;
         const src = wrap.querySelector("canvas.src, canvas:not(.asc)");
         if (!src || !ov) return;

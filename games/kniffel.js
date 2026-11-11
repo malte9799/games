@@ -387,6 +387,11 @@ const PIPS = {
 };
 
 let renderer, scene, camera, world, glEl, clock = 0, lastTs = 0, dirty = 3;
+// battery: when nothing moves the loop sleeps (120 ms timer instead of 60 rAF wakeups) and wakes on any input / markDirty()
+let idleN = 0, idleTimer = 0, adapt = null;
+const frameLim = window.Perf ? Perf.limiter() : () => true;
+function wakeUp() { if (idleTimer) markDirty(); }
+function markDirty() { dirty = 3; idleN = 0; if (idleTimer) { clearTimeout(idleTimer); idleTimer = 0; if (!destroyed) raf = requestAnimationFrame(loop); } }
 let UPV, keyLight, diceMats = null, diceMatsFor = -1, rackTex = null, rackCtx = null;
 let hoverIdx = -1, rackHL = -1;
 let matDie, matFloor, matWall;
@@ -546,7 +551,7 @@ function drawRack(hl = rackHL) {
     g.fillText(lbl, W / 2, (zc + 1.0) * ppu);
   });
   rackTex.needsUpdate = true;
-  dirty = 3;
+  markDirty();
 }
 
 // ---- dice ----
@@ -607,7 +612,7 @@ function applyDiceTheme() {
   diceMatsFor = S.theme;
   for (const d of D) d.mesh.material = diceMats;
   if (old) for (const m of old) { m.map.dispose(); m.bumpMap.dispose(); m.dispose(); }
-  dirty = 3;
+  markDirty();
 }
 
 // ---- orientation helpers ----
@@ -647,7 +652,7 @@ function slotPose(i, held, v) {
 
 function setPose(d, pose) {
   d.mesh.position.copy(pose.p); d.mesh.quaternion.copy(pose.q);
-  d.rest = pose; d.state = "rest"; d.anim = null; dirty = 3;
+  d.rest = pose; d.state = "rest"; d.anim = null; markDirty();
 }
 
 function tweenDie(d, to, o = {}) {
@@ -665,13 +670,15 @@ function init3D() {
   const T = THREE;
   UPV = new T.Vector3(0, 1, 0);
   glEl = document.getElementById("kn-gl");
-  renderer = new T.WebGLRenderer({ canvas: glEl, antialias: true, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer = new T.WebGLRenderer({ canvas: glEl, antialias: (window.devicePixelRatio || 1) < 2, powerPreference: "default" });
+  const maxRatio = window.Perf ? Perf.pixelRatio(2) : Math.min(window.devicePixelRatio || 1, 2);
+  renderer.setPixelRatio(maxRatio);
+  adapt = window.Perf ? Perf.adaptive(renderer, { max: maxRatio, min: 0.75 }) : null;
   renderer.outputEncoding = T.sRGBEncoding;
   renderer.toneMapping = T.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.shadowMap.type = T.PCFShadowMap;
 
   scene = new T.Scene();
   scene.background = new T.Color(0x2a1a10);
@@ -801,6 +808,7 @@ function init3D() {
   placeDice();
 
   glEl.style.touchAction = "none";
+  for (const t of ["pointerdown", "pointermove", "keydown", "click"]) addEventListener(t, wakeUp, { passive: true, capture: true });
   glEl.addEventListener("pointerdown", onPointerDown);
   glEl.addEventListener("pointermove", onPointerMove);
   glEl.addEventListener("pointerup", onPointerUp);
@@ -847,7 +855,7 @@ function fitCamera() {
   const m = measure(hi);
   const px = (m.cx + 1) / 2 * W, py = (1 - m.cy) / 2 * H;
   camera.setViewOffset(W, H, -(fitBox.cx - px), -(fitBox.cy - py), W, H);
-  dirty = 3;
+  markDirty();
 }
 
 // ---- picking ----
@@ -878,7 +886,7 @@ function setHover(i) {
   if (i === hoverIdx) return;
   hoverIdx = i;
   glEl.style.cursor = i >= 0 ? "pointer" : "";
-  dirty = 3;
+  markDirty();
 }
 // ---- rolling ----
 
@@ -1022,7 +1030,7 @@ function onPointerMove(ev) {
     const over = d.dragTo.z > TRAY_HZ + 0.7;
     setRackHL(over && (G.rolls > 0 || d.held) ? nearestSlot(d.dragTo.x, false) : -1);
   }
-  dirty = 3;
+  markDirty();
 }
 
 function onPointerUp() {
@@ -1066,6 +1074,8 @@ function dropDie(d) {
 function loop(ts) {
   if (destroyed) return;
   raf = requestAnimationFrame(loop);
+  if (document.hidden) { lastTs = 0; return; }
+  if (!frameLim(ts, 60)) return;
   const dt = Math.min(0.05, (ts - (lastTs || ts)) / 1000);
   lastTs = ts;
   let active = false;
@@ -1114,7 +1124,11 @@ function loop(ts) {
     } else active = true;
   }
   if (active) dirty = 3;
-  if (dirty > 0) { dirty--; renderer.render(scene, camera); }
+  if (dirty > 0) { dirty--; if (adapt) adapt(ts, 60); renderer.render(scene, camera); idleN = 0; }
+  else if (++idleN > 20) {                      // nothing moving: sleep until input / markDirty()
+    cancelAnimationFrame(raf); raf = 0; lastTs = 0;
+    idleTimer = setTimeout(() => { idleTimer = 0; if (!destroyed) raf = requestAnimationFrame(loop); }, 120);
+  }
 }
 
 // ============================================================ score card (HTML) + handwriting
@@ -1600,7 +1614,7 @@ const CSS = `
 .kn-tools #kn-t-sound { padding: 0 11px; } .kn-tools #kn-t-sound.off { opacity: .6; } .kn-tools #kn-t-sound.off .wave { display: none; }
 
 #kn-menu { position: absolute; inset: 0; z-index: 70; display: none; overflow: auto; -webkit-user-select: none; user-select: none;
-  background: radial-gradient(ellipse at 50% 36%, rgba(70,38,16,.5), rgba(10,4,0,.88) 72%); backdrop-filter: blur(8px) saturate(.9); -webkit-backdrop-filter: blur(8px) saturate(.9); }
+  background: radial-gradient(ellipse at 50% 36%, rgba(70,38,16,.5), rgba(10,4,0,.88) 72%);}
 #kn-menu.show { display: block; animation: mn-in .45s ease-out; }
 @keyframes mn-in { from { opacity: 0; } }
 .mn-wrap { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 18px 26px; text-align: center; }
@@ -2350,7 +2364,8 @@ if (/[?&]debug\b/.test(location.search)) {
 
 function destroy() {
   destroyed = true;
-  cancelAnimationFrame(raf);
+  cancelAnimationFrame(raf); clearTimeout(idleTimer);
+  for (const t of ["pointerdown", "pointermove", "keydown", "click"]) removeEventListener(t, wakeUp, { capture: true });
   clearInterval(mpTimer); clearTimeout(soloTimer);
   if (onKeyDown) document.removeEventListener("keydown", onKeyDown);
   observers.forEach((o) => o.disconnect());
