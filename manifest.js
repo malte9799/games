@@ -24,6 +24,8 @@ const GAMES = [
   { id: "kritzel",     title: "Kritzel-Revier",    desc: "kritzle das größte Revier",   preview: drawKritzel },
   { id: "kart",        title: "Kart-Rennen",       desc: "drift · turbo · Bestzeit",    preview: drawKart },
   { id: "pistenjagd",  title: "Pistenjagd",        desc: "Ski · Snowboard · Schanzen",  preview: drawPistenjagd },
+  { id: "montagsmaler", title: "Montagsmaler",     desc: "zeichnen · raten · Punkte jagen", preview: drawMontagsmaler },
+  { id: "superknack",  title: "Superknack",        desc: "klopf · tausch · überlebe",    preview: drawSuperknack },
   { id: "battleship", title: "Schiffe versenken", desc: "Flotte aufstellen und feuern, gegen den Computer · drei Stufen", preview: drawBattleship },
   { id: "schach",     title: "Schach",             desc: "Matt · Rochade · en passant", preview: drawSchach },
   { id: "dame",       title: "Dame",               desc: "Drei Varianten · Schlagzwang · Dame", preview: drawDame },
@@ -1255,6 +1257,94 @@ function drawKart(p, w, h) {
   p.noStroke(); p.fill(226, 56, 61); p.circle(w - 32, 52, 8);
 }
 
+// Superknack: wooden table, three hand cards fanned bottom, discard pile centre, AI backs top, life bubbles
+function drawSuperknack(p, w, h) {
+  previewBg(p, w, h);
+  p.noStroke();
+  const cw = 54, ch = 76, cr = 7;
+  const RED = [200, 32, 40], BLK = [42, 42, 52];
+
+  function previewCard(cx, cy, rank, suit, red, rot) {
+    p.push(); p.translate(cx, cy); if (rot) p.rotate(rot);
+    p.fill(0, 0, 0, 36); p.rect(-cw / 2 + 2, -ch / 2 + 4, cw, ch, cr);
+    p.fill(252, 249, 246); p.stroke(190, 186, 176); p.strokeWeight(1);
+    p.rect(-cw / 2, -ch / 2, cw, ch, cr); p.noStroke();
+    const col = red ? RED : BLK;
+    p.fill(...col); p.textStyle(p.BOLD);
+    p.textAlign(p.LEFT, p.TOP); p.textSize(rank === "10" ? 10 : 12);
+    p.text(rank, -cw / 2 + 5, -ch / 2 + 4);
+    p.textSize(10); p.text(suit, -cw / 2 + 5, -ch / 2 + 17);
+    p.textAlign(p.CENTER, p.CENTER); p.textSize(26);
+    p.fill(...col, 210); p.text(suit, 0, ch * 0.07);
+    p.pop();
+  }
+
+  function backCard(cx, cy, rot) {
+    p.push(); p.translate(cx, cy); if (rot) p.rotate(rot);
+    p.fill(0, 0, 0, 36); p.rect(-cw / 2 + 2, -ch / 2 + 4, cw, ch, cr);
+    p.fill(...PAL.lilac.map(v => v * 0.6));
+    p.stroke(...PAL.line); p.strokeWeight(1);
+    p.rect(-cw / 2, -ch / 2, cw, ch, cr); p.noStroke();
+    p.fill(...PAL.lilac.map(v => v * 0.8), 120);
+    for (let k = 1; k < 4; k++) p.rect(-cw / 2 + k * 3.5, -ch / 2 + k * 3.5, cw - k * 7, ch - k * 7, cr - 1);
+    p.pop();
+  }
+
+  // AI opponent backs top
+  backCard(w / 2 - 60, 68, -0.1);
+  backCard(w / 2,      62, 0);
+  backCard(w / 2 + 60, 68, 0.1);
+  // AI chip
+  p.fill(...PAL.panel); p.rect(w / 2 - 38, 112, 76, 20, 10);
+  p.fill(...PAL.muted); p.textAlign(p.CENTER, p.CENTER); p.textStyle(p.BOLD); p.textSize(11);
+  p.text("KI 1", w / 2, 122);
+  // Life bubbles AI
+  for (let k = 0; k < 3; k++) {
+    p.fill(...(k < 2 ? PAL.rose : PAL.line));
+    p.circle(w / 2 - 17 + k * 17, 136, 11);
+  }
+
+  // Centre: deck + discard
+  const dx = w / 2 - cw - 10, disx = w / 2 + 10, cy2 = h / 2;
+  // deck stack
+  for (let k = 2; k >= 0; k--) {
+    p.fill(...PAL.lilac.map(v => v * 0.55 + 20));
+    p.stroke(...PAL.line); p.strokeWeight(1);
+    p.rect(dx + k * 1.5, cy2 - ch / 2 - k * 1.5, cw, ch, cr);
+  }
+  p.noStroke(); p.fill(...PAL.muted); p.textSize(10); p.textAlign(p.CENTER, p.CENTER);
+  p.text("16", dx + cw / 2, cy2);
+  // discard pile — Queen of Hearts
+  previewCard(disx + cw / 2, cy2, "Q", "♥", true, 0.03);
+  // pile behind
+  p.fill(0, 0, 0, 30); p.noStroke(); p.rect(disx + 2, cy2 - ch / 2 + 2, cw, ch, cr);
+
+  // Human hand bottom — A♥ K♠ 9♦ (selected = A♥)
+  const hy = h - 60;
+  // selection glow
+  p.fill(...PAL.lilac, 55);
+  p.rect(w / 2 - cw - 10 - 4, hy - ch / 2 - 8, cw + 8, ch + 8, cr + 4);
+  previewCard(w / 2 - cw - 10 + cw / 2, hy, "A", "♥", true, -0.04);
+  previewCard(w / 2 + cw / 2, hy, "K", "♠", false, 0.0);
+  previewCard(w / 2 + cw + 10 + cw / 2, hy, "9", "♦", true, 0.05);
+
+  // Human chip + lives
+  p.fill(...PAL.lilac); p.rect(w / 2 - 24, hy - ch / 2 - 32, 48, 20, 10);
+  p.fill(255); p.textAlign(p.CENTER, p.CENTER); p.textStyle(p.BOLD); p.textSize(11);
+  p.text("Du", w / 2, hy - ch / 2 - 22);
+  for (let k = 0; k < 3; k++) { p.fill(...PAL.rose); p.circle(w / 2 - 17 + k * 17, hy - ch / 2 - 42, 11); }
+
+  // Knock indicator
+  p.fill(...PAL.rose, 220); p.textSize(14); p.textAlign(p.CENTER, p.CENTER); p.textStyle(p.BOLD);
+  p.text("🤜 Du hast geklopft!", w / 2, h / 2 + ch / 2 + 18);
+
+  // labels
+  p.fill(...PAL.muted); p.textSize(9); p.textStyle(p.NORMAL);
+  p.textAlign(p.CENTER, p.TOP);
+  p.text("Stapel", dx + cw / 2, cy2 + ch / 2 + 4);
+  p.text("Ablage", disx + cw / 2, cy2 + ch / 2 + 4);
+}
+
 // Pistenjagd: Blick hinter dem Fahrer den Hang hinunter – Piste mit Netzen, Tannen, Schanze, Gegner voraus, Pulverschnee
 function drawPistenjagd(p, w, h) {
   previewBg(p, w, h);
@@ -1325,6 +1415,91 @@ function drawPistenjagd(p, w, h) {
   // Fortschritt rechts
   p.fill(10, 14, 30, 120); p.rect(w - 20, 70, 6, h - 140, 3);
   p.fill(...PAL.sky); p.circle(w - 17, 70 + (h - 140) * 0.66, 9); p.fill(...PAL.rose); p.circle(w - 17, 70 + (h - 140) * 0.6, 12);
+}
+
+// Montagsmaler: Zeichenfläche mit skizzierter Sonne, Stift, Farbtupfer & Chatfenster
+function drawMontagsmaler(p, w, h) {
+  previewBg(p, w, h);
+  p.noStroke();
+
+  // Zeichenblock links/mittig
+  const cvX = 40, cvY = 45, cvW = 340, cvH = 265;
+  p.fill(0, 0, 0, 30); p.rect(cvX + 6, cvY + 6, cvW, cvH, 12);
+  p.fill(255); p.rect(cvX, cvY, cvW, cvH, 12);
+
+  // Zeichnung: Cartoon-Sonne & kleiner Hügel
+  p.fill(76, 175, 80); // Hügel
+  p.arc(cvX + cvW * 0.5, cvY + cvH, cvW * 0.85, 90, p.PI, p.TWO_PI);
+
+  const sx = cvX + cvW * 0.5, sy = cvY + cvH * 0.42, sr = 42;
+  // Sonnenstrahlen
+  p.stroke(255, 179, 0); p.strokeWeight(5); p.strokeCap(p.ROUND);
+  for (let a = 0; a < p.TWO_PI; a += p.PI / 6) {
+    p.line(sx + Math.cos(a) * (sr + 8), sy + Math.sin(a) * (sr + 8), sx + Math.cos(a) * (sr + 22), sy + Math.sin(a) * (sr + 22));
+  }
+  p.noStroke();
+  p.fill(255, 214, 0); p.circle(sx, sy, sr * 2);
+  // Sonnen-Gesicht
+  p.fill(60, 40, 20);
+  p.circle(sx - 14, sy - 8, 6); p.circle(sx + 14, sy - 8, 6);
+  p.noFill(); p.stroke(60, 40, 20); p.strokeWeight(3.5);
+  p.arc(sx, sy + 4, 26, 18, 0, p.PI);
+  p.noStroke();
+
+  // Farbtupfer-Palette unten auf dem Block
+  const cols = [[229, 57, 53], [251, 140, 0], [253, 216, 53], [67, 160, 71], [30, 136, 229], [142, 36, 170], [26, 26, 26]];
+  cols.forEach((col, idx) => {
+    p.fill(...col);
+    p.circle(cvX + 28 + idx * 24, cvY + cvH - 22, 14);
+  });
+
+  // Stift / Pinsel der an der Sonne zeichnet
+  const px = sx + 32, py = sy + 32;
+  p.push(); p.translate(px, py); p.rotate(0.65);
+  p.fill(245, 124, 0); p.rect(0, -6, 54, 12, 3);
+  p.fill(255, 204, 128); p.triangle(0, -6, 0, 6, -14, 0);
+  p.fill(255, 179, 0); p.triangle(-9, -2.5, -9, 2.5, -14, 0);
+  p.pop();
+
+  // Top Bar: Timer & Wort-Rätsel
+  p.fill(0, 0, 0, 70); p.rect(cvX, 12, cvW, 26, 6);
+  p.fill(...PAL.sun); p.textAlign(p.LEFT, p.CENTER); p.textStyle(p.BOLD); p.textSize(12.5);
+  p.text("⏱️ 0:42", cvX + 10, 25);
+  p.fill(255); p.textAlign(p.CENTER, p.CENTER); p.textSize(14); p.text("S  O  N  N  E", cvX + cvW * 0.55, 25);
+
+  // Chat-Panel rechts
+  const chatX = 405, chatY = 45, chatW = 160, chatH = 265;
+  p.fill(...PAL.panel); p.rect(chatX, chatY, chatW, chatH, 12);
+  p.fill(0, 0, 0, 25); p.rect(chatX, chatY, chatW, 30, 12, 12, 0, 0);
+  p.fill(...PAL.ink); p.textAlign(p.LEFT, p.CENTER); p.textStyle(p.BOLD); p.textSize(11);
+  p.text("Live-Chat", chatX + 12, chatY + 15);
+
+  // Chat Nachrichten
+  const msgs = [
+    { name: "Mia", txt: "Haus?", ok: false },
+    { name: "Tom", txt: "Blume?", ok: false },
+    { name: "Ben", txt: "Lampe?", ok: false },
+    { name: "Lena", txt: "Sonne! 🎉", ok: true },
+  ];
+  msgs.forEach((m, i) => {
+    const my = chatY + 48 + i * 40;
+    if (m.ok) {
+      p.fill(...PAL.mint, 35); p.rect(chatX + 8, my - 4, chatW - 16, 32, 6);
+      p.stroke(...PAL.mint, 80); p.strokeWeight(1); p.noFill(); p.rect(chatX + 8, my - 4, chatW - 16, 32, 6); p.noStroke();
+      p.fill(...PAL.mint); p.textStyle(p.BOLD); p.textSize(11);
+      p.text(m.name + " hat's!", chatX + 14, my + 11);
+    } else {
+      p.fill(...PAL.muted); p.textStyle(p.BOLD); p.textSize(10.5);
+      p.text(m.name + ":", chatX + 12, my + 4);
+      p.fill(...PAL.ink); p.textStyle(p.NORMAL); p.textSize(11);
+      p.text(m.txt, chatX + 12, my + 18);
+    }
+  });
+
+  // Chat Eingabefeld unten
+  p.fill(...PAL.board); p.rect(chatX + 8, chatY + chatH - 34, chatW - 16, 26, 6);
+  p.fill(...PAL.dim); p.textStyle(p.NORMAL); p.textSize(10);
+  p.text("Raten...", chatX + 16, chatY + chatH - 21);
 }
 
 // Schach: a quiet Italian middlegame, white knight selected, black's last move marked.
