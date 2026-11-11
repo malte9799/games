@@ -67,6 +67,8 @@
 #mp-ui .mp-pl { list-style: none; margin: 0 0 4px; padding: 0; text-align: left; }
 #mp-ui .mp-pl li { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin-bottom: 6px; border-radius: var(--r-sm); background: var(--chip-bg); border: var(--border-w) solid var(--hairline); }
 #mp-ui .mp-pl li.me { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+#mp-ui .mp-pl-av { position: relative; flex: none; display: inline-flex; }
+#mp-ui .mp-pl-av .mp-crown { position: absolute; top: -9px; left: 50%; width: 18px; height: 18px; transform: translateX(-50%) rotate(-8deg); color: #ffc93c; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
 #mp-ui .mp-av { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 700 14px var(--font); font-style: normal; color: var(--primary-fg); background: var(--primary-bg); }
 #mp-ui .mp-kick { flex: none; width: 28px; height: 28px; border-radius: 50%; border: var(--border-w) solid var(--hairline); background: transparent; color: var(--muted); font: 600 13px var(--font); cursor: pointer; line-height: 1; }
 #mp-ui .mp-kick:hover { color: #fff; background: #dc2626; border-color: #dc2626; }
