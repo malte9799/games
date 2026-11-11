@@ -112,7 +112,7 @@ export default {
     const avSize = () => Math.max(46, Math.min(96, Math.round(stage.clientWidth * 0.15)));
     const avatar = (s, size) => {
       const MPW = window.Multiplayer;
-      const inner = s.avatar && MPW && MPW.avatarHtml ? MPW.avatarHtml(s.avatar, s.accessory, size) : `<span class="wb-ini" style="font-size:${Math.round(size * 0.5)}px">${esc((s.name || "?").slice(0, 1).toUpperCase())}</span>`;
+      const inner = s.avatar && MPW && MPW.avatarHtml ? MPW.avatarHtml(s.avatar, s.accessory, size, s.color) : `<span class="wb-ini" style="font-size:${Math.round(size * 0.5)}px">${esc((s.name || "?").slice(0, 1).toUpperCase())}</span>`;
       return `<div class="wb-av" style="width:${size}px;height:${size}px;${s.color ? "background:" + esc(s.color) : ""}">${inner}</div>`;
     };
     const hearts = (s) => {

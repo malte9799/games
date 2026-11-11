@@ -176,3 +176,4 @@ html[data-theme="cutout"] .preset-row::after { border-color: #2b2d42; }
 /* primary button keeps its own colours over the design's generic button look */
 html[data-theme="cutout"] button.primary { background: var(--primary-bg); color: var(--primary-fg); border-color: var(--primary-border); }
 html[data-theme="cutout"] button.primary:hover { background: var(--primary-hover); color: var(--primary-fg); border-color: var(--primary-border); }
+html[data-theme="cutout"] input:not([type="range"]):not([type="checkbox"]):not([type="radio"]), html[data-theme="cutout"] textarea { outline: 2px solid var(--panel-edge); outline-offset: -2px; border-radius: var(--r-sm); }
