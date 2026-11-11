@@ -106,10 +106,13 @@
     const c = color && COLORS.includes(color) ? color : (COLORS[0] || "");
     const bg = c ? "background:" + c + ";" : "";
     const html = av
-      ? `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;border-radius:50%;${bg}">
-      <img src="/avatar/${esc(av)}" style="width:100%;height:100%;object-fit:contain;display:block;" alt="" />
+      ? `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;position:relative;">
+      <span style="position:absolute;inset:0;border-radius:50%;${bg}"></span>
+      <img src="/avatar/${esc(av)}" style="position:relative;width:100%;height:100%;object-fit:contain;display:block;" alt="" />
     </span>`
-      : `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;border-radius:50%;${bg}"></span>`;
+      : `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;position:relative;">
+      <span style="position:absolute;inset:0;border-radius:50%;${bg}"></span>
+    </span>`;
     COMP_CACHE.set(key, html);
     return html;
   };
