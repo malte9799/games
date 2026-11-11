@@ -1299,7 +1299,7 @@ function drawSuperknack(p, w, h) {
   p.text("KI 1", w / 2, 122);
   // Life bubbles AI
   for (let k = 0; k < 3; k++) {
-    p.fill(k < 2 ? ...PAL.rose : ...PAL.line);
+    p.fill(...(k < 2 ? PAL.rose : PAL.line));
     p.circle(w / 2 - 17 + k * 17, 136, 11);
   }
 
