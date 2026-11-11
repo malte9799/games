@@ -73,7 +73,7 @@
   const ACCESSORY_KEY = "mp_accessory";
   const cleanAccessory = (a) => "";
   // background colours for the avatar circle
-  const COLORS = ["#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#a78bfa", "#f472b6", "#94a3b8"];
+  const COLORS = ["#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#a78bfa", "#f472b6"];
   const COLOR_KEY = "mp_color";
   const cleanColor = (c) => (COLORS.includes(c) ? c : "");
   const cleanPlayers = (a) => (Array.isArray(a) ? a.slice(0, 12).map((p) => ({ id: String(p.id), name: cleanName(p.name), avatar: cleanAvatar(p.avatar), accessory: cleanAccessory(p.accessory), color: cleanColor(p.color) })) : []);
