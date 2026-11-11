@@ -239,8 +239,8 @@ body.hub-game-open { overflow-x: hidden; }
   flex: none;
   border-radius: 50%;
   background: var(--chip-bg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+ 
+ 
   border: 1px solid var(--hairline);
   display: flex;
   align-items: center;
@@ -348,9 +348,10 @@ body.hub-game-open { overflow-x: hidden; }
 
 /* ---- Wortbombe: the table keeps its own look (dark brown, yellow arrow) whatever design is active ---- */
 .hub-wortbombe .hk-body { min-height: 0; }
-.hub-kart .hk-body { height: calc(100dvh - 190px); min-height: 440px; padding: 0; }
+.hub-kart .hk, .hub-pistenjagd .hk { max-width: min(1200px, 100%); gap: 10px; }
+.hub-kart .hk-body { height: calc(100dvh - 150px); min-height: 440px; padding: 0; }
 @media (max-width: 640px) { .hub-kart .hk-body { height: calc(100dvh - 170px); min-height: 360px; } }
-.hub-pistenjagd .hk-body { height: calc(100dvh - 190px); min-height: 440px; padding: 0; }
+.hub-pistenjagd .hk-body { height: calc(100dvh - 150px); min-height: 440px; padding: 0; }
 @media (max-width: 640px) { .hub-pistenjagd .hk-body { height: calc(100dvh - 170px); min-height: 360px; } }
 .wb { display: flex; flex-direction: column; gap: 14px; }
 .wb-stage { position: relative; width: min(100%, 640px, calc(100dvh - 300px)); min-width: 300px; aspect-ratio: 1; margin: 0 auto; border-radius: var(--r-xl); overflow: hidden;

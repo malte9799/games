@@ -771,8 +771,10 @@ export default {
 
     // ---- Hauptschleife ----
     let raf = 0, last = performance.now(), dead = false;
+    const fl = window.Perf ? Perf.limiter() : () => true;
     function frame(now) {
       if (dead) return;
+      if (document.hidden || !fl(now, 60)) { raf = requestAnimationFrame(frame); return; }
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
       try { update(dt); draw(); } catch (e) { console.error(e); }
       raf = requestAnimationFrame(frame);

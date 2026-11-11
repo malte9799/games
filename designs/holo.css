@@ -73,17 +73,17 @@ html[data-theme="holo"] body::before {
     radial-gradient(45% 45% at 80% 25%, rgba(122, 255, 208, 0.38), transparent 70%),
     radial-gradient(50% 50% at 55% 85%, rgba(120, 184, 255, 0.42), transparent 70%),
     radial-gradient(35% 35% at 10% 80%, rgba(192, 144, 255, 0.4), transparent 70%);
-  filter: blur(40px) hue-rotate(0deg);
+  will-change: transform;
   animation: holo-aurora 26s ease-in-out infinite alternate;
   opacity: 0.95;
 }
-@keyframes holo-aurora { to { transform: translate(4%, -3%) rotate(8deg) scale(1.1); filter: blur(46px) hue-rotate(90deg); } }
+@keyframes holo-aurora { to { transform: translate(4%, -3%) rotate(8deg) scale(1.1); } }
 html[data-theme="holo"] #home, html[data-theme="holo"] #app { position: relative; z-index: 1; }
 
 html[data-theme="holo"] #home h1, html[data-theme="holo"] #app h1 {
   background: var(--holo); background-size: 250% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent;
-  animation: holo-shift 7s linear infinite;
+  animation: holo-shift 7s steps(70) infinite;
   filter: drop-shadow(0 0 26px rgba(190, 150, 255, 0.45));
   font-weight: 800; letter-spacing: -0.045em;
 }
@@ -97,12 +97,11 @@ html[data-theme="holo"] #home .grid { gap: 26px; perspective: 1200px; }
 html[data-theme="holo"] #home .card {
   border: 1.5px solid transparent;
   background: linear-gradient(#120f2b, #120f2b) padding-box, var(--holo-conic) border-box;
-  animation: holo-spin 8s linear infinite;
   border-radius: 20px;
   transform-style: preserve-3d;
   transition: transform 0.7s var(--ease), box-shadow 0.3s;
 }
-html[data-theme="holo"] #home .card:hover {
+html[data-theme="holo"] #home .card:hover { animation: holo-spin 8s steps(120) infinite;
   transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateZ(0) scale(1.03);
   transition: transform 0.12s linear, box-shadow 0.3s;
 }
@@ -139,7 +138,8 @@ html[data-theme="holo"] #canvas-wrap:not(.fs):hover::before { opacity: 0.22; }
 html[data-theme="holo"] #canvas-wrap:not(.fs):hover::after { opacity: 0.5; }
 html[data-theme="holo"] #home .card .preview { background: #0e0c20; margin: 8px 8px 0; border-radius: 14px 14px 6px 6px; }
 html[data-theme="holo"] #home .card-text { border-top: 0; padding: 14px 20px 18px; }
-html[data-theme="holo"] #home .card-title { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; background: var(--holo); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; display: inline-block; animation: holo-shift 7s linear infinite; }
+html[data-theme="holo"] #home .card-title { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; background: var(--holo); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; display: inline-block; }
+html[data-theme="holo"] #home .card:hover .card-title { animation: holo-shift 7s steps(70) infinite; }
 html[data-theme="holo"] #home .card-desc { color: #a79dd0; font-weight: 300; }
 html[data-theme="holo"] #home .star-btn { z-index: 6; }
 
@@ -147,24 +147,28 @@ html[data-theme="holo"] #home .star-btn { z-index: 6; }
 html[data-theme="holo"] #canvas-wrap:not(.fs) {
   border: 2px solid transparent;
   background: linear-gradient(#0e0c20, #0e0c20) padding-box, var(--holo-conic) border-box;
-  animation: wrap-in var(--wrap-dur) var(--wrap-ease) both, holo-spin 10s linear infinite;
+  animation: wrap-in var(--wrap-dur) var(--wrap-ease) both, holo-spin 10s steps(120) infinite;
   --wrap-shadow: 0 30px 70px -30px rgba(160, 120, 255, 0.6);
 }
 html[data-theme="holo"] #canvas-wrap canvas { position: relative; z-index: 1; }
-html[data-theme="holo"] button, html[data-theme="holo"] .preset-row select { background-color: rgba(255, 255, 255, 0.06); backdrop-filter: blur(8px); font-weight: 500; }
+html[data-theme="holo"] button, html[data-theme="holo"] .preset-row select { background-color: rgba(255, 255, 255, 0.08); font-weight: 500; }
 html[data-theme="holo"] button:hover {
   border-color: transparent;
   background: linear-gradient(rgba(26, 22, 54, 0.92), rgba(26, 22, 54, 0.92)) padding-box, var(--holo-conic) border-box;
-  animation: holo-spin 4s linear infinite;
+  animation: holo-spin 4s steps(60) infinite;
 }
-html[data-theme="holo"] button.primary { background: var(--holo); background-size: 200% 100%; border: 0; color: #140f30; animation: holo-shift 6s linear infinite; }
-html[data-theme="holo"] button.primary:hover { background: var(--holo); background-size: 200% 100%; filter: brightness(1.12); animation: holo-shift 2s linear infinite; }
+html[data-theme="holo"] button.primary { background: var(--holo); background-size: 200% 100%; border: 0; color: #140f30; }
+html[data-theme="holo"] button.primary:hover { background: var(--holo); background-size: 200% 100%; filter: brightness(1.12); animation: holo-shift 2s steps(40) infinite; }
 html[data-theme="holo"] button.active, html[data-theme="holo"] button.hint-confirm { background: rgba(150, 255, 214, 0.15); border-color: rgba(150, 255, 214, 0.6); }
-html[data-theme="holo"] .controls { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
-html[data-theme="holo"] .info-modal { border: 1.5px solid transparent; background: linear-gradient(#141030, #141030) padding-box, var(--holo-conic) border-box; animation: info-pop 0.28s var(--ease), holo-spin 8s linear infinite; }
+html[data-theme="holo"] .controls { background: rgba(255, 255, 255, 0.07); }
+html[data-theme="holo"] .info-modal { border: 1.5px solid transparent; background: linear-gradient(#141030, #141030) padding-box, var(--holo-conic) border-box; animation: info-pop 0.28s var(--ease), holo-spin 8s steps(120) infinite; }
 html[data-theme="holo"] .theme-menu { background: #141030; }
 html[data-theme="holo"] .preset-row select option { background: #1a1636; }
 
 @media (prefers-reduced-motion: reduce) {
   html[data-theme="holo"] body::before, html[data-theme="holo"] #home h1, html[data-theme="holo"] #app h1, html[data-theme="holo"] #home .card, html[data-theme="holo"] #home .card-title { animation: none; }
 }
+
+/* battery: pause decorative loops while hidden / idle; none in lite mode */
+html.perf-hidden[data-theme="holo"] body::before, html.perf-hidden[data-theme="holo"] h1, html.perf-hidden[data-theme="holo"] #home .card, html.perf-idle[data-theme="holo"] body::before, html.perf-idle[data-theme="holo"] h1, html.perf-idle[data-theme="holo"] #canvas-wrap { animation-play-state: paused !important; }
+html.perf-lite[data-theme="holo"] body::before, html.perf-lite[data-theme="holo"] h1 { animation: none !important; }

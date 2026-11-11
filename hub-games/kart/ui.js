@@ -32,7 +32,7 @@ export const CSS = `
 /* --- HUD --- */
 .kt-hud { position: absolute; inset: 0; z-index: 2; pointer-events: none; padding: var(--kt-top, 0px) 0 0; }
 .kt-hud[hidden], .kt-menu[hidden], .kt-result[hidden], .kt-touch[hidden], .kt-center[hidden] { display: none !important; }
-.kt-glass { background: rgba(10,14,30,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.14); border-radius: 14px; }
+.kt-glass { background: rgba(10,14,30,.74);border: 1px solid rgba(255,255,255,.14); border-radius: 14px; }
 .kt-item { position: absolute; left: 14px; top: calc(var(--kt-top, 0px) + 12px); width: 74px; height: 74px; display: grid; place-items: center; }
 .kt-item svg { width: 54px; height: 54px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
 .kt-item .key { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 8px; min-width: 30px; padding: 4px 9px; border-radius: 8px; background: rgba(255,255,255,.92); color: #10142a; font: 800 16px/1 ui-monospace, Menlo, monospace; text-align: center; box-shadow: 0 3px 0 rgba(0,0,0,.35); }
@@ -120,7 +120,7 @@ export const CSS = `
 .kt-pad .ring { position: absolute; width: 110px; height: 110px; margin: -55px 0 0 -55px; border-radius: 50%; border: 3px solid rgba(255,255,255,.4); background: rgba(255,255,255,.08); display: none; }
 .kt-pad .knob { position: absolute; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%; background: rgba(255,255,255,.75); display: none; box-shadow: 0 3px 10px rgba(0,0,0,.4); }
 .kt-pad.on .ring, .kt-pad.on .knob { display: block; }
-.kt-b { position: absolute; pointer-events: auto; border-radius: 50%; border: 3px solid rgba(255,255,255,.55); background: rgba(255,255,255,.14); color: #fff; font: 900 italic 14px/1 var(--kt-font); letter-spacing: .03em; display: grid; place-items: center; backdrop-filter: blur(3px); }
+.kt-b { position: absolute; pointer-events: auto; border-radius: 50%; border: 3px solid rgba(255,255,255,.55); background: rgba(255,255,255,.14); color: #fff; font: 900 italic 14px/1 var(--kt-font); letter-spacing: .03em; display: grid; place-items: center;}
 .kt-b.on { background: rgba(255,255,255,.5); transform: scale(.94); }
 .kt-b-gas { right: 18px; bottom: 18px; width: 104px; height: 104px; font-size: 20px; background: rgba(60,220,110,.28); border-color: #7dff9a; }
 .kt-b-brake { right: 140px; bottom: 16px; width: 72px; height: 72px; background: rgba(255,90,90,.25); border-color: #ff8a8a; }

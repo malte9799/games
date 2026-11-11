@@ -147,7 +147,7 @@ Forke das Repository https://github.com/malte9799/games auf meinen GitHub-Accoun
 
 ## 2. Fragerunde (sehr wichtig – baue noch nichts!)
 Stelle mir Fragen mit dem Fragen-Tool (z. B. AskUserQuestion) oder, falls du keins hast, als nummerierte Liste mit Antwortmöglichkeiten. Immer 2–4 konkrete Optionen anbieten, ich kann auch frei antworten.
-  1. Was für ein Spiel? Schlage mir 3 passende Ideen vor, die zur Sammlung passen (schau dir dafür die vorhandenen Spiele an) (Puzzle, Arcade, Karten, Denkspiel …) und lass Platz für einen Freitext. Warte auf meine Antwort.
+  1. Was für ein Spiel? Frage nur nach freier Eingabe (keine Vorschläge): Welche Art von Spiel soll es werden – ggf. auch direkt mit Details/Ideen? Warte auf meine Antwort.
   2. Danach stelle weitere Fragen – allgemeine und spielspezifische, so viele wie nötig, aber nur sinnvolle:
      - Einzelspieler oder Mehrspieler (lokal / online im Raum)? Gegen KI?
      - Stil: retro, modern, minimalistisch, neon, handgezeichnet …?
