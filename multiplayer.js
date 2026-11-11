@@ -99,10 +99,10 @@
     if (COMP_CACHE.has(key)) return COMP_CACHE.get(key);
     const bg = color ? "background:" + color + ";" : "";
     const html = av
-      ? `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;${bg}">
+      ? `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;border-radius:50%;${bg}">
       <img src="/avatar/${esc(av)}" style="width:100%;height:100%;object-fit:contain;display:block;" alt="" />
     </span>`
-      : `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;${bg}"></span>`;
+      : `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;border-radius:50%;${bg}"></span>`;
     COMP_CACHE.set(key, html);
     return html;
   };
