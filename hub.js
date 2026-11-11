@@ -27,6 +27,7 @@ const MP_GAMES = [
   { id: "clickrace", title: "Klick-Rennen", desc: "15 Sekunden, wer klickt mehr?", min: 2, max: 6, preview: (p, w, h) => drawClickRace(p, w, h), load: () => import("./hub-games/clickrace.js") },
   { id: "kritzel", title: "Kritzel-Revier", desc: "Echtzeit: kritzle das größte Revier – Flecken blockieren, Sterne geben Turbo", min: 2, max: 4, preview: (p, w, h) => drawKritzel(p, w, h), load: () => import("./hub-games/kritzel.js") },
   { id: "battleship", title: "Schiffe versenken", desc: "Flotte aufstellen, Koordinaten feuern – Duell mit geheimer Flotte", min: 2, max: 2, preview: (p, w, h) => drawBattleship(p, w, h), load: () => import("./hub-games/battleship.js") },
+  { id: "superknack", title: "Superknack", desc: "31 in einer Farbe – klopfen, tauschen, überleben", min: 2, max: 6, preview: (p, w, h) => drawSuperknack(p, w, h), load: () => import("./hub-games/superknack.js") },
 ];
 window.MP_GAMES = MP_GAMES;                        // multiplayer.js reads the game titles from here
 
