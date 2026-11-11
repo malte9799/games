@@ -770,8 +770,8 @@
     try { const g = (window.MP_GAMES || (typeof GAMES !== "undefined" ? GAMES : [])).find((x) => x.id === id); return g ? g.title : id; } catch { return id; }
   };
 
-  // the dock in the top left corner: the Mehrspieler button and, once you are in a room, the players below it
-  // (avatar + name, a crown on the host). Clicking the button opens the lobby window (code, QR code, join).
+  // the dock in the top left corner: the lobby button and, once you are in a room, the players below it
+  // (avatar + name). While the room is in the lobby state, the host crown sits on the button itself.
   const CROWN = `<svg class="mp-crown" viewBox="0 0 24 24" aria-label="${"Host"}"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="currentColor"/></svg>`;
   const hue = (id) => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
   const dock = {
@@ -783,14 +783,19 @@
       this.el.innerHTML = `<div class="mp-dock-btn"></div><ul class="mp-dock-list" aria-label="${t("players")}"></ul>`;
       document.body.appendChild(this.el);
       this.list = this.el.querySelector("ul");
-      mountButton(this.el.querySelector(".mp-dock-btn"), { className: "primary" });
+      this.btn = mountButton(this.el.querySelector(".mp-dock-btn"), { className: "primary" });
       this.render();
       return this.el;
     },
     render() {
       if (!this.el) return;
       const S = R && R.status !== "connecting" ? snapshot() : null;
-      this.list.innerHTML = S ? S.players.map((p) => `<li class="${p.you ? "me" : ""}${p.host ? " host" : ""}">${compHtml(p.avatar || "", p.accessory || "", 28)}${p.host ? CROWN : ""}<span class="mp-dock-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}</span></li>`).join("") : "";
+      const lobby = !!(S && S.status === "lobby");
+      if (this.btn && this.crowned !== lobby) {   // move the host crown onto the lobby button (and back off it)
+        this.crowned = lobby;
+        this.btn.innerHTML = esc(this.btn.textContent) + (lobby ? CROWN : "");
+      }
+      this.list.innerHTML = S ? S.players.map((p) => `<li class="${p.you ? "me" : ""}${p.host ? " host" : ""}">${compHtml(p.avatar || "", p.accessory || "", 28)}<span class="mp-dock-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}</span></li>`).join("") : "";
     },
   };
 
