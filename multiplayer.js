@@ -73,12 +73,12 @@
   const ACCESSORY_KEY = "mp_accessory";
   const cleanAccessory = (a) => "";
   // background colours for the avatar circle
-  const COLORS = [];
+  const COLORS = ["#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#a78bfa", "#f472b6", "#94a3b8"];
   const COLOR_KEY = "mp_color";
-  const cleanColor = (c) => "";
+  const cleanColor = (c) => (COLORS.includes(c) ? c : "");
   const cleanPlayers = (a) => (Array.isArray(a) ? a.slice(0, 12).map((p) => ({ id: String(p.id), name: cleanName(p.name), avatar: cleanAvatar(p.avatar), accessory: cleanAccessory(p.accessory), color: cleanColor(p.color) })) : []);
 
-  const myColor = () => "";
+  const myColor = () => (COLORS.includes(store.get("mp_color")) ? store.get("mp_color") : "");
   const myAvatar = () => {
     const s = store.get(AVATAR_KEY);
     if (AVATAR_FILES.includes(s)) return s;
@@ -94,14 +94,15 @@
 
   // ---- avatar rendering (single image, no accessories) ----
   const COMP_CACHE = new Map();
-  const compHtml = (av, acc, size) => {
-    const key = (av || "") + "|" + size;
+  const compHtml = (av, acc, size, color) => {
+    const key = (av || "") + "|" + size + "|" + (color || "");
     if (COMP_CACHE.has(key)) return COMP_CACHE.get(key);
+    const bg = color ? "background:" + color + ";" : "";
     const html = av
-      ? `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;">
+      ? `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;${bg}">
       <img src="/avatar/${esc(av)}" style="width:100%;height:100%;object-fit:contain;display:block;" alt="" />
     </span>`
-      : `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;"></span>`;
+      : `<span class="mp-av-comp" style="width:${size}px;height:${size}px;display:inline-block;overflow:hidden;position:relative;${bg}"></span>`;
     COMP_CACHE.set(key, html);
     return html;
   };
@@ -633,6 +634,7 @@
       const S = R && snapshot();
       const initial = (n) => esc([...String(n).trim()][0] || "?").toUpperCase();
       const avRow = (cur) => `<div class="mp-lbl">${t("avatar")}</div><div class="mp-avs mp-av-grid">${AVATAR_FILES.map((a) => `<button type="button" class="mp-av-pick${a === cur ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}"><img src="/avatar/${esc(a)}" style="width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;" alt="" /></button>`).join("")}</div>`;
+      const colRow = (cur) => `<div class="mp-lbl">${t("color")}</div><div class="mp-avs">${COLORS.map((c) => `<button type="button" class="mp-col-pick${c === cur ? " on" : ""}" data-act="color" data-v="${c}" aria-label="${c}" style="background:${c}"></button>`).join("")}</div>`;
       const head = `<button class="mp-x" data-act="close" aria-label="${t("close")}">✕</button><div class="mp-head"><h3>${t("title")}</h3>`;
       const codeBlock = (c) => `<div class="mp-lbl">${t("roomCode")}</div><div class="mp-code">${esc(c)}</div>`;
       const leaveBtn = `<button class="mp-sec" data-act="leave">${t("leave")}</button>`;
@@ -653,7 +655,7 @@
       } else {
         const isHost = S.isHost, playing = R.status === "playing", enough = canStart(), tooMany = cfg.gameMax != null && R.players.length > cfg.gameMax;
         const keepPname = (this.el.querySelector("#mp-pname") || {}).value;
-        const list = S.players.map((p) => `<li class="${p.you ? "me" : ""}">${compHtml(p.avatar || "", "", 30)}<span class="mp-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}${p.host ? `<em>${t("host")}</em>` : ""}</span>${isHost && !p.you ? `<button type="button" class="mp-kick" data-act="kick" data-id="${esc(p.id)}" title="${t("kick")}" aria-label="${t("kick")}: ${esc(p.name)}">✕</button>` : ""}</li>`).join("");
+        const list = S.players.map((p) => `<li class="${p.you ? "me" : ""}">${compHtml(p.avatar || "", "", 30, p.color || "")}<span class="mp-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}${p.host ? `<em>${t("host")}</em>` : ""}</span>${isHost && !p.you ? `<button type="button" class="mp-kick" data-act="kick" data-id="${esc(p.id)}" title="${t("kick")}" aria-label="${t("kick")}: ${esc(p.name)}">✕</button>` : ""}</li>`).join("");
         let act;
         if (playing) act = `<p class="mp-hint">${t("inGame")}</p>${isHost ? `<button class="mp-primary mp-wide" data-act="end">${t("back")}</button>` : ""}`;
         else if (isHost && !cfg.lobbyStart) act = `<button class="mp-primary mp-wide" data-act="pick">${t("pick")}</button>`;
@@ -661,7 +663,7 @@
         else act = `<p class="mp-hint">${t("waitHost")}</p>`;
         h = `${head}</div><div class="mp-coderow">${codeBlock(R.code)}<button class="mp-qr-toggle" data-act="qr" aria-label="${t("qrShow")}" title="${t("qrShow")}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v0M17 17v4h4"/></svg></button></div>${linkBtn}
           ${R.game ? `<div class="mp-game"><span>${t("game")}</span><b>${esc(gameTitle(R.game))}</b></div>` : ""}
-          <div class="mp-me"><button type="button" class="mp-me-big" data-act="prof" aria-label="${t("profileT")}">${compHtml(R.avatar || "", "", 96)}</button><small>${t("profileT")}</small></div>
+          <div class="mp-me"><button type="button" class="mp-me-big" data-act="prof" aria-label="${t("profileT")}" style="${R.color ? "background:" + R.color : ""}">${compHtml(R.avatar || "", "", 96, R.color || "")}</button><small>${t("profileT")}</small></div>
           <div class="mp-plh"><span>${t("players")}</span><b>${S.players.length}/${R.max}</b></div><ul class="mp-pl">${list}</ul>
           
           <div class="mp-act">${act}${leaveBtn}</div>`;
@@ -680,11 +682,12 @@
       const keep = (this.profEl.querySelector("#mp-pname") || {}).value;
       this.profEl.innerHTML = `<button class="mp-qr-close" data-act="profclose" aria-label="${t("close")}">✕</button><h4>${t("profileT")}</h4>
         <div class="mp-field"><label for="mp-pname">${t("yourName")}</label><input id="mp-pname" maxlength="12" autocomplete="off" spellcheck="false" value="${esc(keep ?? R.name)}" placeholder="${esc(t("player"))}"></div>
-        <div class="mp-section"><div class="mp-lbl">${t("avatar")}</div><div class="mp-avs mp-av-grid">${AVATAR_FILES.map((a) => `<button type="button" class="mp-av-pick${a === R.avatar ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}"><img src="/avatar/${esc(a)}" style="width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;" alt="" /></button>`).join("")}</div></div>`;
+        <div class="mp-section"><div class="mp-lbl">${t("avatar")}</div><div class="mp-avs mp-av-grid">${AVATAR_FILES.map((a) => `<button type="button" class="mp-av-pick${a === R.avatar ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}"><img src="/avatar/${esc(a)}" style="width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;" alt="" /></button>`).join("")}</div></div>
+        <div class="mp-section"><div class="mp-lbl">${t("color")}</div><div class="mp-avs">${COLORS.map((c) => `<button type="button" class="mp-col-pick${c === R.color ? " on" : ""}" data-act="color" data-v="${c}" aria-label="${c}" style="background:${c}"></button>`).join("")}</div></div>`;
     },
 
     pickers(av, col) {
-      return `<div class="mp-lbl">${t("avatar")}</div><div class="mp-avs mp-av-grid">${AVATAR_FILES.map((a) => `<button type="button" class="mp-av-pick${a === av ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}"><img src="/avatar/${esc(a)}" style="width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;" alt="" /></button>`).join("")}</div>`;
+      return `<div class="mp-lbl">${t("avatar")}</div><div class="mp-avs mp-av-grid">${AVATAR_FILES.map((a) => `<button type="button" class="mp-av-pick${a === av ? " on" : ""}" data-act="avatar" data-v="${a}" aria-label="${a}"><img src="/avatar/${esc(a)}" style="width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;" alt="" /></button>`).join("")}</div><div class="mp-lbl">${t("color")}</div><div class="mp-avs">${COLORS.map((c) => `<button type="button" class="mp-col-pick${c === col ? " on" : ""}" data-act="color" data-v="${c}" aria-label="${c}" style="background:${c}"></button>`).join("")}</div>`;
     },
 
     // the invitation board on the right edge of the screen; never shifts the lobby window
@@ -722,6 +725,7 @@
         case "prof": this.profOpen = !this.profOpen; this.renderProf(); break;   // the big own icon opens the profile panel
         case "profclose": this.profOpen = false; this.renderProf(); break;
         case "avatar": updateProfile({ avatar: b.dataset.v, name: val("#mp-pname") ?? val("#mp-name") }); break;
+        case "color": updateProfile({ color: b.dataset.v, name: val("#mp-pname") ?? val("#mp-name") }); break;
         case "share":
           navigator.share({ title: t("title"), text: t("shareText", { code: R.code }), url: roomUrl() }).catch(() => {});   // user cancelling the sheet rejects: ignore
           break;
@@ -758,7 +762,7 @@
     render() {
       if (!this.el) return;
       const S = R && R.status !== "connecting" ? snapshot() : null;
-      this.list.innerHTML = S ? S.players.map((p) => `<li class="${p.you ? "me" : ""}${p.host ? " host" : ""}">${compHtml(p.avatar || "", "", 28)}${p.host ? CROWN : ""}<span class="mp-dock-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}</span></li>`).join("") : "";
+      this.list.innerHTML = S ? S.players.map((p) => `<li class="${p.you ? "me" : ""}${p.host ? " host" : ""}">${compHtml(p.avatar || "", "", 28, p.color || "")}${p.host ? CROWN : ""}<span class="mp-dock-nm">${esc(p.name)}${p.you ? `<em>${t("you")}</em>` : ""}</span></li>`).join("") : "";
     },
   };
 
@@ -793,7 +797,7 @@
 
   window.Multiplayer = {
     mountDock: () => dock.mount(),
-    avatarHtml: (av, acc, size) => compHtml(av || "", acc || "", size || 48),
+    avatarHtml: (av, acc, size, color) => compHtml(av || "", acc || "", size || 48, color || ""),
     configure, host, join, leave, kick, send, deliver, on, setGame, start, endGame, roomUrl, mountButton, openFromUrl,
     onMessage: (type, fn) => on("message:" + type, fn),
     openUI: (prefill) => ui.show(prefill),
