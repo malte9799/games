@@ -144,9 +144,9 @@ const CSS = `
 .pk-seat.win .pk-plate { border-color: #ffd94d; box-shadow: 0 0 0 .4cqw rgba(255, 217, 77, .5), 0 0 3cqw rgba(255, 217, 77, .95); animation: pk-bounce .8s ease-in-out 3; }
 @keyframes pk-bounce { 50% { transform: translateY(-.8cqw) scale(1.06); } }
 .pk-seat.fold { opacity: .45; filter: grayscale(.7); } .pk-seat.sit { opacity: .3; filter: grayscale(1); }
-.pk-av { position: relative; width: 4.6cqw; height: 4.6cqw; min-width: 28px; min-height: 28px; flex: none; border-radius: 50%; overflow: hidden; border: .2cqw solid #fff;
+.pk-av { position: relative; width: 4.6cqw; height: 4.6cqw; min-width: 28px; min-height: 28px; flex: none; border-radius: 50%; overflow: visible; border: .2cqw solid #fff;
   display: grid; place-items: center; font: 800 1.9cqw var(--font); color: #fff; background: #667; }
-.pk-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pk-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .pk-nm { display: flex; flex-direction: column; line-height: 1.15; max-width: 12cqw; }
 .pk-nm span { overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
 .pk-nm b { color: #ffe08a; font-variant-numeric: tabular-nums; font-size: .95em; }
